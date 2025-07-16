@@ -14,12 +14,12 @@ export default function Footer() {
           <p>A mission to connect blood donors with recipients.</p>
         </div>
         <div className="flex items-center gap-4 text-sm">
-          <Link href="mailto:support@roktodan.xyz" className="text-muted-foreground hover:text-primary transition-colors">
-            support@roktodan.xyz
+          <Link href="/about" className="text-muted-foreground hover:text-primary transition-colors">
+            About Us
           </Link>
           <span className="text-muted-foreground">|</span>
-          <Link href="https://roktodan.xyz" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
-            roktodan.xyz
+          <Link href="mailto:support@roktodan.xyz" className="text-muted-foreground hover:text-primary transition-colors">
+            support@roktodan.xyz
           </Link>
         </div>
       </div>

@@ -5,7 +5,7 @@ import { Separator } from '@/components/ui/separator';
 import { db } from '@/lib/firebase';
 import type { BloodRequest } from '@/lib/types';
 import { collection, getDocs, limit, orderBy, query } from 'firebase/firestore';
-import { Droplet, MapPin, Calendar, Syringe } from 'lucide-react';
+import { Droplet, MapPin, Calendar, Syringe, Search, Link2, Heart } from 'lucide-react';
 import { format } from 'date-fns';
 
 async function getUrgentRequests() {
@@ -47,6 +47,53 @@ export default async function Home() {
             <Button asChild size="lg" variant="outline">
               <Link href="/search-donors">Search Donors</Link>
             </Button>
+          </div>
+        </div>
+      </section>
+
+      <section className="w-full py-16 md:py-24 bg-background">
+        <div className="container mx-auto px-4">
+          <h2 className="text-center text-3xl font-bold text-primary md:text-4xl font-headline">
+            How It Works
+          </h2>
+          <p className="mx-auto mt-4 max-w-2xl text-center text-lg text-foreground/80">
+            A simple three-step process to connect donors and recipients.
+          </p>
+          <Separator className="my-8" />
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+            <Card className="text-center shadow-lg">
+              <CardHeader>
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                  <Search className="h-8 w-8 text-primary" />
+                </div>
+                <CardTitle className="mt-4 text-2xl font-headline">Search</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">Find available blood donors in your area using our simple search filters.</p>
+              </CardContent>
+            </Card>
+            <Card className="text-center shadow-lg">
+              <CardHeader>
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                  <Link2 className="h-8 w-8 text-primary" />
+                </div>
+                <CardTitle className="mt-4 text-2xl font-headline">Connect</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">Directly contact donors or view urgent requests to offer your help.</p>
+              </CardContent>
+            </Card>
+            <Card className="text-center shadow-lg">
+              <CardHeader>
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                  <Heart className="h-8 w-8 text-primary" />
+                </div>
+                <CardTitle className="mt-4 text-2xl font-headline">Donate</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">Save a life by donating blood and become a hero in someone's story.</p>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
