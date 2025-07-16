@@ -26,7 +26,7 @@ export default function Footer() {
             Our Team
           </Link>
           <span className="text-muted-foreground">|</span>
-          <Link href="mailto:support@roktodan.xyz" className="text-muted-foreground hover:text-primary transition-colors">
+          <Link href="mailto:support@roktobondhu.org" className="text-muted-foreground hover:text-primary transition-colors">
             Contact
           </Link>
         </div>

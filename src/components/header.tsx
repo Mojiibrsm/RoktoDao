@@ -11,8 +11,7 @@ const navLinks = [
   { href: '/search-donors', label: 'Find Donors' },
   { href: '/request-blood', label: 'Request Blood' },
   { href: '/about', label: 'About' },
-  { href: '/why-donate-blood', label: 'Why Donate' },
-  { href: '/faq', label: 'FAQ' },
+  { href: '/team', label: 'Our Team' },
 ];
 
 export default function Header() {
@@ -38,6 +37,9 @@ export default function Header() {
               {link.label}
             </Link>
           ))}
+           <Link href="mailto:support@roktobondhu.org" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
+              Contact
+            </Link>
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
@@ -79,10 +81,13 @@ export default function Header() {
                     {link.label}
                   </Link>
                 ))}
-                 <Link href="/team" className="text-lg font-medium text-muted-foreground transition-colors hover:text-primary">
-                    Our Team
+                 <Link href="/why-donate-blood" className="text-lg font-medium text-muted-foreground transition-colors hover:text-primary">
+                    Why Donate
                   </Link>
-                   <Link href="mailto:support@roktodan.xyz" className="text-lg font-medium text-muted-foreground transition-colors hover:text-primary">
+                  <Link href="/faq" className="text-lg font-medium text-muted-foreground transition-colors hover:text-primary">
+                    FAQ
+                  </Link>
+                   <Link href="mailto:support@roktobondhu.org" className="text-lg font-medium text-muted-foreground transition-colors hover:text-primary">
                     Contact
                   </Link>
               </nav>

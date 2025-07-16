@@ -6,8 +6,14 @@ import { Separator } from '@/components/ui/separator';
 import { db } from '@/lib/firebase';
 import type { BloodRequest } from '@/lib/types';
 import { collection, getDocs, limit, orderBy, query } from 'firebase/firestore';
-import { Droplet, MapPin, Calendar, Syringe, Search, Heart, HeartHandshake, Phone, Radio, Mail, ClipboardList, Smartphone, LocateFixed, MessageCircle, LifeBuoy } from 'lucide-react';
+import { Droplet, MapPin, Calendar, Syringe, Search, Heart, Phone, LifeBuoy, HeartPulse, ShieldCheck, Stethoscope, LocateFixed, MessageCircle } from 'lucide-react';
 import { format } from 'date-fns';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
 
 async function getUrgentRequests() {
   try {
@@ -24,6 +30,21 @@ async function getUrgentRequests() {
     return [];
   }
 }
+
+const faqs = [
+  {
+    question: "রক্তদানের জন্য সর্বনিম্ন বয়স কত?",
+    answer: "রক্তদানের জন্য আপনার বয়স কমপক্ষে ১৮ বছর হতে হবে।"
+  },
+  {
+    question: "আমার ওজন কত কেজি হওয়া প্রয়োজন?",
+    answer: "সুস্থভাবে রক্তদানের জন্য আপনার ওজন কমপক্ষে ৫০ কেজি (১১০ পাউন্ড) হওয়া উচিত।"
+  },
+  {
+    question: "কতদিন পর পর রক্তদান করা যায়?",
+    answer: "একজন সুস্থ পুরুষ প্রতি ৩ মাস পর পর এবং একজন সুস্থ নারী প্রতি ৪ মাস পর পর রক্তদান করতে পারেন।"
+  },
+];
 
 export default async function Home() {
   const urgentRequests = await getUrgentRequests();
@@ -136,7 +157,7 @@ export default async function Home() {
         </div>
       </section>
       
-      <section className="w-full py-16 md:py-24 bg-background">
+       <section className="w-full py-16 md:py-24 bg-background">
         <div className="container mx-auto px-4">
            <h2 className="text-center text-3xl font-bold text-primary md:text-4xl font-headline">
             কেন রক্তবন্ধু ব্যবহার করবেন?
@@ -158,7 +179,7 @@ export default async function Home() {
                   <LocateFixed className="h-8 w-8 text-primary" />
                 </div>
                 <h3 className="text-xl font-bold font-headline">লোকেশন ভিত্তিক সার্চ</h3>
-                <p className="text-muted-foreground mt-2">বিভাগ, জেলা এবং উপজেলা অনুযায়ী রক্তদাতা খুঁজে জরুরি মুহূর্তে সময় বাঁচান।</p>
+                <p className="text-muted-foreground mt-2">বিভাগ ও জেলা অনুযায়ী রক্তদাতা খুঁজে জরুরি মুহূর্তে সময় বাঁচান।</p>
             </Card>
              <Card className="text-center p-6 shadow-lg">
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
@@ -171,62 +192,61 @@ export default async function Home() {
         </div>
       </section>
 
-
-      <section className="w-full py-16 md:py-24 bg-primary/5">
+      <section className="bg-primary/5 w-full py-16 md:py-24">
         <div className="container mx-auto px-4">
-          <h2 className="text-center text-3xl font-bold text-primary md:text-4xl font-headline">
-            Key Features
-          </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-center text-lg text-foreground/80">
-            Our platform is packed with features to make blood donation seamless.
-          </p>
-          <Separator className="my-8" />
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
-            <Card className="text-center shadow-lg">
-              <CardHeader>
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                  <Radio className="h-8 w-8 text-primary" />
-                </div>
-                <CardTitle className="mt-4 text-2xl font-headline">রিয়েল টাইম রিকোয়েস্ট</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Get live updates on urgent blood needs in your area.</p>
-              </CardContent>
-            </Card>
-            <Card className="text-center shadow-lg">
-              <CardHeader>
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                  <Mail className="h-8 w-8 text-primary" />
-                </div>
-                <CardTitle className="mt-4 text-2xl font-headline">SMS/Email নোটিফিকেশন</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Receive instant notifications for matching blood requests.</p>
-              </CardContent>
-            </Card>
-            <Card className="text-center shadow-lg">
-              <CardHeader>
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                  <ClipboardList className="h-8 w-8 text-primary" />
-                </div>
-                <CardTitle className="mt-4 text-2xl font-headline">রক্তদানের রেকর্ড</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Keep a personal log of your blood donations and eligibility.</p>
-              </CardContent>
-            </Card>
-            <Card className="text-center shadow-lg">
-              <CardHeader>
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                  <Smartphone className="h-8 w-8 text-primary" />
-                </div>
-                <CardTitle className="mt-4 text-2xl font-headline">মোবাইল রেসপন্সিভ</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Access our platform on any device, anywhere, anytime.</p>
-              </CardContent>
-            </Card>
-          </div>
+            <h2 className="text-center text-3xl font-bold text-primary md:text-4xl font-headline">
+                কেন রক্তদান করবেন?
+            </h2>
+            <p className="mx-auto mt-4 max-w-3xl text-center text-lg text-foreground/80">
+              রক্তদান শুধুমাত্র অন্যের জীবন বাঁচায় না, আপনার স্বাস্থ্যের জন্যও এটি উপকারী।
+            </p>
+            <Separator className="my-8" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+                <Card className="p-6 shadow-lg">
+                    <HeartPulse className="mx-auto h-12 w-12 text-primary mb-4" />
+                    <h3 className="text-xl font-bold">হার্ট ভালো থাকে</h3>
+                    <p className="text-muted-foreground mt-2">নিয়মিত রক্তদান করলে শরীরে আয়রনের মাত্রা নিয়ন্ত্রণে থাকে, যা হৃদরোগের ঝুঁকি কমায়।</p>
+                </Card>
+                <Card className="p-6 shadow-lg">
+                    <ShieldCheck className="mx-auto h-12 w-12 text-primary mb-4" />
+                    <h3 className="text-xl font-bold">নতুন রক্তকণিকা তৈরি হয়</h3>
+                    <p className="text-muted-foreground mt-2">রক্তদানের পর শরীর নতুন রক্তকণিকা তৈরিতে উৎসাহিত হয়, যা শরীরকে সতেজ রাখে।</p>
+                </Card>
+                <Card className="p-6 shadow-lg">
+                    <Stethoscope className="mx-auto h-12 w-12 text-primary mb-4" />
+                    <h3 className="text-xl font-bold">বিনামূল্যে স্বাস্থ্য পরীক্ষা</h3>
+                    <p className="text-muted-foreground mt-2">প্রতিবার রক্তদানের আগে আপনার স্বাস্থ্য পরীক্ষা করা হয়, যা আপনার সুস্থতা সম্পর্কে ধারণা দেয়।</p>
+                </Card>
+            </div>
+            <div className="mt-12 text-center">
+              <Button asChild>
+                  <Link href="/why-donate-blood">বিস্তারিত জানুন</Link>
+              </Button>
+            </div>
+        </div>
+      </section>
+
+      <section className="container mx-auto py-16 md:py-24 px-4 max-w-4xl">
+        <h2 className="text-center text-3xl font-bold text-primary md:text-4xl font-headline">
+            সাধারণ জিজ্ঞাসা
+        </h2>
+        <Separator className="my-8" />
+        <Accordion type="single" collapsible className="w-full">
+          {faqs.map((faq, index) => (
+            <AccordionItem value={`item-${index}`} key={index}>
+              <AccordionTrigger className="text-lg font-semibold text-left hover:no-underline">
+                {faq.question}
+              </AccordionTrigger>
+              <AccordionContent className="text-base text-muted-foreground leading-relaxed">
+                {faq.answer}
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
+        <div className="mt-12 text-center">
+          <Button asChild variant="outline">
+              <Link href="/faq">আরো প্রশ্ন দেখুন</Link>
+          </Button>
         </div>
       </section>
 
