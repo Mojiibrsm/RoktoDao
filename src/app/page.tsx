@@ -5,7 +5,7 @@ import { Separator } from '@/components/ui/separator';
 import { db } from '@/lib/firebase';
 import type { BloodRequest } from '@/lib/types';
 import { collection, getDocs, limit, orderBy, query } from 'firebase/firestore';
-import { Droplet, MapPin, Calendar, Syringe, Search, Link2, Heart, HeartHandshake } from 'lucide-react';
+import { Droplet, MapPin, Calendar, Syringe, Search, Heart, HeartHandshake, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 
 async function getUrgentRequests() {
@@ -51,6 +51,60 @@ export default async function Home() {
         </div>
       </section>
 
+      <section className="w-full py-16 md:py-24">
+        <div className="container mx-auto px-4">
+          <div className="text-center">
+            <h2 className="text-3xl font-bold text-primary md:text-4xl font-headline">
+              জরুরি রক্তের রিকোয়েস্ট
+            </h2>
+            <p className="mt-2 text-lg text-muted-foreground">Live urgent blood requests</p>
+          </div>
+          <Separator className="my-8" />
+          {urgentRequests.length > 0 ? (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {urgentRequests.map((req) => (
+                <Card key={req.id} className="flex flex-col justify-between shadow-lg hover:shadow-xl transition-shadow duration-300">
+                  <CardHeader>
+                    <CardTitle className="flex items-start justify-between">
+                      <span className="text-xl">{req.patientName}</span>
+                      <span className="flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-base font-bold text-primary">
+                        <Droplet className="h-4 w-4" />
+                        {req.bloodGroup}
+                      </span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center gap-3 text-muted-foreground">
+                      <MapPin className="h-5 w-5 flex-shrink-0" />
+                      <span>{req.hospitalLocation}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-muted-foreground">
+                      <Calendar className="h-5 w-5 flex-shrink-0" />
+                      <span>Needed by: {format(new Date(req.neededDate), "PPP")}</span>
+                    </div>
+                     <div className="flex items-center gap-3 text-muted-foreground">
+                      <Phone className="h-5 w-5 flex-shrink-0" />
+                      <span>Contact: {req.contactPhone}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-muted-foreground">
+                      <Syringe className="h-5 w-5 flex-shrink-0" />
+                      <span>{req.numberOfBags} Bag(s)</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-muted-foreground">No urgent requests at the moment.</p>
+          )}
+          <div className="mt-12 text-center">
+            <Button asChild variant="outline">
+                <Link href="/requests">আরো দেখুন</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
       <section className="w-full py-16 md:py-24 bg-background">
         <div className="container mx-auto px-4">
           <h2 className="text-center text-3xl font-bold text-primary md:text-4xl font-headline">
@@ -75,7 +129,7 @@ export default async function Home() {
             <Card className="text-center shadow-lg">
               <CardHeader>
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                  <Link2 className="h-8 w-8 text-primary" />
+                  <HeartHandshake className="h-8 w-8 text-primary" />
                 </div>
                 <CardTitle className="mt-4 text-2xl font-headline">Connect</CardTitle>
               </CardHeader>
@@ -98,51 +152,6 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="w-full py-16 md:py-24">
-        <div className="container mx-auto px-4">
-          <h2 className="text-center text-3xl font-bold text-primary md:text-4xl font-headline">
-            Urgent Blood Requests
-          </h2>
-          <Separator className="my-8" />
-          {urgentRequests.length > 0 ? (
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {urgentRequests.map((req) => (
-                <Card key={req.id} className="flex flex-col justify-between shadow-lg hover:shadow-xl transition-shadow duration-300">
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span>{req.patientName}</span>
-                      <span className="flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm font-bold text-primary">
-                        <Droplet className="h-4 w-4" />
-                        {req.bloodGroup}
-                      </span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center gap-3 text-muted-foreground">
-                      <MapPin className="h-5 w-5" />
-                      <span>{req.hospitalLocation}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-muted-foreground">
-                      <Calendar className="h-5 w-5" />
-                      <span>Needed by: {format(new Date(req.neededDate), "PPP")}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-muted-foreground">
-                      <Syringe className="h-5 w-5" />
-                      <span>{req.numberOfBags} Bag(s)</span>
-                    </div>
-                     <div className="flex items-center gap-3 text-muted-foreground">
-                      <MapPin className="h-5 w-5" />
-                      <span>Contact: {req.contactPhone}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <p className="text-center text-muted-foreground">No urgent requests at the moment.</p>
-          )}
-        </div>
-      </section>
     </div>
   );
 }
