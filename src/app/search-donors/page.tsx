@@ -12,24 +12,29 @@ import type { Donor } from '@/lib/types';
 import DonorCard from '@/components/donor-card';
 
 export default function SearchDonorsPage() {
-  const [bloodGroup, setBloodGroup] = useState('');
-  const [division, setDivision] = useState('');
-  const [district, setDistrict] = useState('');
+  const [bloodGroup, setBloodGroup] = useState('any');
+  const [division, setDivision] = useState('any');
+  const [district, setDistrict] = useState('any');
   const [donors, setDonors] = useState<Donor[]>([]);
   const [isPending, startTransition] = useTransition();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleSearch = () => {
     startTransition(async () => {
       const donorsRef = collection(db, 'donors');
       let q = query(donorsRef, where('isAvailable', '==', true));
       
-      if (bloodGroup) {
+      if (bloodGroup && bloodGroup !== 'any') {
         q = query(q, where('bloodGroup', '==', bloodGroup));
       }
-      if (division) {
+      if (division && division !== 'any') {
         q = query(q, where('address.division', '==', division));
       }
-      if (district) {
+      if (district && district !== 'any') {
         q = query(q, where('address.district', '==', district));
       }
 
@@ -45,6 +50,10 @@ export default function SearchDonorsPage() {
      // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  if (!isClient) {
+    return null;
+  }
+
   return (
     <div className="container mx-auto py-12 px-4">
       <Card className="mb-8 shadow-lg">
@@ -59,28 +68,28 @@ export default function SearchDonorsPage() {
               <Select value={bloodGroup} onValueChange={setBloodGroup}>
                 <SelectTrigger id="blood-group"><SelectValue placeholder="Any" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Any</SelectItem>
+                  <SelectItem value="any">Any</SelectItem>
                   {bloodGroups.map(group => <SelectItem key={group} value={group}>{group}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="division">Division</Label>
-              <Select value={division} onValueChange={(val) => {setDivision(val); setDistrict('');}}>
+              <Select value={division} onValueChange={(val) => {setDivision(val); setDistrict('any');}}>
                 <SelectTrigger id="division"><SelectValue placeholder="Any" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Any</SelectItem>
+                  <SelectItem value="any">Any</SelectItem>
                   {Object.keys(locations).map(div => <SelectItem key={div} value={div}>{div}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="district">District</Label>
-              <Select value={district} onValueChange={setDistrict} disabled={!division}>
+              <Select value={district} onValueChange={setDistrict} disabled={!division || division === 'any'}>
                 <SelectTrigger id="district"><SelectValue placeholder="Any" /></SelectTrigger>
                 <SelectContent>
-                   <SelectItem value="">Any</SelectItem>
-                  {division && locations[division as keyof typeof locations]?.districts.map(dist => <SelectItem key={dist} value={dist}>{dist}</SelectItem>)}
+                   <SelectItem value="any">Any</SelectItem>
+                  {division && division !== 'any' && locations[division as keyof typeof locations]?.districts.map(dist => <SelectItem key={dist} value={dist}>{dist}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
