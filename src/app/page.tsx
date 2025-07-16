@@ -5,7 +5,7 @@ import { Separator } from '@/components/ui/separator';
 import { db } from '@/lib/firebase';
 import type { BloodRequest } from '@/lib/types';
 import { collection, getDocs, limit, orderBy, query } from 'firebase/firestore';
-import { Droplet, MapPin, Calendar, Syringe, Search, Heart, HeartHandshake, Phone, Radio, Mail, ClipboardList, Smartphone } from 'lucide-react';
+import { Droplet, MapPin, Calendar, Syringe, Search, Heart, HeartHandshake, Phone, Radio, Mail, ClipboardList, Smartphone, LocateFixed, MessageCircle, LifeBuoy } from 'lucide-react';
 import { format } from 'date-fns';
 
 async function getUrgentRequests() {
@@ -137,8 +137,44 @@ export default async function Home() {
           </div>
         </div>
       </section>
-
+      
       <section className="w-full py-16 md:py-24 bg-background">
+        <div className="container mx-auto px-4">
+           <h2 className="text-center text-3xl font-bold text-primary md:text-4xl font-headline">
+            কেন রক্তবন্ধু ব্যবহার করবেন?
+          </h2>
+          <p className="mx-auto mt-4 max-w-3xl text-center text-lg text-foreground/80">
+            রক্তদান একটি মহৎ কাজ। এর মাধ্যমে আপনি অন্যের জীবন বাঁচাতে পারেন। রক্তবন্ধু এই প্রক্রিয়াকে আরও সহজ করে তুলেছে।
+          </p>
+          <Separator className="my-8" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <Card className="text-center p-6 shadow-lg">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
+                  <LifeBuoy className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="text-xl font-bold font-headline">জীবন বাঁচান</h3>
+                <p className="text-muted-foreground mt-2">আপনার এক ব্যাগ রক্ত একজন মুমূর্ষু রোগীর জীবন বাঁচাতে পারে। জরুরি মুহূর্তে আপনার এই ত্যাগ অমূল্য।</p>
+            </Card>
+             <Card className="text-center p-6 shadow-lg">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
+                  <LocateFixed className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="text-xl font-bold font-headline">লোকেশন ভিত্তিক সার্চ</h3>
+                <p className="text-muted-foreground mt-2">বিভাগ, জেলা এবং উপজেলা অনুযায়ী রক্তদাতা খুঁজে জরুরি মুহূর্তে সময় বাঁচান।</p>
+            </Card>
+             <Card className="text-center p-6 shadow-lg">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
+                  <MessageCircle className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="text-xl font-bold font-headline">দ্রুত যোগাযোগ</h3>
+                <p className="text-muted-foreground mt-2">প্ল্যাটফর্মের মাধ্যমে সরাসরি ডোনারের সাথে যোগাযোগ করে রক্ত সংগ্রহ করুন।</p>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+
+      <section className="w-full py-16 md:py-24 bg-primary/5">
         <div className="container mx-auto px-4">
           <h2 className="text-center text-3xl font-bold text-primary md:text-4xl font-headline">
             Key Features
