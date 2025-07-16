@@ -11,6 +11,7 @@ const navLinks = [
   { href: '/', label: 'Home' },
   { href: '/requests', label: 'All Requests' },
   { href: '/about', label: 'About Us' },
+  { href: '/team', label: 'Our Team' },
   { href: '/search-donors', label: 'Search Donors' },
   { href: '/request-blood', label: 'Request Blood' },
 ];

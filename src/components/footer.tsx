@@ -18,6 +18,10 @@ export default function Footer() {
             About Us
           </Link>
           <span className="text-muted-foreground">|</span>
+          <Link href="/team" className="text-muted-foreground hover:text-primary transition-colors">
+            Our Team
+          </Link>
+          <span className="text-muted-foreground">|</span>
           <Link href="mailto:support@roktodan.xyz" className="text-muted-foreground hover:text-primary transition-colors">
             support@roktodan.xyz
           </Link>
