@@ -10,6 +10,8 @@ import { useRouter } from 'next/navigation';
 const navLinks = [
   { href: '/', label: 'Home' },
   { href: '/requests', label: 'All Requests' },
+  { href: '/why-donate-blood', label: 'Why Donate Blood' },
+  { href: '/faq', label: 'FAQ' },
   { href: '/about', label: 'About Us' },
   { href: '/team', label: 'Our Team' },
   { href: '/search-donors', label: 'Search Donors' },
