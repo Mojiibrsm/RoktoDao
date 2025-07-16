@@ -105,6 +105,39 @@ export default async function Home() {
         </div>
       </section>
 
+      <section className="w-full py-16 md:py-24 bg-primary/5">
+        <div className="container mx-auto px-4">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div>
+              <h2 className="text-3xl font-bold text-primary font-headline">
+                আপনার এলাকাতেই খুঁজুন রক্তদাতা
+              </h2>
+              <Separator className="my-4" />
+              <p className="text-muted-foreground leading-relaxed">
+                আমাদের ওয়েবসাইটে আপনি খুব সহজেই বিভাগ এবং জেলা অনুযায়ী রক্তদাতাদের খুঁজে নিতে পারেন। জরুরি মুহূর্তে আপনার নিকটবর্তী রক্তদাতাকে খুঁজে পাওয়া এখন আগের চেয়ে অনেক সহজ।
+              </p>
+              <p className="mt-4 text-muted-foreground leading-relaxed">
+                কেবলমাত্র প্রয়োজনীয় রক্তের গ্রুপ, বিভাগ এবং জেলা নির্বাচন করুন, আর মুহূর্তেই পেয়ে যান আপনার এলাকার সকল রেজিস্টার্ড রক্তদাতাদের তালিকা।
+              </p>
+              <Button asChild className="mt-6">
+                <Link href="/search-donors">
+                  <Search className="mr-2 h-5 w-5" />
+                  এখনই খুঁজুন
+                </Link>
+              </Button>
+            </div>
+            <div>
+              <img
+                src="https://placehold.co/600x400.png"
+                alt="Map of Bangladesh for location based search"
+                data-ai-hint="map Bangladesh"
+                className="rounded-lg object-cover w-full h-full shadow-xl"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="w-full py-16 md:py-24 bg-background">
         <div className="container mx-auto px-4">
           <h2 className="text-center text-3xl font-bold text-primary md:text-4xl font-headline">
