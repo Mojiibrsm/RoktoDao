@@ -22,4 +22,7 @@ export type Donor = {
   };
   lastDonationDate?: string;
   isAvailable: boolean;
+  dateOfBirth?: string;
+  gender?: 'Male' | 'Female' | 'Other';
+  donationCount?: number;
 };

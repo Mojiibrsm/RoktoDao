@@ -15,7 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, Check, ChevronsUpDown } from 'lucide-react';
+import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { bloodGroups, locations, upazilas } from '@/lib/location-data';
@@ -33,6 +33,9 @@ const profileSchema = z.object({
   upazila: z.string({ required_error: 'Upazila is required.' }).min(1, 'Upazila is required.'),
   lastDonationDate: z.date().optional(),
   isAvailable: z.boolean().default(true),
+  dateOfBirth: z.date().optional(),
+  gender: z.enum(['Male', 'Female', 'Other']).optional(),
+  donationCount: z.coerce.number().optional(),
 });
 
 export default function ProfilePage() {
@@ -72,6 +75,9 @@ export default function ProfilePage() {
             upazila: donorProfile.address?.upazila || '',
             lastDonationDate: donorProfile.lastDonationDate ? new Date(donorProfile.lastDonationDate) : undefined,
             isAvailable: donorProfile.isAvailable,
+            dateOfBirth: donorProfile.dateOfBirth ? new Date(donorProfile.dateOfBirth) : undefined,
+            gender: donorProfile.gender,
+            donationCount: donorProfile.donationCount
         });
     }
   }, [user, donorProfile, loading, router, form]);
@@ -102,6 +108,9 @@ export default function ProfilePage() {
       },
       lastDonationDate: values.lastDonationDate?.toISOString(),
       isAvailable: values.isAvailable,
+      dateOfBirth: values.dateOfBirth?.toISOString(),
+      gender: values.gender,
+      donationCount: values.donationCount,
     };
 
     try {
@@ -159,6 +168,26 @@ export default function ProfilePage() {
                   <FormMessage />
                 </FormItem>
               )} />
+                <FormField control={form.control} name="dateOfBirth" render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                    <FormLabel>Date of Birth</FormLabel>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                        <FormControl>
+                            <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                        </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date()} initialFocus />
+                        </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                    </FormItem>
+                )} />
+
               <FormField control={form.control} name="lastDonationDate" render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Last Donation Date</FormLabel>
@@ -175,6 +204,17 @@ export default function ProfilePage() {
                       <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date()} initialFocus />
                     </PopoverContent>
                   </Popover>
+                  <FormMessage />
+                </FormItem>
+              )} />
+             
+             <FormField control={form.control} name="gender" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Gender</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl><SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger></FormControl>
+                    <SelectContent>{['Male', 'Female', 'Other'].map(gender => <SelectItem key={gender} value={gender}>{gender}</SelectItem>)}</SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )} />
@@ -201,7 +241,7 @@ export default function ProfilePage() {
                 </FormItem>
               )} />
               <FormField control={form.control} name="upazila" render={({ field }) => (
-                <FormItem className="md:col-span-2">
+                <FormItem>
                   <FormLabel>Upazila / Area</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value} disabled={!selectedDistrict}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Select upazila" /></SelectTrigger></FormControl>
@@ -212,6 +252,13 @@ export default function ProfilePage() {
                   <FormMessage />
                 </FormItem>
               )} />
+                 <FormField control={form.control} name="donationCount" render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Previous Donation Count</FormLabel>
+                    <FormControl><Input type="number" min="0" placeholder="e.g., 5" {...field} /></FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )} />
               <FormField control={form.control} name="isAvailable" render={({ field }) => (
                   <FormItem className="md:col-span-2 flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
                       <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
