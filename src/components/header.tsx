@@ -8,7 +8,6 @@ import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 
 const navLinks = [
-  { href: '/', label: 'Home' },
   { href: '/requests', label: 'All Requests' },
   { href: '/why-donate-blood', label: 'Why Donate Blood' },
   { href: '/faq', label: 'FAQ' },
@@ -77,7 +76,7 @@ export default function Header() {
             </SheetTrigger>
             <SheetContent side="right">
               <nav className="flex flex-col gap-6 pt-8">
-                {navLinks.map(link => (
+                {[{ href: '/', label: 'Home' }, ...navLinks].map(link => (
                   <Link key={link.href} href={link.href} className="text-lg font-medium text-muted-foreground transition-colors hover:text-primary">
                     {link.label}
                   </Link>
