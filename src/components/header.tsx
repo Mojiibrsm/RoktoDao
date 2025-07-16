@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 
 const navLinks = [
   { href: '/', label: 'Home' },
+  { href: '/requests', label: 'All Requests' },
   { href: '/about', label: 'About Us' },
   { href: '/search-donors', label: 'Search Donors' },
   { href: '/request-blood', label: 'Request Blood' },
