@@ -26,11 +26,11 @@ import type { Donor } from '@/lib/types';
 
 const profileSchema = z.object({
   fullName: z.string().min(3, { message: 'Full name is required.' }),
-  bloodGroup: z.string({ required_error: 'Blood group is required.' }),
+  bloodGroup: z.string({ required_error: 'Blood group is required.' }).min(1, 'Blood group is required.'),
   phoneNumber: z.string().min(11, { message: 'A valid phone number is required.' }),
-  division: z.string({ required_error: 'Division is required.' }),
-  district: z.string({ required_error: 'District is required.' }),
-  upazila: z.string({ required_error: 'Upazila is required.' }),
+  division: z.string({ required_error: 'Division is required.' }).min(1, 'Division is required.'),
+  district: z.string({ required_error: 'District is required.' }).min(1, 'District is required.'),
+  upazila: z.string({ required_error: 'Upazila is required.' }).min(1, 'Upazila is required.'),
   lastDonationDate: z.date().optional(),
   isAvailable: z.boolean().default(true),
 });
@@ -45,10 +45,17 @@ export default function ProfilePage() {
     resolver: zodResolver(profileSchema),
     defaultValues: {
       isAvailable: true,
+      fullName: '',
+      bloodGroup: '',
+      phoneNumber: '',
+      division: '',
+      district: '',
+      upazila: '',
     },
   });
   
   const selectedDivision = form.watch('division');
+  const selectedDistrict = form.watch('district');
 
   useEffect(() => {
     if (!loading && !user) {
@@ -57,10 +64,14 @@ export default function ProfilePage() {
     if (donorProfile) {
         form.reset({
             ...donorProfile,
-            division: donorProfile.address.division,
-            district: donorProfile.address.district,
-            upazila: donorProfile.address.upazila,
+            fullName: donorProfile.fullName || '',
+            phoneNumber: donorProfile.phoneNumber || '',
+            bloodGroup: donorProfile.bloodGroup || '',
+            division: donorProfile.address?.division || '',
+            district: donorProfile.address?.district || '',
+            upazila: donorProfile.address?.upazila || '',
             lastDonationDate: donorProfile.lastDonationDate ? new Date(donorProfile.lastDonationDate) : undefined,
+            isAvailable: donorProfile.isAvailable,
         });
     }
   }, [user, donorProfile, loading, router, form]);
@@ -74,6 +85,10 @@ export default function ProfilePage() {
   }
 
   const onSubmit = async (values: z.infer<typeof profileSchema>) => {
+    if (!user) {
+        toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be logged in to update your profile.' });
+        return;
+    }
     setIsSubmitting(true);
     const donorData: Omit<Donor, 'id'> = {
       uid: user.uid,
@@ -90,7 +105,7 @@ export default function ProfilePage() {
     };
 
     try {
-      await setDoc(doc(db, 'donors', user.uid), donorData);
+      await setDoc(doc(db, 'donors', user.uid), donorData, { merge: true });
       toast({
         title: 'Profile Updated',
         description: 'Your information has been saved successfully.',
@@ -137,7 +152,7 @@ export default function ProfilePage() {
               <FormField control={form.control} name="bloodGroup" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Blood Group</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Select blood group" /></SelectTrigger></FormControl>
                     <SelectContent>{bloodGroups.map(group => <SelectItem key={group} value={group}>{group}</SelectItem>)}</SelectContent>
                   </Select>
@@ -166,7 +181,7 @@ export default function ProfilePage() {
                <FormField control={form.control} name="division" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Division</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={(value) => { field.onChange(value); form.setValue('district', ''); form.setValue('upazila', ''); }} value={field.value}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Select division" /></SelectTrigger></FormControl>
                     <SelectContent>{Object.keys(locations).map(div => <SelectItem key={div} value={div}>{div}</SelectItem>)}</SelectContent>
                   </Select>
@@ -176,9 +191,11 @@ export default function ProfilePage() {
               <FormField control={form.control} name="district" render={({ field }) => (
                 <FormItem>
                   <FormLabel>District</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedDivision}>
+                  <Select onValueChange={(value) => { field.onChange(value); form.setValue('upazila', ''); }} value={field.value} disabled={!selectedDivision}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Select district" /></SelectTrigger></FormControl>
-                    <SelectContent>{selectedDivision && locations[selectedDivision as keyof typeof locations]?.districts.map(dist => <SelectItem key={dist} value={dist}>{dist}</SelectItem>)}</SelectContent>
+                    <SelectContent>
+                      {selectedDivision && locations[selectedDivision as keyof typeof locations]?.districts.map(dist => <SelectItem key={dist} value={dist}>{dist}</SelectItem>)}
+                    </SelectContent>
                   </Select>
                   <FormMessage />
                 </FormItem>
@@ -186,9 +203,11 @@ export default function ProfilePage() {
               <FormField control={form.control} name="upazila" render={({ field }) => (
                 <FormItem className="md:col-span-2">
                   <FormLabel>Upazila / Area</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value} disabled={!selectedDistrict}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Select upazila" /></SelectTrigger></FormControl>
-                    <SelectContent>{Object.entries(upazilas).flatMap(([dist, ups]) => ups.map(up => <SelectItem key={up} value={up}>{up}</SelectItem>))}</SelectContent>
+                    <SelectContent>
+                      {selectedDistrict && upazilas[selectedDistrict as keyof typeof upazilas]?.map(up => <SelectItem key={up} value={up}>{up}</SelectItem>)}
+                    </SelectContent>
                   </Select>
                   <FormMessage />
                 </FormItem>
