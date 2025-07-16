@@ -4,9 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { db } from '@/lib/firebase';
-import type { BloodRequest } from '@/lib/types';
-import { collection, getDocs, limit, orderBy, query } from 'firebase/firestore';
-import { Droplet, MapPin, Calendar, Syringe, Search, Heart, Phone, LifeBuoy, HeartPulse, ShieldCheck, Stethoscope, LocateFixed, MessageCircle, Newspaper, Github, Linkedin, Twitter } from 'lucide-react';
+import type { BloodRequest, Donor } from '@/lib/types';
+import { collection, getDocs, limit, orderBy, query, where } from 'firebase/firestore';
+import { Droplet, MapPin, Calendar, Syringe, Search, Heart, Phone, LifeBuoy, HeartPulse, ShieldCheck, Stethoscope, LocateFixed, MessageCircle, Newspaper, Github, Linkedin, Twitter, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import {
   Accordion,
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/accordion";
 import { getBlogPosts } from '@/lib/blog-data';
 import Image from 'next/image';
+import DonorCard from '@/components/donor-card';
 
 async function getUrgentRequests() {
   try {
@@ -29,6 +30,22 @@ async function getUrgentRequests() {
     return requests;
   } catch (error) {
     console.error("Error fetching urgent requests:", error);
+    return [];
+  }
+}
+
+async function getTopDonors() {
+  try {
+    const donorsRef = collection(db, 'donors');
+    const q = query(donorsRef, where('isAvailable', '==', true), limit(6));
+    const querySnapshot = await getDocs(q);
+    const donors = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Donor[];
+    return donors;
+  } catch (error) {
+    console.error("Error fetching top donors:", error);
     return [];
   }
 }
@@ -50,6 +67,7 @@ const faqs = [
 
 export default async function Home() {
   const urgentRequests = await getUrgentRequests();
+  const topDonors = await getTopDonors();
   const latestPosts = getBlogPosts().slice(0, 3);
 
   return (
@@ -129,6 +147,32 @@ export default async function Home() {
 
       <section className="w-full py-16 md:py-24 bg-primary/5">
         <div className="container mx-auto px-4">
+          <div className="text-center">
+            <h2 className="text-3xl font-bold text-primary md:text-4xl font-headline">
+              আমাদের সক্রিয় রক্তদাতারা
+            </h2>
+            <p className="mt-2 text-lg text-muted-foreground">Our active and available donors</p>
+          </div>
+          <Separator className="my-8" />
+          {topDonors.length > 0 ? (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {topDonors.map((donor) => (
+                <DonorCard key={donor.id} donor={donor} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-muted-foreground">No active donors found at the moment.</p>
+          )}
+           <div className="mt-12 text-center">
+            <Button asChild>
+                <Link href="/search-donors"><Users className="mr-2 h-5 w-5" />সকল ডোনার দেখুন</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      <section className="w-full py-16 md:py-24 bg-background">
+        <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-3xl font-bold text-primary font-headline">
@@ -160,7 +204,7 @@ export default async function Home() {
         </div>
       </section>
       
-       <section className="w-full py-16 md:py-24 bg-background">
+       <section className="w-full py-16 md:py-24 bg-primary/5">
         <div className="container mx-auto px-4">
            <h2 className="text-center text-3xl font-bold text-primary md:text-4xl font-headline">
             কেন রক্তবন্ধু ব্যবহার করবেন?
@@ -195,7 +239,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="bg-primary/5 w-full py-16 md:py-24">
+      <section className="bg-background w-full py-16 md:py-24">
         <div className="container mx-auto px-4">
             <h2 className="text-center text-3xl font-bold text-primary md:text-4xl font-headline">
                 কেন রক্তদান করবেন?
@@ -229,7 +273,7 @@ export default async function Home() {
         </div>
       </section>
 
-       <section className="w-full py-16 md:py-24 bg-background">
+       <section className="w-full py-16 md:py-24 bg-primary/5">
         <div className="container mx-auto px-4 text-center">
             <div className="mx-auto max-w-2xl h-40 flex items-center justify-center rounded-lg bg-muted/50 border-2 border-dashed">
                 <p className="text-muted-foreground">Advertisement Placeholder</p>
@@ -237,7 +281,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="w-full py-16 md:py-24 bg-primary/5">
+      <section className="w-full py-16 md:py-24 bg-background">
         <div className="container mx-auto px-4">
           <div className="text-center">
             <h2 className="text-3xl font-bold text-primary md:text-4xl font-headline">
@@ -273,9 +317,9 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="w-full py-16 md:py-24 bg-background">
+      <section className="w-full py-16 md:py-24 bg-primary/5">
         <div className="container mx-auto px-4">
-            <Card className="bg-primary/5 p-8 rounded-lg shadow-lg">
+            <Card className="bg-background/80 p-8 rounded-lg shadow-lg">
                 <div className="grid md:grid-cols-3 gap-8 items-center">
                     <div className="md:col-span-1 flex justify-center">
                         <Image
