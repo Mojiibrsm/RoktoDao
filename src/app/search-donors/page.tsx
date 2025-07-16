@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useTransition } from 'react';
@@ -5,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { bloodGroups, locations } from '@/lib/location-data';
+import { bloodGroups, locations, upazilas } from '@/lib/location-data';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Donor } from '@/lib/types';
@@ -15,6 +16,7 @@ export default function SearchDonorsPage() {
   const [bloodGroup, setBloodGroup] = useState('any');
   const [division, setDivision] = useState('any');
   const [district, setDistrict] = useState('any');
+  const [upazila, setUpazila] = useState('any');
   const [donors, setDonors] = useState<Donor[]>([]);
   const [isPending, startTransition] = useTransition();
   const [isClient, setIsClient] = useState(false);
@@ -36,6 +38,9 @@ export default function SearchDonorsPage() {
       }
       if (district && district !== 'any') {
         q = query(q, where('address.district', '==', district));
+      }
+      if (upazila && upazila !== 'any') {
+        q = query(q, where('address.upazila', '==', upazila));
       }
 
       const querySnapshot = await getDocs(q);
@@ -62,7 +67,7 @@ export default function SearchDonorsPage() {
           <CardDescription>Find available blood donors in your area.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
             <div className="space-y-2">
               <Label htmlFor="blood-group">Blood Group</Label>
               <Select value={bloodGroup} onValueChange={setBloodGroup}>
@@ -75,7 +80,7 @@ export default function SearchDonorsPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="division">Division</Label>
-              <Select value={division} onValueChange={(val) => {setDivision(val); setDistrict('any');}}>
+              <Select value={division} onValueChange={(val) => {setDivision(val); setDistrict('any'); setUpazila('any');}}>
                 <SelectTrigger id="division"><SelectValue placeholder="Any" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="any">Any</SelectItem>
@@ -85,11 +90,21 @@ export default function SearchDonorsPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="district">District</Label>
-              <Select value={district} onValueChange={setDistrict} disabled={!division || division === 'any'}>
+              <Select value={district} onValueChange={(val) => {setDistrict(val); setUpazila('any');}} disabled={!division || division === 'any'}>
                 <SelectTrigger id="district"><SelectValue placeholder="Any" /></SelectTrigger>
                 <SelectContent>
                    <SelectItem value="any">Any</SelectItem>
                   {division && division !== 'any' && locations[division as keyof typeof locations]?.districts.map(dist => <SelectItem key={dist} value={dist}>{dist}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+             <div className="space-y-2">
+              <Label htmlFor="upazila">Upazila / Area</Label>
+              <Select value={upazila} onValueChange={setUpazila} disabled={!district || district === 'any'}>
+                <SelectTrigger id="upazila"><SelectValue placeholder="Any" /></SelectTrigger>
+                <SelectContent>
+                   <SelectItem value="any">Any</SelectItem>
+                   {district && district !== 'any' && upazilas[district as keyof typeof upazilas]?.map(up => <SelectItem key={up} value={up}>{up}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
