@@ -6,14 +6,15 @@ import { Separator } from '@/components/ui/separator';
 import { db } from '@/lib/firebase';
 import type { BloodRequest } from '@/lib/types';
 import { collection, getDocs, limit, orderBy, query } from 'firebase/firestore';
-import { Droplet, MapPin, Calendar, Syringe, Search, Heart, Phone, LifeBuoy, HeartPulse, ShieldCheck, Stethoscope, LocateFixed, MessageCircle } from 'lucide-react';
+import { Droplet, MapPin, Calendar, Syringe, Search, Heart, Phone, LifeBuoy, HeartPulse, ShieldCheck, Stethoscope, LocateFixed, MessageCircle, Newspaper } from 'lucide-react';
 import { format } from 'date-fns';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion"
+} from "@/components/ui/accordion";
+import { getBlogPosts } from '@/lib/blog-data';
 
 async function getUrgentRequests() {
   try {
@@ -48,6 +49,7 @@ const faqs = [
 
 export default async function Home() {
   const urgentRequests = await getUrgentRequests();
+  const latestPosts = getBlogPosts().slice(0, 3);
 
   return (
     <div className="flex flex-col items-center">
@@ -223,6 +225,50 @@ export default async function Home() {
                   <Link href="/why-donate-blood">বিস্তারিত জানুন</Link>
               </Button>
             </div>
+        </div>
+      </section>
+
+       <section className="w-full py-16 md:py-24 bg-background">
+        <div className="container mx-auto px-4 text-center">
+            <div className="mx-auto max-w-2xl h-40 flex items-center justify-center rounded-lg bg-muted/50 border-2 border-dashed">
+                <p className="text-muted-foreground">Advertisement Placeholder</p>
+            </div>
+        </div>
+      </section>
+
+      <section className="w-full py-16 md:py-24 bg-primary/5">
+        <div className="container mx-auto px-4">
+          <div className="text-center">
+            <h2 className="text-3xl font-bold text-primary md:text-4xl font-headline">
+              আমাদের ব্লগ থেকে পড়ুন
+            </h2>
+            <p className="mt-2 text-lg text-muted-foreground">Stay informed with our latest articles</p>
+          </div>
+          <Separator className="my-8" />
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {latestPosts.map((post) => (
+                <Card key={post.slug} className="flex flex-col justify-between shadow-lg hover:shadow-xl transition-shadow duration-300">
+                  <CardHeader>
+                    <CardTitle>
+                      <Link href={`/blog/${post.slug}`} className="hover:text-primary transition-colors">
+                        {post.title}
+                      </Link>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground line-clamp-3">{post.excerpt}</p>
+                  </CardContent>
+                  <CardContent>
+                     <p className="text-sm text-muted-foreground">{post.date} by {post.author}</p>
+                  </CardContent>
+                </Card>
+              ))}
+          </div>
+           <div className="mt-12 text-center">
+            <Button asChild>
+                <Link href="/blog"><Newspaper className="mr-2 h-5 w-5" />আরো পড়ুন</Link>
+            </Button>
+          </div>
         </div>
       </section>
 

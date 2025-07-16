@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -10,6 +11,7 @@ import { useRouter } from 'next/navigation';
 const navLinks = [
   { href: '/search-donors', label: 'Find Donors' },
   { href: '/request-blood', label: 'Request Blood' },
+  { href: '/blog', label: 'Blog' },
   { href: '/about', label: 'About' },
   { href: '/team', label: 'Our Team' },
 ];
