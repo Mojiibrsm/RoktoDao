@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,10 +43,7 @@ export default async function Home() {
               <Link href="/search-donors"><Search className="mr-2 h-5 w-5" />রক্ত খুঁজুন</Link>
             </Button>
             <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground">
-              <Link href="/signup"><Heart className="mr-2 h-5 w-5" />রেজিস্টার করুন</Link>
-            </Button>
-            <Button asChild size="lg" variant="secondary">
-              <Link href="/request-blood"><HeartHandshake className="mr-2 h-5 w-5" />রক্ত চাওয়ার আবেদন</Link>
+              <Link href="/signup"><Heart className="mr-2 h-5 w-5" />ডোনার হোন</Link>
             </Button>
           </div>
         </div>
@@ -234,4 +232,5 @@ export default async function Home() {
 
     </div>
   );
-}
+
+    
