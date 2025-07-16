@@ -18,10 +18,6 @@ import { HeartHandshake } from 'lucide-react';
 const signupSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
-  confirmPassword: z.string(),
-}).refine(data => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ['confirmPassword'],
 });
 
 export default function SignupPage() {
@@ -34,7 +30,6 @@ export default function SignupPage() {
     defaultValues: {
       email: '',
       password: '',
-      confirmPassword: '',
     },
   });
 
@@ -88,19 +83,6 @@ export default function SignupPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="confirmPassword"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Confirm Password</FormLabel>
                     <FormControl>
                       <Input type="password" placeholder="••••••••" {...field} />
                     </FormControl>
