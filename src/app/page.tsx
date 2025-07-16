@@ -5,7 +5,7 @@ import { Separator } from '@/components/ui/separator';
 import { db } from '@/lib/firebase';
 import type { BloodRequest } from '@/lib/types';
 import { collection, getDocs, limit, orderBy, query } from 'firebase/firestore';
-import { Droplet, MapPin, Calendar, Syringe, Search, Link2, Heart } from 'lucide-react';
+import { Droplet, MapPin, Calendar, Syringe, Search, Link2, Heart, HeartHandshake } from 'lucide-react';
 import { format } from 'date-fns';
 
 async function getUrgentRequests() {
@@ -32,20 +32,20 @@ export default async function Home() {
       <section className="w-full bg-primary/10 py-20 md:py-32">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl font-bold tracking-tighter text-primary md:text-6xl font-headline">
-            রক্ত দিন, জীবন বাঁচান
+            রক্ত দিন, জীবন বাঁচান — এখন আরও সহজে!
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-foreground/80 md:text-xl">
-            এখন আরও সহজে! আপনার এক ব্যাগ রক্ত পারে একটি জীবন বাঁচাতে। এখনই যোগ দিন আমাদের সাথে।
+            দ্রুত রক্ত খুঁজুন অথবা স্বেচ্ছাসেবী হোন
           </p>
           <div className="mt-8 flex flex-col justify-center gap-4 sm:flex-row">
+            <Button asChild size="lg" variant="outline">
+              <Link href="/search-donors"><Search className="mr-2 h-5 w-5" />রক্ত খুঁজুন</Link>
+            </Button>
             <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground">
-              <Link href="/profile">Become a Donor</Link>
+              <Link href="/signup"><Heart className="mr-2 h-5 w-5" />রেজিস্টার করুন</Link>
             </Button>
             <Button asChild size="lg" variant="secondary">
-              <Link href="/request-blood">Request Blood</Link>
-            </Button>
-            <Button asChild size="lg" variant="outline">
-              <Link href="/search-donors">Search Donors</Link>
+              <Link href="/request-blood"><HeartHandshake className="mr-2 h-5 w-5" />রক্ত চাওয়ার আবেদন</Link>
             </Button>
           </div>
         </div>
