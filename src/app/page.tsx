@@ -5,7 +5,7 @@ import { Separator } from '@/components/ui/separator';
 import { db } from '@/lib/firebase';
 import type { BloodRequest } from '@/lib/types';
 import { collection, getDocs, limit, orderBy, query } from 'firebase/firestore';
-import { Droplet, MapPin, Calendar, Syringe, Search, Heart, HeartHandshake, Phone } from 'lucide-react';
+import { Droplet, MapPin, Calendar, Syringe, Search, Heart, HeartHandshake, Phone, Radio, Mail, ClipboardList, Smartphone } from 'lucide-react';
 import { format } from 'date-fns';
 
 async function getUrgentRequests() {
@@ -141,44 +141,55 @@ export default async function Home() {
       <section className="w-full py-16 md:py-24 bg-background">
         <div className="container mx-auto px-4">
           <h2 className="text-center text-3xl font-bold text-primary md:text-4xl font-headline">
-            How It Works
+            Key Features
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-center text-lg text-foreground/80">
-            A simple three-step process to connect donors and recipients.
+            Our platform is packed with features to make blood donation seamless.
           </p>
           <Separator className="my-8" />
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
             <Card className="text-center shadow-lg">
               <CardHeader>
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                  <Search className="h-8 w-8 text-primary" />
+                  <Radio className="h-8 w-8 text-primary" />
                 </div>
-                <CardTitle className="mt-4 text-2xl font-headline">Search</CardTitle>
+                <CardTitle className="mt-4 text-2xl font-headline">রিয়েল টাইম রিকোয়েস্ট</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">Find available blood donors in your area using our simple search filters.</p>
+                <p className="text-muted-foreground">Get live updates on urgent blood needs in your area.</p>
               </CardContent>
             </Card>
             <Card className="text-center shadow-lg">
               <CardHeader>
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                  <HeartHandshake className="h-8 w-8 text-primary" />
+                  <Mail className="h-8 w-8 text-primary" />
                 </div>
-                <CardTitle className="mt-4 text-2xl font-headline">Connect</CardTitle>
+                <CardTitle className="mt-4 text-2xl font-headline">SMS/Email নোটিফিকেশন</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">Directly contact donors or view urgent requests to offer your help.</p>
+                <p className="text-muted-foreground">Receive instant notifications for matching blood requests.</p>
               </CardContent>
             </Card>
             <Card className="text-center shadow-lg">
               <CardHeader>
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                  <Heart className="h-8 w-8 text-primary" />
+                  <ClipboardList className="h-8 w-8 text-primary" />
                 </div>
-                <CardTitle className="mt-4 text-2xl font-headline">Donate</CardTitle>
+                <CardTitle className="mt-4 text-2xl font-headline">রক্তদানের রেকর্ড</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">Save a life by donating blood and become a hero in someone's story.</p>
+                <p className="text-muted-foreground">Keep a personal log of your blood donations and eligibility.</p>
+              </CardContent>
+            </Card>
+            <Card className="text-center shadow-lg">
+              <CardHeader>
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                  <Smartphone className="h-8 w-8 text-primary" />
+                </div>
+                <CardTitle className="mt-4 text-2xl font-headline">মোবাইল রেসপন্সিভ</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">Access our platform on any device, anywhere, anytime.</p>
               </CardContent>
             </Card>
           </div>
