@@ -11,8 +11,8 @@ const navLinks = [
   { href: '/search-donors', label: 'Find Donors' },
   { href: '/request-blood', label: 'Request Blood' },
   { href: '/about', label: 'About' },
-  { href: 'mailto:support@roktodan.xyz', label: 'Contact' },
-  { href: '/team', label: 'Our Team' },
+  { href: '/why-donate-blood', label: 'Why Donate' },
+  { href: '/faq', label: 'FAQ' },
 ];
 
 export default function Header() {
@@ -79,6 +79,12 @@ export default function Header() {
                     {link.label}
                   </Link>
                 ))}
+                 <Link href="/team" className="text-lg font-medium text-muted-foreground transition-colors hover:text-primary">
+                    Our Team
+                  </Link>
+                   <Link href="mailto:support@roktodan.xyz" className="text-lg font-medium text-muted-foreground transition-colors hover:text-primary">
+                    Contact
+                  </Link>
               </nav>
                <div className="mt-8 flex flex-col gap-4">
                   {loading ? (

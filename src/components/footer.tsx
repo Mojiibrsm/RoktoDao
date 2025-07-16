@@ -18,6 +18,10 @@ export default function Footer() {
             About
           </Link>
           <span className="text-muted-foreground">|</span>
+           <Link href="/faq" className="text-muted-foreground hover:text-primary transition-colors">
+            FAQ
+          </Link>
+          <span className="text-muted-foreground">|</span>
           <Link href="/team" className="text-muted-foreground hover:text-primary transition-colors">
             Our Team
           </Link>
