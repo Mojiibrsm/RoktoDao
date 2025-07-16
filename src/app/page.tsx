@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { db } from '@/lib/firebase';
 import type { BloodRequest } from '@/lib/types';
 import { collection, getDocs, limit, orderBy, query } from 'firebase/firestore';
-import { Droplet, MapPin, Calendar, Syringe, Search, Heart, Phone, LifeBuoy, HeartPulse, ShieldCheck, Stethoscope, LocateFixed, MessageCircle, Newspaper } from 'lucide-react';
+import { Droplet, MapPin, Calendar, Syringe, Search, Heart, Phone, LifeBuoy, HeartPulse, ShieldCheck, Stethoscope, LocateFixed, MessageCircle, Newspaper, Github, Linkedin, Twitter } from 'lucide-react';
 import { format } from 'date-fns';
 import {
   Accordion,
@@ -15,6 +15,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { getBlogPosts } from '@/lib/blog-data';
+import Image from 'next/image';
 
 async function getUrgentRequests() {
   try {
@@ -269,6 +270,40 @@ export default async function Home() {
                 <Link href="/blog"><Newspaper className="mr-2 h-5 w-5" />আরো পড়ুন</Link>
             </Button>
           </div>
+        </div>
+      </section>
+
+      <section className="w-full py-16 md:py-24 bg-background">
+        <div className="container mx-auto px-4">
+            <Card className="bg-primary/5 p-8 rounded-lg shadow-lg">
+                <div className="grid md:grid-cols-3 gap-8 items-center">
+                    <div className="md:col-span-1 flex justify-center">
+                        <Image
+                            src="https://placehold.co/400x400.png"
+                            alt="Developer Portrait"
+                            data-ai-hint="man portrait"
+                            width={200}
+                            height={200}
+                            className="rounded-full object-cover shadow-xl"
+                        />
+                    </div>
+                    <div className="md:col-span-2 text-center md:text-left">
+                        <h2 className="text-3xl font-bold text-primary font-headline">
+                            পরিচালকের বার্তা
+                        </h2>
+                        <Separator className="my-4" />
+                        <p className="text-muted-foreground leading-relaxed">
+                            "রক্তবন্ধু একটি অলাভজনক উদ্যোগ যা রক্তদাতা এবং গ্রহীতাদের মধ্যে একটি সেতুবন্ধন তৈরির লক্ষ্যে কাজ করে। প্রযুক্তি ব্যবহার করে জীবন বাঁচানোর এই যাত্রায় আমাদের সঙ্গী হওয়ার জন্য আপনাকে ধন্যবাদ।"
+                        </p>
+                        <p className="font-semibold mt-4"> - জন ডো, প্রতিষ্ঠাতা</p>
+                        <div className="flex justify-center md:justify-start gap-4 mt-4">
+                            <Link href="#" className="text-muted-foreground hover:text-primary"><Twitter size={24} /></Link>
+                            <Link href="#" className="text-muted-foreground hover:text-primary"><Linkedin size={24} /></Link>
+                            <Link href="#" className="text-muted-foreground hover:text-primary"><Github size={24} /></Link>
+                        </div>
+                    </div>
+                </div>
+            </Card>
         </div>
       </section>
 
