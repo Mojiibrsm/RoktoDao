@@ -15,7 +15,7 @@ export default function Footer() {
         </div>
         <div className="flex items-center gap-4 text-sm">
           <Link href="/about" className="text-muted-foreground hover:text-primary transition-colors">
-            About Us
+            About
           </Link>
           <span className="text-muted-foreground">|</span>
           <Link href="/team" className="text-muted-foreground hover:text-primary transition-colors">
@@ -23,7 +23,7 @@ export default function Footer() {
           </Link>
           <span className="text-muted-foreground">|</span>
           <Link href="mailto:support@roktodan.xyz" className="text-muted-foreground hover:text-primary transition-colors">
-            support@roktodan.xyz
+            Contact
           </Link>
         </div>
       </div>

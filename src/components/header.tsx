@@ -8,13 +8,11 @@ import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 
 const navLinks = [
-  { href: '/requests', label: 'All Requests' },
-  { href: '/why-donate-blood', label: 'Why Donate Blood' },
-  { href: '/faq', label: 'FAQ' },
-  { href: '/about', label: 'About Us' },
-  { href: '/team', label: 'Our Team' },
-  { href: '/search-donors', label: 'Search Donors' },
+  { href: '/search-donors', label: 'Find Donors' },
   { href: '/request-blood', label: 'Request Blood' },
+  { href: '/about', label: 'About' },
+  { href: 'mailto:support@roktodan.xyz', label: 'Contact' },
+  { href: '/team', label: 'Our Team' },
 ];
 
 export default function Header() {
@@ -76,7 +74,7 @@ export default function Header() {
             </SheetTrigger>
             <SheetContent side="right">
               <nav className="flex flex-col gap-6 pt-8">
-                {[{ href: '/', label: 'Home' }, ...navLinks].map(link => (
+                {navLinks.map(link => (
                   <Link key={link.href} href={link.href} className="text-lg font-medium text-muted-foreground transition-colors hover:text-primary">
                     {link.label}
                   </Link>
