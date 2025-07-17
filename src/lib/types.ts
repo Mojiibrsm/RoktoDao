@@ -10,7 +10,7 @@ export type BloodRequest = {
 };
 
 export type Donor = {
-  id: string;
+  id:string;
   uid: string;
   fullName: string;
   bloodGroup: string;
@@ -25,4 +25,5 @@ export type Donor = {
   dateOfBirth?: string;
   gender?: 'Male' | 'Female' | 'Other';
   donationCount?: number;
+  isAdmin?: boolean;
 };
