@@ -4,13 +4,14 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { HeartHandshake, Menu, LogOut, UserCircle } from 'lucide-react';
+import { HeartHandshake, Menu, LogOut, UserCircle, Bot } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 
 const navLinks = [
   { href: '/search-donors', label: 'Find Donors' },
   { href: '/request-blood', label: 'Request Blood' },
+  { href: '/ai-assistant', label: 'AI Assistant', icon: Bot },
   { href: '/blog', label: 'Blog' },
   { href: '/about', label: 'About' },
   { href: '/team', label: 'Our Team' },
@@ -35,7 +36,8 @@ export default function Header() {
 
         <nav className="hidden items-center gap-6 md:flex">
           {navLinks.map(link => (
-            <Link key={link.href} href={link.href} className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
+            <Link key={link.href} href={link.href} className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary flex items-center gap-2">
+              {link.icon && <link.icon className="h-4 w-4" />}
               {link.label}
             </Link>
           ))}
@@ -79,7 +81,8 @@ export default function Header() {
             <SheetContent side="right">
               <nav className="flex flex-col gap-6 pt-8">
                 {navLinks.map(link => (
-                  <Link key={link.href} href={link.href} className="text-lg font-medium text-muted-foreground transition-colors hover:text-primary">
+                  <Link key={link.href} href={link.href} className="text-lg font-medium text-muted-foreground transition-colors hover:text-primary flex items-center gap-2">
+                     {link.icon && <link.icon className="h-5 w-5" />}
                     {link.label}
                   </Link>
                 ))}
