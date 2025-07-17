@@ -11,7 +11,6 @@ import { useRouter } from 'next/navigation';
 const navLinks = [
   { href: '/search-donors', label: 'Find Donors' },
   { href: '/request-blood', label: 'Request Blood' },
-  { href: '/ai-assistant', label: 'AI Assistant', icon: Bot },
   { href: '/blog', label: 'Blog' },
   { href: '/about', label: 'About' },
   { href: '/team', label: 'Our Team' },
