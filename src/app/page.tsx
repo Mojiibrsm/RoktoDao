@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { db } from '@/lib/firebase';
 import type { BloodRequest, Donor } from '@/lib/types';
 import { collection, getDocs, limit, orderBy, query, where } from 'firebase/firestore';
-import { Droplet, MapPin, Calendar, Syringe, Search, Heart, Phone, LifeBuoy, HeartPulse, ShieldCheck, Stethoscope, LocateFixed, MessageCircle, Newspaper, Github, Linkedin, Twitter, Users } from 'lucide-react';
+import { Droplet, MapPin, Calendar, Syringe, Search, Heart, Phone, LifeBuoy, HeartPulse, ShieldCheck, Stethoscope, LocateFixed, MessageCircle, Newspaper, Github, Linkedin, Twitter, Users, Globe } from 'lucide-react';
 import { format } from 'date-fns';
 import {
   Accordion,
@@ -341,9 +341,12 @@ export default async function Home() {
                         </p>
                         <p className="font-semibold mt-4"> - মুজিবুর রহমান, প্রতিষ্ঠাতা</p>
                         <div className="flex justify-center md:justify-start gap-4 mt-4">
-                            <Link href="#" className="text-muted-foreground hover:text-primary"><Twitter size={24} /></Link>
-                            <Link href="#" className="text-muted-foreground hover:text-primary"><Linkedin size={24} /></Link>
-                            <Link href="#" className="text-muted-foreground hover:text-primary"><Github size={24} /></Link>
+                            <Link href="https://www.facebook.com/MoJiiB.RsM" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-facebook"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+                            </Link>
+                            <Link href="https://www.linkedin.com/in/mojibrsm/" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary"><Linkedin size={24} /></Link>
+                            <Link href="https://github.com/mojib-rsm" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary"><Github size={24} /></Link>
+                            <Link href="http://mojibrsm.com/" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary"><Globe size={24} /></Link>
                         </div>
                     </div>
                 </div>
@@ -378,3 +381,5 @@ export default async function Home() {
     </div>
   );
 }
+
+    
