@@ -180,7 +180,7 @@ export default async function Home() {
               </h2>
               <Separator className="my-4" />
               <p className="text-muted-foreground leading-relaxed">
-                আমাদের ওয়েবসাইটে আপনি খুব সহজেই বিভাগ এবং জেলা অনুযায়ী রক্তদাতাদের খুঁজে নিতে পারেন। জরুরি মুহূর্তে আপনার নিকটবর্তী রক্তদাতাকে খুঁজে পাওয়া এখন আগের চেয়ে অনেক সহজ।
+                আমাদের ওয়েবসাইটে আপনি খুব সহজেই বিভাগ এবং জেলা অনুযায়ী রক্ত দাতাদের খুঁজে নিতে পারেন। জরুরি মুহূর্তে আপনার নিকটবর্তী রক্ত দাতাকে খুঁজে পাওয়া এখন আগের চেয়ে অনেক সহজ।
               </p>
               <p className="mt-4 text-muted-foreground leading-relaxed">
                 কেবলমাত্র প্রয়োজনীয় রক্তের গ্রুপ, বিভাগ এবং জেলা নির্বাচন করুন, আর মুহূর্তেই পেয়ে যান আপনার এলাকার সকল রেজিস্টার্ড রক্তদাতাদের তালিকা।
@@ -339,7 +339,7 @@ export default async function Home() {
                         <p className="text-muted-foreground leading-relaxed">
                             "রক্তবন্ধু একটি অলাভজনক উদ্যোগ যা রক্তদাতা এবং গ্রহীতাদের মধ্যে একটি সেতুবন্ধন তৈরির লক্ষ্যে কাজ করে। প্রযুক্তি ব্যবহার করে জীবন বাঁচানোর এই যাত্রায় আমাদের সঙ্গী হওয়ার জন্য আপনাকে ধন্যবাদ।"
                         </p>
-                        <p className="font-semibold mt-4"> - জন ডো, প্রতিষ্ঠাতা</p>
+                        <p className="font-semibold mt-4"> - মুজিবুর রহমান, প্রতিষ্ঠাতা</p>
                         <div className="flex justify-center md:justify-start gap-4 mt-4">
                             <Link href="#" className="text-muted-foreground hover:text-primary"><Twitter size={24} /></Link>
                             <Link href="#" className="text-muted-foreground hover:text-primary"><Linkedin size={24} /></Link>
