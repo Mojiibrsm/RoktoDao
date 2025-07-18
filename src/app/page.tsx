@@ -323,7 +323,7 @@ export default async function Home() {
                 <div className="grid md:grid-cols-3 gap-8 items-center">
                     <div className="md:col-span-1 flex justify-center">
                         <Image
-                            src="https://i.ibb.co/3k5fVb3/mojibrsm.png"
+                            src="https://tools.bartanow.com/uploads/f62b892a-586a-41c0-a3ba-a4bf7f02548c.png"
                             alt="mojibrsm"
                             width={200}
                             height={200}
@@ -380,6 +380,8 @@ export default async function Home() {
     </div>
   );
 }
+
+    
 
     
 
