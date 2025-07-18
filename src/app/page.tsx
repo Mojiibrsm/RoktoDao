@@ -323,9 +323,8 @@ export default async function Home() {
                 <div className="grid md:grid-cols-3 gap-8 items-center">
                     <div className="md:col-span-1 flex justify-center">
                         <Image
-                            src="https://placehold.co/400x400.png"
-                            alt="Developer Portrait"
-                            data-ai-hint="man portrait"
+                            src="/uploads/mojibrsm.png"
+                            alt="mojibrsm"
                             width={200}
                             height={200}
                             className="rounded-full object-cover shadow-xl"
@@ -381,5 +380,7 @@ export default async function Home() {
     </div>
   );
 }
+
+    
 
     
