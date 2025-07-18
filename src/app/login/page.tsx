@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -13,7 +14,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { HeartHandshake } from 'lucide-react';
+import { HeartHandshake, Info } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
@@ -41,7 +43,12 @@ export default function LoginPage() {
         title: 'Login Successful',
         description: 'Welcome back!',
       });
-      router.push('/profile');
+      // A mock check for admin credentials
+      if (values.email === 'admin@roktobondhu.org') {
+        router.push('/admin');
+      } else {
+        router.push('/profile');
+      }
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -62,6 +69,13 @@ export default function LoginPage() {
           <CardDescription>Log in to your RoktoBondhu account</CardDescription>
         </CardHeader>
         <CardContent>
+          <Alert className="mb-4">
+            <Info className="h-4 w-4" />
+            <AlertTitle>Admin Access</AlertTitle>
+            <AlertDescription>
+              Use <strong>admin@roktobondhu.org</strong> and password <strong>123456</strong> to log in as an admin.
+            </AlertDescription>
+          </Alert>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
