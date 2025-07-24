@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -17,11 +17,13 @@ import { cn } from '@/lib/utils';
 import { CalendarIcon, ChevronsUpDown, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { bloodGroups, hospitalList } from '@/lib/location-data';
+import { bloodGroups } from '@/lib/location-data';
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { searchHospitals, HospitalSearchResult } from '@/ai/flows/search-hospitals-flow';
+import { useDebounce } from 'use-debounce';
 
 const requestSchema = z.object({
   patientName: z.string().min(3, { message: 'Patient name is required.' }),
@@ -37,11 +39,37 @@ export default function RequestBloodPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // State for hospital search combobox
   const [isHospitalPopoverOpen, setIsHospitalPopoverOpen] = useState(false);
+  const [hospitalSearchQuery, setHospitalSearchQuery] = useState('');
+  const [debouncedSearchQuery] = useDebounce(hospitalSearchQuery, 300);
+  const [hospitalResults, setHospitalResults] = useState<HospitalSearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
 
   const form = useForm<z.infer<typeof requestSchema>>({
     resolver: zodResolver(requestSchema),
+    defaultValues: {
+      patientName: '',
+      bloodGroup: '',
+      numberOfBags: 1,
+      hospitalLocation: '',
+      contactPhone: '',
+    }
   });
+
+  useEffect(() => {
+    if (debouncedSearchQuery.length > 2) {
+      setIsSearching(true);
+      searchHospitals(debouncedSearchQuery)
+        .then(setHospitalResults)
+        .catch(err => console.error("Error searching hospitals:", err))
+        .finally(() => setIsSearching(false));
+    } else {
+      setHospitalResults([]);
+    }
+  }, [debouncedSearchQuery]);
 
   const onSubmit = async (values: z.infer<typeof requestSchema>) => {
     setIsSubmitting(true);
@@ -69,6 +97,8 @@ export default function RequestBloodPage() {
         setIsSubmitting(false);
     }
   };
+  
+  const currentHospitalValue = form.watch('hospitalLocation');
 
   return (
     <div className="container mx-auto max-w-2xl py-12 px-4">
@@ -147,41 +177,51 @@ export default function RequestBloodPage() {
                               !field.value && "text-muted-foreground"
                             )}
                           >
-                            {field.value
-                              ? hospitalList.find(
-                                  (hospital) => hospital.value === field.value
-                                )?.label
-                              : "হাসপাতাল নির্বাচন করুন"}
+                           <span className="truncate">
+                              {currentHospitalValue || "হাসপাতাল নির্বাচন করুন"}
+                            </span>
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
                       <PopoverContent className="w-[--radix-popover-trigger-width] max-h-[--radix-popover-content-available-height] p-0">
                         <Command>
-                          <CommandInput placeholder="হাসপাতাল খুঁজুন..." />
-                          <CommandEmpty>কোনো হাসপাতাল পাওয়া যায়নি।</CommandEmpty>
-                          <CommandGroup>
-                            {hospitalList.map((hospital) => (
-                              <CommandItem
-                                value={hospital.label}
-                                key={hospital.value}
-                                onSelect={() => {
-                                  form.setValue("hospitalLocation", hospital.value)
-                                  setIsHospitalPopoverOpen(false)
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    hospital.value === field.value
-                                      ? "opacity-100"
-                                      : "opacity-0"
-                                  )}
-                                />
-                                {hospital.label}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
+                          <CommandInput 
+                            placeholder="হাসপাতাল খুঁজুন..." 
+                            value={hospitalSearchQuery}
+                            onValueChange={setHospitalSearchQuery}
+                          />
+                          <CommandList>
+                            {isSearching && <CommandEmpty>অনুসন্ধান করা হচ্ছে...</CommandEmpty>}
+                            {!isSearching && hospitalResults.length === 0 && hospitalSearchQuery.length > 2 && <CommandEmpty>কোনো হাসপাতাল পাওয়া যায়নি।</CommandEmpty>}
+                            <CommandGroup>
+                              {hospitalResults.map((hospital) => (
+                                <CommandItem
+                                  value={hospital.title}
+                                  key={hospital.link}
+                                  onSelect={() => {
+                                    form.setValue("hospitalLocation", hospital.title)
+                                    setHospitalSearchQuery('');
+                                    setHospitalResults([]);
+                                    setIsHospitalPopoverOpen(false)
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      hospital.title === field.value
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  <div>
+                                    <p>{hospital.title}</p>
+                                    <p className="text-xs text-muted-foreground">{hospital.snippet}</p>
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                           </CommandList>
                         </Command>
                       </PopoverContent>
                     </Popover>
