@@ -14,15 +14,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, Check, ChevronsUpDown } from 'lucide-react';
+import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { bloodGroups, locations, hospitalsByDistrict } from '@/lib/location-data';
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-
 
 const requestSchema = z.object({
   patientName: z.string().min(3, { message: 'Patient name is required.' }),
@@ -34,14 +32,13 @@ const requestSchema = z.object({
   otherHospital: z.string().optional(),
   contactPhone: z.string().min(11, { message: 'A valid contact number is required.' }),
 }).refine(data => {
-    // If hospitalLocation is 'Other', then otherHospital must not be empty.
     if (data.hospitalLocation === 'Other') {
         return !!data.otherHospital && data.otherHospital.length > 0;
     }
     return true;
 }, {
     message: 'Please specify the hospital name.',
-    path: ['otherHospital'], // an error will be display on this field
+    path: ['otherHospital'],
 });
 
 
@@ -73,8 +70,8 @@ export default function RequestBloodPage() {
     if (selectedDistrict && hospitalsByDistrict[selectedDistrict]) {
       setAvailableHospitals(hospitalsByDistrict[selectedDistrict]);
     } else {
-      const allHospitals = Object.values(hospitalsByDistrict).flat();
-      setAvailableHospitals(allHospitals.slice(0, 100)); // Limit initial list size
+      const allHospitals = Object.values(hospitalsByDistrict).flat().sort();
+      setAvailableHospitals(allHospitals);
     }
   }, [selectedDistrict]);
 
@@ -91,7 +88,7 @@ export default function RequestBloodPage() {
       district: values.district,
       hospitalLocation: finalHospitalName,
       contactPhone: values.contactPhone,
-      uid: user?.uid, // Optional: associate request with user
+      uid: user?.uid,
     };
 
     try {
@@ -196,13 +193,13 @@ export default function RequestBloodPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>হাসপাতালের নাম ও ঠিকানা</FormLabel>
-                     <Select onValueChange={field.onChange} value={field.value} disabled={!selectedDistrict}>
+                     <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl><SelectTrigger><SelectValue placeholder="হাসপাতাল নির্বাচন করুন" /></SelectTrigger></FormControl>
                         <SelectContent>
                            {availableHospitals.map(hospital => (
                             <SelectItem key={hospital} value={hospital}>{hospital}</SelectItem>
                            ))}
-                           <SelectItem value="Other">Other</SelectItem>
+                           <SelectItem value="Other">অন্যান্য</SelectItem>
                         </SelectContent>
                     </Select>
                     <FormMessage />
@@ -241,5 +238,3 @@ export default function RequestBloodPage() {
     </div>
   );
 }
-
-    
