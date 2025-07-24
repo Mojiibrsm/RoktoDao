@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,7 @@ export default function SearchDonorsPage() {
     setIsClient(true);
   }, []);
 
-  const handleSearch = () => {
+  const handleSearch = useCallback(() => {
     startTransition(async () => {
       const donorsRef = collection(db, 'donors');
       let q = query(donorsRef, where('isAvailable', '==', true));
@@ -47,13 +47,13 @@ export default function SearchDonorsPage() {
       const fetchedDonors = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Donor[];
       setDonors(fetchedDonors);
     });
-  };
+  }, [bloodGroup, division, district, upazila]);
 
   useEffect(() => {
-    // Initial search for all available donors
-    handleSearch();
-     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (isClient) {
+      handleSearch();
+    }
+  }, [isClient, handleSearch]);
   
   const districtOptions = division !== 'any' 
     ? locations[division as keyof typeof locations]?.districts.map(d => ({ value: d, label: d })).sort((a, b) => a.label.localeCompare(b.label, 'bn'))
