@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Card, CardContent } from '@/components/ui/card';
@@ -82,7 +83,7 @@ const TeamMemberCard = ({ member }: { member: typeof administrators[0] | typeof 
     };
 
     return (
-      <Card className="shadow-md hover:shadow-lg transition-shadow duration-300">
+      <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 w-full max-w-sm">
         <CardContent className="p-6">
           <div className="flex items-center gap-4">
             <Avatar className="h-20 w-20 border-2 border-primary/20">
@@ -142,11 +143,9 @@ export default function TeamPage() {
             <Crown className="h-8 w-8 text-amber-500" />
             <h2 className="text-3xl font-bold font-headline text-primary">প্রধান পরিচালক</h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 justify-center">
+          <div className="flex justify-center">
             {administrators.map((member) => (
-              <div key={member.email} className="lg:col-start-2 flex justify-center">
-                <TeamMemberCard member={member} />
-              </div>
+                <TeamMemberCard key={member.email} member={member} />
             ))}
           </div>
         </div>
