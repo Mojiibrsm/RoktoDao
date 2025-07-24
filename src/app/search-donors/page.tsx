@@ -11,6 +11,10 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Donor } from '@/lib/types';
 import DonorCard from '@/components/donor-card';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { cn } from '@/lib/utils';
+import { CheckIcon, ChevronsUpDown } from 'lucide-react';
 
 export default function SearchDonorsPage() {
   const [bloodGroup, setBloodGroup] = useState('any');
@@ -54,6 +58,12 @@ export default function SearchDonorsPage() {
     handleSearch();
      // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  
+  const districtOptions = division !== 'any' 
+    ? locations[division as keyof typeof locations]?.districts.map(d => ({ value: d, label: d }))
+    : Object.keys(locations).flatMap(div => 
+        locations[div as keyof typeof locations].districts.map(d => ({ value: d, label: d }))
+      );
 
   if (!isClient) {
     return null;
@@ -89,15 +99,64 @@ export default function SearchDonorsPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="district">District</Label>
-              <Select value={district} onValueChange={(val) => {setDistrict(val); setUpazila('any');}} disabled={!division || division === 'any'}>
-                <SelectTrigger id="district"><SelectValue placeholder="Any" /></SelectTrigger>
-                <SelectContent>
-                   <SelectItem value="any">Any</SelectItem>
-                  {division && division !== 'any' && locations[division as keyof typeof locations]?.districts.map(dist => <SelectItem key={dist} value={dist}>{dist}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
+                <Label htmlFor="district">District</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between font-normal"
+                    >
+                      {district !== 'any'
+                        ? district
+                        : "Select district"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                    <Command>
+                      <CommandInput placeholder="Search district..." />
+                      <CommandEmpty>No district found.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                            value="Any"
+                            key="any-district"
+                            onSelect={() => {
+                                setDistrict("any")
+                                setUpazila("any")
+                            }}
+                            >
+                            <CheckIcon
+                                className={cn(
+                                "mr-2 h-4 w-4",
+                                "any" === district ? "opacity-100" : "opacity-0"
+                                )}
+                            />
+                            Any
+                        </CommandItem>
+                        {districtOptions.map((d) => (
+                          <CommandItem
+                            value={d.label}
+                            key={d.value}
+                            onSelect={() => {
+                                setDistrict(d.value === district ? "any" : d.value)
+                                setUpazila("any")
+                            }}
+                          >
+                            <CheckIcon
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                d.value === district ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {d.label}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
              <div className="space-y-2">
               <Label htmlFor="upazila">Upazila / Area</Label>
               <Select value={upazila} onValueChange={setUpazila} disabled={!district || district === 'any'}>
@@ -144,3 +203,5 @@ export default function SearchDonorsPage() {
     </div>
   );
 }
+
+    

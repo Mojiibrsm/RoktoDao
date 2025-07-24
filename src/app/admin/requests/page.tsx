@@ -43,9 +43,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, CheckIcon, ChevronsUpDown } from 'lucide-react';
 import { bloodGroups, locations, hospitalsByDistrict } from '@/lib/location-data';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 
 
 const requestSchema = z.object({
@@ -102,6 +103,13 @@ export default function AdminRequestsPage() {
           setAvailableHospitals(allHospitals);
         }
     }, [selectedDistrict]);
+
+    const districtOptions = Object.keys(locations).flatMap(division => 
+        locations[division as keyof typeof locations].districts.map(district => ({
+            value: district,
+            label: district,
+        }))
+    );
 
     const fetchRequests = async () => {
         setLoading(true);
@@ -264,20 +272,65 @@ export default function AdminRequestsPage() {
                                 <FormMessage />
                                 </FormItem>
                             )} />
-                            <FormField control={form.control} name="district" render={({ field }) => (
-                                <FormItem>
+                           <FormField
+                                control={form.control}
+                                name="district"
+                                render={({ field }) => (
+                                <FormItem className="flex flex-col">
                                     <FormLabel>জেলা</FormLabel>
-                                    <Select onValueChange={(value) => { field.onChange(value); form.setValue('hospitalLocation', ''); }} value={field.value}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder="জেলা নির্বাচন করুন" /></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                        {Object.keys(locations).flatMap(division => locations[division as keyof typeof locations].districts.map(district => (
-                                            <SelectItem key={district} value={district}>{district}</SelectItem>
-                                        )))}
-                                    </SelectContent>
-                                    </Select>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                        <FormControl>
+                                            <Button
+                                            variant="outline"
+                                            role="combobox"
+                                            className={cn(
+                                                "w-full justify-between",
+                                                !field.value && "text-muted-foreground"
+                                            )}
+                                            >
+                                            {field.value
+                                                ? districtOptions.find(
+                                                    (district) => district.value === field.value
+                                                )?.label
+                                                : "জেলা নির্বাচন করুন"}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                        </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                            <Command>
+                                                <CommandInput placeholder="জেলা খুঁজুন..." />
+                                                <CommandEmpty>কোন জেলা পাওয়া যায়নি।</CommandEmpty>
+                                                <CommandGroup>
+                                                {districtOptions.map((district) => (
+                                                    <CommandItem
+                                                    value={district.label}
+                                                    key={district.value}
+                                                    onSelect={() => {
+                                                        form.setValue("district", district.value);
+                                                        form.setValue('hospitalLocation', '');
+                                                    }}
+                                                    >
+                                                    <CheckIcon
+                                                        className={cn(
+                                                        "mr-2 h-4 w-4",
+                                                        district.value === field.value
+                                                            ? "opacity-100"
+                                                            : "opacity-0"
+                                                        )}
+                                                    />
+                                                    {district.label}
+                                                    </CommandItem>
+                                                ))}
+                                                </CommandGroup>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
                                     <FormMessage />
                                 </FormItem>
-                                )} />
+                                )}
+                            />
                              <FormField
                                 control={form.control}
                                 name="hospitalLocation"
