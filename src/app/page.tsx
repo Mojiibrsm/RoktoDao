@@ -152,37 +152,8 @@ export default async function Home() {
           </div>
         </div>
       </section>
-
+      
       <section className="w-full bg-primary/5 py-16 md:py-24">
-        <div className="container mx-auto px-4 text-center">
-            <h2 className="text-3xl font-bold text-primary md:text-4xl font-headline">
-                আমাদের পরিসংখ্যান
-            </h2>
-            <p className="mx-auto mt-2 max-w-2xl text-lg text-foreground/80">
-                আমাদের সম্প্রদায়ের সম্মিলিত প্রভাব দেখুন।
-            </p>
-            <Separator className="my-8" />
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="flex flex-col items-center gap-2">
-                    <Users className="h-12 w-12 text-primary" />
-                    <p className="text-4xl font-bold">5,000+</p>
-                    <p className="text-muted-foreground">মোট ডোনার</p>
-                </div>
-                <div className="flex flex-col items-center gap-2">
-                    <ListChecks className="h-12 w-12 text-primary" />
-                    <p className="text-4xl font-bold">10,000+</p>
-                    <p className="text-muted-foreground">মোট রিকোয়েস্ট</p>
-                </div>
-                <div className="flex flex-col items-center gap-2">
-                    <HandHeart className="h-12 w-12 text-primary" />
-                    <p className="text-4xl font-bold">8,500+</p>
-                    <p className="text-muted-foreground">সফল ডোনেশন</p>
-                </div>
-            </div>
-        </div>
-      </section>
-
-      <section className="w-full py-16 md:py-24 bg-primary/5">
         <div className="container mx-auto px-4">
           <div className="text-center">
             <h2 className="text-3xl font-bold text-primary md:text-4xl font-headline">
@@ -233,6 +204,35 @@ export default async function Home() {
                 <Link href="/requests">আরো দেখুন</Link>
             </Button>
           </div>
+        </div>
+      </section>
+
+      <section className="w-full bg-primary/5 py-16 md:py-24">
+        <div className="container mx-auto px-4 text-center">
+            <h2 className="text-3xl font-bold text-primary md:text-4xl font-headline">
+                আমাদের পরিসংখ্যান
+            </h2>
+            <p className="mx-auto mt-2 max-w-2xl text-lg text-foreground/80">
+                আমাদের সম্প্রদায়ের সম্মিলিত প্রভাব দেখুন।
+            </p>
+            <Separator className="my-8" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="flex flex-col items-center gap-2">
+                    <Users className="h-12 w-12 text-primary" />
+                    <p className="text-4xl font-bold">5,000+</p>
+                    <p className="text-muted-foreground">মোট ডোনার</p>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                    <ListChecks className="h-12 w-12 text-primary" />
+                    <p className="text-4xl font-bold">10,000+</p>
+                    <p className="text-muted-foreground">মোট রিকোয়েস্ট</p>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                    <HandHeart className="h-12 w-12 text-primary" />
+                    <p className="text-4xl font-bold">8,500+</p>
+                    <p className="text-muted-foreground">সফল ডোনেশন</p>
+                </div>
+            </div>
         </div>
       </section>
 
