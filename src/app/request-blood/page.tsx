@@ -114,7 +114,7 @@ export default function RequestBloodPage() {
             value: district,
             label: district,
         }))
-    ).sort((a, b) => a.label.localeCompare(b, 'bn'));
+    ).sort((a, b) => a.label.localeCompare(b.label, 'bn'));
 
   const onSubmit = async (values: z.infer<typeof requestSchema>) => {
     setIsSubmitting(true);
@@ -235,7 +235,7 @@ export default function RequestBloodPage() {
                                 value={districtSearch}
                                 onChange={(e) => setDistrictSearch(e.target.value)}
                             />
-                            <SelectGroup>
+                            <SelectGroup className="max-h-60 overflow-y-auto">
                                 <SelectLabel>সকল জেলা</SelectLabel>
                                 {districtOptions
                                 .filter((d) => d.label.toLowerCase().includes(districtSearch.toLowerCase()))
@@ -262,7 +262,7 @@ export default function RequestBloodPage() {
                         <FormControl><SelectTrigger><SelectValue placeholder="হাসপাতাল নির্বাচন করুন" /></SelectTrigger></FormControl>
                         <SelectContent>
                            <Input className="mb-2" placeholder="হাসপাতাল খুঁজুন..." value={hospitalSearch} onChange={(e) => setHospitalSearch(e.target.value)}/>
-                           <SelectGroup>
+                           <SelectGroup className="max-h-60 overflow-y-auto">
                                 <SelectLabel>সকল হাসপাতাল</SelectLabel>
                                 {availableHospitals.filter(h => h.toLowerCase().includes(hospitalSearch.toLowerCase())).map(hospital => (
                                 <SelectItem key={hospital} value={hospital}>{hospital}</SelectItem>
@@ -343,3 +343,5 @@ export default function RequestBloodPage() {
     </div>
   );
 }
+
+    
