@@ -307,14 +307,10 @@ export default function AdminRequestsPage() {
                                             <CommandGroup>
                                                 {districtOptions.map((district) => (
                                                 <CommandItem
-                                                    value={district.label}
+                                                    value={district.value}
                                                     key={district.value}
-                                                    onSelect={() => {
-                                                      form.setValue("district", district.value);
-                                                      setIsDistrictPopoverOpen(false);
-                                                    }}
-                                                    onClick={() => {
-                                                        form.setValue("district", district.value);
+                                                    onSelect={(currentValue) => {
+                                                        form.setValue("district", currentValue === field.value ? "" : currentValue);
                                                         setIsDistrictPopoverOpen(false);
                                                     }}
                                                 >
@@ -488,5 +484,3 @@ export default function AdminRequestsPage() {
         </div>
     );
 }
-
-    

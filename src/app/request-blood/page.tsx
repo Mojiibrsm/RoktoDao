@@ -191,7 +191,7 @@ export default function RequestBloodPage() {
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
                     <FormLabel>জেলা</FormLabel>
-                     <Popover open={isDistrictPopoverOpen} onOpenChange={setIsDistrictPopoverOpen}>
+                    <Popover open={isDistrictPopoverOpen} onOpenChange={setIsDistrictPopoverOpen}>
                       <PopoverTrigger asChild>
                         <FormControl>
                           <Button
@@ -213,21 +213,17 @@ export default function RequestBloodPage() {
                       </PopoverTrigger>
                       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                         <Command>
-                           <CommandInput placeholder="জেলা খুঁজুন..." />
-                            <CommandEmpty>কোন জেলা পাওয়া যায়নি।</CommandEmpty>
+                          <CommandInput placeholder="জেলা খুঁজুন..." />
+                          <CommandEmpty>কোন জেলা পাওয়া যায়নি।</CommandEmpty>
                           <CommandList>
                             <CommandGroup>
                                 {districtOptions.map((district) => (
                                 <CommandItem
-                                    value={district.label}
+                                    value={district.value}
                                     key={district.value}
-                                    onSelect={() => {
-                                      form.setValue("district", district.value);
+                                    onSelect={(currentValue) => {
+                                      form.setValue("district", currentValue === field.value ? "" : currentValue);
                                       setIsDistrictPopoverOpen(false);
-                                    }}
-                                    onClick={() => {
-                                        form.setValue("district", district.value);
-                                        setIsDistrictPopoverOpen(false);
                                     }}
                                 >
                                     <CheckIcon
@@ -312,5 +308,3 @@ export default function RequestBloodPage() {
     </div>
   );
 }
-
-    

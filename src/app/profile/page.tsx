@@ -24,7 +24,7 @@ import { doc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Donor } from '@/lib/types';
 import Link from 'next/link';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 
 
 const profileSchema = z.object({
@@ -46,6 +46,8 @@ export default function ProfilePage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDistrictPopoverOpen, setIsDistrictPopoverOpen] = useState(false);
+
   
   const form = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
@@ -256,7 +258,7 @@ export default function ProfilePage() {
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
                     <FormLabel>District</FormLabel>
-                    <Popover>
+                    <Popover open={isDistrictPopoverOpen} onOpenChange={setIsDistrictPopoverOpen}>
                       <PopoverTrigger asChild disabled={!selectedDivision}>
                         <FormControl>
                           <Button
@@ -280,28 +282,31 @@ export default function ProfilePage() {
                         <Command>
                             <CommandInput placeholder="Search district..." />
                             <CommandEmpty>No district found.</CommandEmpty>
-                            <CommandGroup>
-                            {districtOptions.map((district) => (
-                                <CommandItem
-                                value={district.label}
-                                key={district.value}
-                                onSelect={() => {
-                                    form.setValue("district", district.value)
-                                    form.setValue("upazila", "")
-                                }}
-                                >
-                                <CheckIcon
-                                    className={cn(
-                                    "mr-2 h-4 w-4",
-                                    district.value === field.value
-                                        ? "opacity-100"
-                                        : "opacity-0"
-                                    )}
-                                />
-                                {district.label}
-                                </CommandItem>
-                            ))}
-                            </CommandGroup>
+                            <CommandList>
+                              <CommandGroup>
+                              {districtOptions.map((district) => (
+                                  <CommandItem
+                                  value={district.value}
+                                  key={district.value}
+                                  onSelect={(currentValue) => {
+                                      form.setValue("district", currentValue === field.value ? "" : currentValue)
+                                      form.setValue("upazila", "")
+                                      setIsDistrictPopoverOpen(false)
+                                  }}
+                                  >
+                                  <CheckIcon
+                                      className={cn(
+                                      "mr-2 h-4 w-4",
+                                      district.value === field.value
+                                          ? "opacity-100"
+                                          : "opacity-0"
+                                      )}
+                                  />
+                                  {district.label}
+                                  </CommandItem>
+                              ))}
+                              </CommandGroup>
+                            </CommandList>
                         </Command>
                       </PopoverContent>
                     </Popover>
@@ -349,5 +354,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-    
