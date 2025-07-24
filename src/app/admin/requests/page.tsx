@@ -322,7 +322,7 @@ export default function AdminRequestsPage() {
         fetchRequests();
     }, []);
 
-    const handleUpdateStatus = async (requestId: string, status: BloodRequest['status']) => {
+    const handleUpdateStatus = async (requestId: string, status: BloodRequestType['status']) => {
         try {
             const requestRef = doc(db, 'requests', requestId);
             await updateDoc(requestRef, { status: status });
@@ -428,7 +428,7 @@ export default function AdminRequestsPage() {
     };
 
 
-    const getStatusBadgeVariant = (status: BloodRequest['status']) => {
+    const getStatusBadgeVariant = (status: BloodRequestType['status']) => {
         switch (status) {
             case 'Approved': return 'default';
             case 'Fulfilled': return 'default';
@@ -437,7 +437,7 @@ export default function AdminRequestsPage() {
             default: return 'outline';
         }
     };
-     const getStatusBadgeClass = (status: BloodRequest['status']) => {
+     const getStatusBadgeClass = (status: BloodRequestType['status']) => {
         switch (status) {
             case 'Approved': return 'bg-blue-600';
             case 'Fulfilled': return 'bg-green-600';
@@ -559,50 +559,51 @@ export default function AdminRequestsPage() {
                                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleCopy(formatCopyText(req))}>
                                     <Copy className="h-4 w-4" />
                                 </Button>
-                                <AlertDialog>
-                                  <DropdownMenu>
+                                <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                      <Button aria-haspopup="true" size="icon" variant="ghost">
+                                        <Button aria-haspopup="true" size="icon" variant="ghost">
                                         <MoreHorizontal className="h-4 w-4" />
                                         <span className="sr-only">Toggle menu</span>
-                                      </Button>
+                                        </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
-                                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                       <DropdownMenuItem onClick={() => openEditDialog(req)}>
-                                        <Edit className="mr-2 h-4 w-4" /> Edit
-                                      </DropdownMenuItem>
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem onClick={() => handleUpdateStatus(req.id, 'Approved')}>
-                                        <Check className="mr-2 h-4 w-4" /> Approve
-                                      </DropdownMenuItem>
-                                       <DropdownMenuItem onClick={() => handleUpdateStatus(req.id, 'Fulfilled')}>
-                                        <CheckCheck className="mr-2 h-4 w-4" /> Mark as Fulfilled
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => handleUpdateStatus(req.id, 'Rejected')}>
-                                        <X className="mr-2 h-4 w-4" /> Reject
-                                      </DropdownMenuItem>
-                                      <DropdownMenuSeparator />
-                                      <AlertDialogTrigger asChild>
-                                        <DropdownMenuItem className="text-destructive focus:text-destructive">
-                                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                        <DropdownMenuItem onClick={() => openEditDialog(req)}>
+                                            <Edit className="mr-2 h-4 w-4" /> Edit
                                         </DropdownMenuItem>
-                                      </AlertDialogTrigger>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem onClick={() => handleUpdateStatus(req.id, 'Approved')}>
+                                            <Check className="mr-2 h-4 w-4" /> Approve
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleUpdateStatus(req.id, 'Fulfilled')}>
+                                            <CheckCheck className="mr-2 h-4 w-4" /> Mark as Fulfilled
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleUpdateStatus(req.id, 'Rejected')}>
+                                            <X className="mr-2 h-4 w-4" /> Reject
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={(e) => e.preventDefault()}>
+                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                    Delete
+                                                </DropdownMenuItem>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    This action cannot be undone. This will permanently delete this blood request.
+                                                </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => handleDeleteRequest(req.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
                                     </DropdownMenuContent>
-                                  </DropdownMenu>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        This action cannot be undone. This will permanently delete this blood request.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                      <AlertDialogAction onClick={() => handleDeleteRequest(req.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
+                                </DropdownMenu>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -635,3 +636,5 @@ export default function AdminRequestsPage() {
         </div>
     );
 }
+
+    
