@@ -12,7 +12,7 @@ import { db } from '@/lib/firebase';
 import type { Donor } from '@/lib/types';
 import DonorCard from '@/components/donor-card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import { CheckIcon, ChevronsUpDown } from 'lucide-react';
 
@@ -24,6 +24,7 @@ export default function SearchDonorsPage() {
   const [donors, setDonors] = useState<Donor[]>([]);
   const [isPending, startTransition] = useTransition();
   const [isClient, setIsClient] = useState(false);
+  const [isDistrictPopoverOpen, setIsDistrictPopoverOpen] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -100,7 +101,7 @@ export default function SearchDonorsPage() {
             </div>
             <div className="space-y-2">
                 <Label htmlFor="district">District</Label>
-                <Popover>
+                <Popover open={isDistrictPopoverOpen} onOpenChange={setIsDistrictPopoverOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
@@ -114,17 +115,21 @@ export default function SearchDonorsPage() {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                    <Command>
+                    <Command
+                      onValueChange={(value) => {
+                          setDistrict(value)
+                          setUpazila("any")
+                          setIsDistrictPopoverOpen(false)
+                      }}
+                      value={district}
+                    >
                       <CommandInput placeholder="Search district..." />
                       <CommandEmpty>No district found.</CommandEmpty>
-                      <CommandGroup>
+                      <CommandList>
+                        <CommandGroup>
                         <CommandItem
-                            value="Any"
+                            value="any"
                             key="any-district"
-                            onSelect={() => {
-                                setDistrict("any")
-                                setUpazila("any")
-                            }}
                             >
                             <CheckIcon
                                 className={cn(
@@ -136,12 +141,8 @@ export default function SearchDonorsPage() {
                         </CommandItem>
                         {districtOptions.map((d) => (
                           <CommandItem
-                            value={d.label}
+                            value={d.value}
                             key={d.value}
-                            onSelect={() => {
-                                setDistrict(d.value === district ? "any" : d.value)
-                                setUpazila("any")
-                            }}
                           >
                             <CheckIcon
                               className={cn(
@@ -153,6 +154,7 @@ export default function SearchDonorsPage() {
                           </CommandItem>
                         ))}
                       </CommandGroup>
+                      </CommandList>
                     </Command>
                   </PopoverContent>
                 </Popover>
@@ -203,5 +205,3 @@ export default function SearchDonorsPage() {
     </div>
   );
 }
-
-    

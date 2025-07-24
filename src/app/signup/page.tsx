@@ -9,7 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -39,8 +39,8 @@ const signupSchema = z.object({
   upazila: z.string({ required_error: 'Upazila is required.' }).min(1, 'Upazila is required.'),
   lastDonationDate: z.date().optional(),
   isAvailable: z.boolean().default(true),
-  dateOfBirth: z.date().optional(),
-  gender: z.enum(['Male', 'Female', 'Other']).optional(),
+  dateOfBirth: z.date({required_error: 'Date of birth is required.'}),
+  gender: z.enum(['Male', 'Female', 'Other'], {required_error: 'Gender is required.'}),
   donationCount: z.coerce.number().optional(),
 });
 
@@ -111,6 +111,9 @@ export default function SignupPage() {
         dateOfBirth: values.dateOfBirth?.toISOString(),
         gender: values.gender,
         donationCount: values.donationCount,
+        isVerified: false,
+        isAdmin: false,
+        createdAt: serverTimestamp(),
       };
 
       await setDoc(doc(db, 'donors', user.uid), donorData);
@@ -122,10 +125,17 @@ export default function SignupPage() {
       router.push('/profile'); // Redirect to profile page for viewing/editing in future
 
     } catch (error: any) {
+      const errorCode = error.code;
+      let errorMessage = 'An unknown error occurred.';
+      if (errorCode === 'auth/email-already-in-use') {
+        errorMessage = 'This email address is already in use. Please use a different email.';
+      } else {
+        errorMessage = error.message;
+      }
       toast({
         variant: 'destructive',
         title: 'Signup Failed',
-        description: error.message || 'An unknown error occurred.',
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);
@@ -214,7 +224,7 @@ export default function SignupPage() {
                         </FormControl>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date()} initialFocus />
+                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={1950} toYear={new Date().getFullYear() - 18} disabled={(date) => date > addYears(new Date(), -18) || date.getFullYear() < 1920} initialFocus />
                         </PopoverContent>
                     </Popover>
                     <FormMessage />
@@ -288,7 +298,14 @@ export default function SignupPage() {
                         </FormControl>
                       </PopoverTrigger>
                       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                        <Command>
+                        <Command
+                           onValueChange={(value) => {
+                              form.setValue("district", value)
+                              form.setValue("upazila", "")
+                              setIsDistrictPopoverOpen(false)
+                            }}
+                          value={field.value}
+                        >
                            <CommandInput placeholder="জেলা খুঁজুন..." />
                             <CommandEmpty>কোন জেলা পাওয়া যায়নি।</CommandEmpty>
                           <CommandList>
@@ -297,11 +314,6 @@ export default function SignupPage() {
                                 <CommandItem
                                     value={district.value}
                                     key={district.value}
-                                    onSelect={(currentValue) => {
-                                    form.setValue("district", currentValue === field.value ? "" : currentValue)
-                                    form.setValue("upazila", "")
-                                    setIsDistrictPopoverOpen(false)
-                                    }}
                                 >
                                     <CheckIcon
                                     className={cn(

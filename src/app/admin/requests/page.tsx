@@ -300,7 +300,13 @@ export default function AdminRequestsPage() {
                                         </FormControl>
                                       </PopoverTrigger>
                                       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                        <Command>
+                                        <Command
+                                          onValueChange={(value) => {
+                                            form.setValue("district", value)
+                                            setIsDistrictPopoverOpen(false)
+                                          }}
+                                          value={field.value}
+                                        >
                                            <CommandInput placeholder="জেলা খুঁজুন..." />
                                             <CommandEmpty>কোন জেলা পাওয়া যায়নি।</CommandEmpty>
                                           <CommandList>
@@ -309,10 +315,6 @@ export default function AdminRequestsPage() {
                                                 <CommandItem
                                                     value={district.value}
                                                     key={district.value}
-                                                    onSelect={(currentValue) => {
-                                                        form.setValue("district", currentValue === field.value ? "" : currentValue);
-                                                        setIsDistrictPopoverOpen(false);
-                                                    }}
                                                 >
                                                     <CheckIcon
                                                     className={cn(

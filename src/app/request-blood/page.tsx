@@ -18,7 +18,7 @@ import { CalendarIcon, CheckIcon, ChevronsUpDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { bloodGroups, locations, hospitalsByDistrict } from '@/lib/location-data';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -105,6 +105,7 @@ export default function RequestBloodPage() {
       uid: user?.uid,
       isEmergency: values.isEmergency,
       status: 'Pending',
+      createdAt: serverTimestamp(),
     };
 
     try {
@@ -212,7 +213,13 @@ export default function RequestBloodPage() {
                         </FormControl>
                       </PopoverTrigger>
                       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                        <Command>
+                        <Command 
+                          onValueChange={(value) => {
+                            form.setValue("district", value)
+                            setIsDistrictPopoverOpen(false)
+                          }}
+                          value={field.value}
+                          >
                           <CommandInput placeholder="জেলা খুঁজুন..." />
                           <CommandEmpty>কোন জেলা পাওয়া যায়নি।</CommandEmpty>
                           <CommandList>
@@ -221,10 +228,6 @@ export default function RequestBloodPage() {
                                 <CommandItem
                                     value={district.value}
                                     key={district.value}
-                                    onSelect={(currentValue) => {
-                                      form.setValue("district", currentValue === field.value ? "" : currentValue);
-                                      setIsDistrictPopoverOpen(false);
-                                    }}
                                 >
                                     <CheckIcon
                                     className={cn(

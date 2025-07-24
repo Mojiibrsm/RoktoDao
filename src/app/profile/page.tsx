@@ -126,6 +126,8 @@ export default function ProfilePage() {
       dateOfBirth: values.dateOfBirth?.toISOString(),
       gender: values.gender,
       donationCount: values.donationCount,
+      isVerified: donorProfile?.isVerified ?? false, // Preserve verification status
+      isAdmin: donorProfile?.isAdmin ?? false, // Preserve admin status
     };
 
     try {
@@ -205,7 +207,7 @@ export default function ProfilePage() {
                         </FormControl>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={1950} toYear={new Date().getFullYear()} disabled={(date) => date > new Date()} initialFocus />
+                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={1950} toYear={new Date().getFullYear()} disabled={(date) => date > new Date() || date.getFullYear() < 1920} initialFocus />
                         </PopoverContent>
                     </Popover>
                     <FormMessage />
@@ -279,7 +281,14 @@ export default function ProfilePage() {
                         </FormControl>
                       </PopoverTrigger>
                       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                        <Command>
+                        <Command 
+                          onValueChange={(value) => {
+                            form.setValue("district", value)
+                            form.setValue("upazila", "")
+                            setIsDistrictPopoverOpen(false)
+                          }}
+                          value={field.value}
+                        >
                             <CommandInput placeholder="Search district..." />
                             <CommandEmpty>No district found.</CommandEmpty>
                             <CommandList>
@@ -288,11 +297,6 @@ export default function ProfilePage() {
                                   <CommandItem
                                   value={district.value}
                                   key={district.value}
-                                  onSelect={(currentValue) => {
-                                      form.setValue("district", currentValue === field.value ? "" : currentValue)
-                                      form.setValue("upazila", "")
-                                      setIsDistrictPopoverOpen(false)
-                                  }}
                                   >
                                   <CheckIcon
                                       className={cn(
