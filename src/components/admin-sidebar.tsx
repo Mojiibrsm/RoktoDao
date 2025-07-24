@@ -12,7 +12,7 @@ const navLinks = [
   { href: '/admin/donors', label: 'Donors', icon: Users },
   { href: '/admin/requests', label: 'Blood Requests', icon: BloodDrop },
   { href: '/admin/notifications', label: 'Notifications', icon: Bell },
-  { href: '/admin/users', label: 'Admin Users', icon: UserPlus },
+  { href: '/admin/users', label: 'User Management', icon: UserPlus },
   { href: '/admin/feedback', label: 'Feedback/Reports', icon: MessageSquareWarning },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
 ];
