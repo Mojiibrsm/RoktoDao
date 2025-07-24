@@ -31,18 +31,18 @@ const NoticeBar = () => {
                 type: 'notice'
             }));
 
-            // Fetch urgent blood requests
+            // Fetch active blood requests
             const requestsCollection = collection(db, 'requests');
             const requestsQuery = query(
-                requestsCollection, 
-                where('isEmergency', '==', true),
+                requestsCollection,
                 where('status', 'in', ['Pending', 'Approved']),
                 orderBy('createdAt', 'desc')
             );
             const requestsSnapshot = await getDocs(requestsQuery);
             const urgentRequests: Notice[] = requestsSnapshot.docs.map(doc => {
                 const data = doc.data() as BloodRequest;
-                const text = `জরুরী: ${data.district}-এ ${data.bloodGroup} রক্তের প্রয়োজন। যোগাযোগ করুন।`;
+                const emergencyText = data.isEmergency ? "জরুরী: " : "";
+                const text = `${emergencyText}${data.district}-এ ${data.bloodGroup} রক্তের প্রয়োজন। যোগাযোগ করুন।`;
                 return {
                     id: doc.id,
                     text: text,
