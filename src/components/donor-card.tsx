@@ -1,7 +1,7 @@
 import type { Donor } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Phone, MapPin, CalendarCheck2, UserCheck, Droplet } from 'lucide-react';
+import { Phone, MapPin, CalendarCheck2, UserCheck, Droplet, Award } from 'lucide-react';
 import { differenceInDays, format, parseISO, isFuture } from 'date-fns';
 
 type DonorCardProps = {
@@ -29,19 +29,18 @@ export default function DonorCard({ donor }: DonorCardProps) {
 
   const getEligibilityText = () => {
     if (!donationDateIsValid) {
-      return "Invalid date";
+      return "ভুল তারিখ";
     }
     if (lastDonatedDaysAgo === null) {
-      return "Eligible to donate";
+      return "দান করতে পারবেন";
     }
     if (canDonatePhysically) {
-        return "Eligible to donate";
+        return "দান করতে পারবেন";
     }
-    const daysRemaining = 120 - lastDonatedDaysAgo;
-    return `Eligible in ${daysRemaining} days`;
+    const daysRemaining = 120 - (lastDonatedDaysAgo || 0);
+    return `${daysRemaining} দিন পর`;
   }
 
-  // Use the isAvailable flag from the database directly for the main status badge
   const isAvailable = donor.isAvailable;
 
   return (
@@ -50,7 +49,7 @@ export default function DonorCard({ donor }: DonorCardProps) {
         <div className="flex items-start justify-between">
             <CardTitle className="text-xl font-bold">{donor.fullName}</CardTitle>
             <Badge variant={isAvailable ? 'default' : 'destructive'} className={isAvailable ? 'bg-green-600 text-white' : 'bg-destructive text-white'}>
-                {isAvailable ? 'Available' : 'Unavailable'}
+                {isAvailable ? 'উপলব্ধ' : 'অনুপলব্ধ'}
             </Badge>
         </div>
         <CardDescription className="flex items-center gap-2 pt-2">
@@ -70,15 +69,21 @@ export default function DonorCard({ donor }: DonorCardProps) {
         <div className="flex items-center gap-3 text-muted-foreground">
             <CalendarCheck2 className="h-5 w-5 flex-shrink-0" />
             {donor.lastDonationDate && donationDateIsValid ? (
-                <span>Last Donated: {format(parseISO(donor.lastDonationDate), "PPP")}</span>
+                <span>শেষ রক্তদান: {format(parseISO(donor.lastDonationDate), "PPP")}</span>
             ) : (
-                <span>Never donated before</span>
+                <span>আগে কখনো রক্ত দেয়নি</span>
             )}
         </div>
-         <div className="flex items-center gap-3 text-muted-foreground">
+        <div className="flex items-center gap-3 text-muted-foreground">
             <UserCheck className="h-5 w-5 flex-shrink-0" />
-            <span>Eligibility: {getEligibilityText()}</span>
+            <span>যোগ্যতা: {getEligibilityText()}</span>
         </div>
+        {donor.donationCount && donor.donationCount > 0 && (
+             <div className="flex items-center gap-3 text-muted-foreground">
+                <Award className="h-5 w-5 flex-shrink-0" />
+                <span>মোট রক্তদান: {donor.donationCount} বার</span>
+            </div>
+        )}
       </CardContent>
     </Card>
   );
