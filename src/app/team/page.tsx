@@ -10,12 +10,12 @@ import { useToast } from '@/hooks/use-toast';
 
 const administrators = [
   {
-    name: "Mohammad Alamin",
-    role: "Administrator",
-    bloodGroup: "B+",
-    phone: "01603940089",
-    email: "anbuinfosec@gmail.com",
-    location: "Barisal Sadar, Barishal, Barishal",
+    name: "Mojib Rsm",
+    role: "প্রধান পরিচালক",
+    bloodGroup: "O+",
+    phone: "01601519007",
+    email: "mojibrsm@example.com",
+    location: "Ramu, Cox's Bazar",
     avatar: "https://placehold.co/100x100.png",
     avatarHint: "man portrait"
   }
@@ -92,7 +92,7 @@ const TeamMemberCard = ({ member }: { member: typeof administrators[0] | typeof 
             <div className="space-y-1">
               <h3 className="text-xl font-bold font-headline">{member.name}</h3>
               <div className="flex items-center gap-2">
-                <Badge variant={member.role === 'Administrator' ? 'destructive' : 'secondary'}>{member.role}</Badge>
+                <Badge variant={member.role === 'প্রধান পরিচালক' ? 'destructive' : 'secondary'}>{member.role}</Badge>
                 <Badge variant="outline" className="text-primary border-primary">{member.bloodGroup}</Badge>
               </div>
             </div>
@@ -138,14 +138,15 @@ export default function TeamPage() {
 
       <section className="container mx-auto py-16 md:py-24 px-4 space-y-12">
         <div>
-          <div className="flex items-center gap-3 mb-6">
+          <div className="flex items-center justify-center gap-3 mb-6">
             <Crown className="h-8 w-8 text-amber-500" />
-            <h2 className="text-3xl font-bold font-headline text-primary">Administrators</h2>
-            <Badge variant="default" className="text-lg">{administrators.length}</Badge>
+            <h2 className="text-3xl font-bold font-headline text-primary">প্রধান পরিচালক</h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 justify-center">
             {administrators.map((member) => (
-              <TeamMemberCard key={member.email} member={member} />
+              <div key={member.email} className="lg:col-start-2 flex justify-center">
+                <TeamMemberCard member={member} />
+              </div>
             ))}
           </div>
         </div>
