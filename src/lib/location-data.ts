@@ -1,29 +1,30 @@
+
 export const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
 export const locations = {
-  "Dhaka": {
-    districts: ["Dhaka", "Gazipur", "Narayanganj", "Tangail", "Faridpur"]
+  "ঢাকা": {
+    districts: ["ঢাকা", "গাজীপুর", "নারায়ণগঞ্জ", "টাঙ্গাইল", "ফরিদপুর"]
   },
-  "Chittagong": {
-    districts: ["Chittagong", "Comilla", "Cox's Bazar", "Noakhali", "Feni"]
+  "চট্টগ্রাম": {
+    districts: ["চট্টগ্রাম", "কুমিল্লা", "কক্সবাজার", "নোয়াখালী", "ফেনী"]
   },
-  "Rajshahi": {
-    districts: ["Rajshahi", "Bogra", "Pabna", "Sirajganj", "Naogaon"]
+  "রাজশাহী": {
+    districts: ["রাজশাহী", "বগুড়া", "পাবনা", "সিরাজগঞ্জ", "নওগাঁ"]
   },
-  "Khulna": {
-    districts: ["Khulna", "Jessore", "Kushtia", "Satkhira", "Bagerhat"]
+  "খুলনা": {
+    districts: ["খুলনা", "যশোর", "কুষ্টিয়া", "সাতক্ষীরা", "বাগেরহাট"]
   },
-  "Barisal": {
-    districts: ["Barisal", "Patuakhali", "Bhola", "Pirojpur", "Jhalokati"]
+  "বরিশাল": {
+    districts: ["বরিশাল", "পটুয়াখালী", "ভোলা", "পিরোজপুর", "ঝালকাঠি"]
   },
-  "Sylhet": {
-    districts: ["Sylhet", "Moulvibazar", "Habiganj", "Sunamganj"]
+  "সিলেট": {
+    districts: ["সিলেট", "মৌলভীবাজার", "হবিগঞ্জ", "সুনামগঞ্জ"]
   },
-  "Rangpur": {
-    districts: ["Rangpur", "Dinajpur", "Gaibandha", "Kurigram", "Lalmonirhat"]
+  "রংপুর": {
+    districts: ["রংপুর", "দিনাজপুর", "গাইবান্ধা", "কুড়িগ্রাম", "লালমনিরহাট"]
   },
-  "Mymensingh": {
-    districts: ["Mymensingh", "Jamalpur", "Netrokona", "Sherpur"]
+  "ময়মনসিংহ": {
+    districts: ["ময়মনসিংহ", "জামালপুর", "নেত্রকোনা", "শেরপুর"]
   }
 };
 
@@ -69,106 +70,106 @@ export const upazilas = {
 };
 
 export const hospitalsByDistrict: Record<string, string[]> = {
-  "Dhaka": [
-    "Dhaka Medical College Hospital",
-    "Bangabandhu Sheikh Mujib Medical University (BSMMU)",
-    "Sir Salimullah Medical College Hospital (Mitford)",
-    "Shaheed Suhrawardy Medical College Hospital",
-    "National Institute of Cardiovascular Diseases (NICVD)",
-    "National Institute of Traumatology and Orthopaedic Rehabilitation (NITOR)",
-    "Square Hospitals Ltd.",
-    "Evercare Hospital Dhaka",
-    "United Hospital Limited",
-    "Labaid Specialized Hospital",
-    "BIRDEM General Hospital",
-    "Combined Military Hospital (CMH), Dhaka",
-    "Ibn Sina Specialized Hospital",
-    "Kurmitola General Hospital",
-    "Mugda Medical College Hospital"
+  "ঢাকা": [
+    "ঢাকা মেডিকেল কলেজ হাসপাতাল",
+    "বঙ্গবন্ধু শেখ মুজিব মেডিকেল বিশ্ববিদ্যালয় (বিএসএমএমইউ)",
+    "স্যার সলিমুল্লাহ মেডিকেল কলেজ হাসপাতাল (মিটফোর্ড)",
+    "শহীদ সোহরাওয়ার্দী মেডিকেল কলেজ হাসপাতাল",
+    "জাতীয় হৃদরোগ ইনস্টিটিউট ও হাসপাতাল (এনআইসিভিডি)",
+    "জাতীয় অর্থোপেডিক হাসপাতাল ও পুনর্বাসন প্রতিষ্ঠান (নিটোর)",
+    "স্কয়ার হাসপাতাল লিমিটেড",
+    "এভারকেয়ার হাসপাতাল ঢাকা",
+    "ইউনাইটেড হাসপাতাল লিমিটেড",
+    "ল্যাবএইড বিশেষায়িত হাসপাতাল",
+    "বারডেম জেনারেল হাসপাতাল",
+    "সম্মিলিত সামরিক হাসপাতাল (সিএমএইচ), ঢাকা",
+    "ইবনে সিনা বিশেষায়িত হাসপাতাল",
+    "কুর্মিটোলা জেনারেল হাসপাতাল",
+    "মুগদা মেডিকেল কলেজ হাসপাতাল"
   ],
-  "Chittagong": [
-    "Chittagong Medical College Hospital",
-    "National Institute of Tropical and Infectious Diseases",
-    "BGC Trust Medical College Hospital",
-    "Chittagong General Hospital",
-    "Evercare Hospital Chittagong",
-    "Imperial Hospital Limited",
-    "Max Hospital & Diagnostic Ltd.",
-    "Parkview Hospital & Diagnostic Ltd.",
-    "Combined Military Hospital (CMH), Chittagong"
+  "চট্টগ্রাম": [
+    "চট্টগ্রাম মেডিকেল কলেজ হাসপাতাল",
+    "জাতীয় ট্রপিক্যাল ও সংক্রামক ব্যাধি হাসপাতাল",
+    "বিจিসি ট্রাস্ট মেডিকেল কলেজ হাসপাতাল",
+    "চট্টগ্রাম জেনারেল হাসপাতাল",
+    "এভারকেয়ার হাসপাতাল চট্টগ্রাম",
+    "ইম্পেরিয়াল হাসপাতাল লিমিটেড",
+    "ম্যাক্স হাসপাতাল ও ডায়াগনস্টিক লিমিটেড",
+    "পার্কভিউ হাসপাতাল ও ডায়াগনস্টিক লিমিটেড",
+    "সম্মিলিত সামরিক হাসপাতাল (সিএমএইচ), চট্টগ্রাম"
   ],
-  "Rajshahi": [
-    "Rajshahi Medical College Hospital",
-    "Rajshahi Central Hospital",
-    "Islami Bank Medical College Hospital, Rajshahi",
-    "Shah Mokhdum Medical College Hospital",
-    "Combined Military Hospital (CMH), Bogura"
+  "রাজশাহী": [
+    "রাজশাহী মেডিকেল কলেজ হাসপাতাল",
+    "রাজশাহী সেন্ট্রাল হাসপাতাল",
+    "ইসলামী ব্যাংক মেডিকেল কলেজ হাসপাতাল, রাজশাহী",
+    "শাহ মখদুম মেডিকেল কলেজ হাসপাতাল",
+    "সম্মিলিত সামরিক হাসপাতাল (সিএমএইচ), বগুড়া"
   ],
-  "Khulna": [
-    "Khulna Medical College Hospital",
-    "Shaheed Sheikh Abu Naser Specialized Hospital",
-    "Khulna City Medical College Hospital",
-    "Gazi Medical College Hospital",
-    "Combined Military Hospital (CMH), Jashore"
+  "খুলনা": [
+    "খুলনা মেডিকেল কলেজ হাসপাতাল",
+    "শহীদ শেখ আবু নাসের বিশেষায়িত হাসপাতাল",
+    "খুলনা সিটি মেডিকেল কলেজ হাসপাতাল",
+    "গাজী মেডিকেল কলেজ হাসপাতাল",
+    "সম্মিলিত সামরিক হাসপাতাল (সিএমএইচ), যশোর"
   ],
-  "Sylhet": [
-    "Sylhet M.A.G. Osmani Medical College Hospital",
-    "North East Medical College Hospital",
-    "Jalalabad Ragib-Rabeya Medical College Hospital",
-    "Sylhet Women's Medical College Hospital",
-    "Mount Adora Hospital"
+  "সিলেট": [
+    "সিলেট এম.এ.জি. ওসমানী মেডিকেল কলেজ হাসপাতাল",
+    "নর্থ ইস্ট মেডিকেল কলেজ হাসপাতাল",
+    "জালালাবাদ রাগীব-রাবেয়া মেডিকেল কলেজ হাসপাতাল",
+    "সিলেট মহিলা মেডিকেল কলেজ হাসপাতাল",
+    "মাউন্ট এডোরা হাসপাতাল"
   ],
-  "Barisal": [
-    "Sher-e-Bangla Medical College Hospital (SBMC)",
-    "Barisal General Hospital (Sadar Hospital)",
-    "Islami Bank Hospital, Barisal",
-    "Rahat Anwar Hospital"
+  "বরিশাল": [
+    "শের-ই-বাংলা মেডিকেল কলেজ হাসপাতাল (শেবাচিম)",
+    "বরিশাল জেনারেল হাসপাতাল (সদর হাসপাতাল)",
+    "ইসলামী ব্যাংক হাসপাতাল, বরিশাল",
+    "রাহাত আনোয়ার হাসপাতাল"
   ],
-  "Rangpur": [
-    "Rangpur Medical College Hospital",
-    "Rangpur General Hospital",
-    "Prime Medical College Hospital",
-    "Northern Medical College Hospital"
+  "রংপুর": [
+    "রংপুর মেডিকেল কলেজ হাসপাতাল",
+    "রংপুর জেনারেল হাসপাতাল",
+    "প্রাইম মেডিকেল কলেজ হাসপাতাল",
+    "নর্দান মেডিকেল কলেজ হাসপাতাল"
   ],
-  "Mymensingh": [
-    "Mymensingh Medical College Hospital",
-    "Community Based Medical College Hospital (CBMC)",
-    "Nexus Hospital",
-    "Sodesh Hospital"
+  "ময়মনসিংহ": [
+    "ময়মনসিংহ মেডিকেল কলেজ হাসপাতাল",
+    "কমিউনিটি বেজড মেডিকেল কলেজ হাসপাতাল (সিবিএমসি)",
+    "নেক্সাস হাসপাতাল",
+    "স্বদেশ হাসপাতাল"
   ],
-  "Comilla": [
-    "Comilla Medical College Hospital",
-    "Comilla General Hospital",
-    "Eastern Medical College Hospital",
-    "Moon Hospital"
+  "কুমিল্লা": [
+    "কুমিল্লা মেডিকেল কলেজ হাসপাতাল",
+    "কুমিল্লা জেনারেল হাসপাতাল",
+    "ইস্টার্ন মেডিকেল কলেজ হাসপাতাল",
+    "মুন হাসপাতাল"
   ],
-  "Cox's Bazar": [
-    "Cox's Bazar Sadar Hospital",
-    "Cox's Bazar Medical College Hospital",
-    "Union Hospital",
-    "Digital Hospital",
-    "Hope Hospital"
+  "কক্সবাজার": [
+    "কক্সবাজার সদর হাসপাতাল",
+    "কক্সবাজার মেডিকেল কলেজ হাসপাতাল",
+    "ইউনিয়ন হাসপাতাল",
+    "ডিজিটাল হাসপাতাল",
+    "হোপ হাসপাতাল"
   ],
-  "Jessore": [
-    "Jessore 250 Bed General Hospital",
-    "Jessore Medical College Hospital",
-    "Ad-din Sakina Medical College Hospital",
-    "Queens Hospital"
+  "যশোর": [
+    "যশোর ২৫০ শয্যা জেনারেল হাসপাতাল",
+    "যশোর মেডিকেল কলেজ হাসপাতাল",
+    "আদ্-দ্বীন সকিনা মেডিকেল কলেজ হাসপাতাল",
+    "কুইন্স হাসপাতাল"
   ],
-  "Gazipur": [
-    "Shaheed Tajuddin Ahmad Medical College Hospital",
-    "Tairunnessa Memorial Medical College & Hospital",
-    "Gazipur City Medical College and Hospital"
+  "গাজীপুর": [
+    "শহীদ তাজউদ্দীন আহমদ মেডিকেল কলেজ হাসপাতাল",
+    "তাইরুন্নেসা মেমোরিয়াল মেডিকেল কলেজ ও হাসপাতাল",
+    "গাজীপুর সিটি মেডিকেল কলেজ ও হাসপাতাল"
   ],
-  "Narayanganj": [
-    "Narayanganj General Hospital (Victoria Hospital)",
-    "US-Bangla Medical College and Hospital",
-    "Modern Hospital Narayanganj"
+  "নারায়ণগঞ্জ": [
+    "নারায়ণগঞ্জ জেনারেল হাসপাতাল (ভিক্টোরিয়া হাসপাতাল)",
+    "ইউএস-বাংলা মেডিকেল কলেজ ও হাসপাতাল",
+    "মডার্ন হাসপাতাল নারায়ণগঞ্জ"
   ],
-  "Bogra": [
-    "Shaheed Ziaur Rahman Medical College Hospital",
-    "Mohammad Ali Hospital",
-    "TMSS Medical College & Rafatullah Community Hospital"
+  "বগুড়া": [
+    "শহীদ জিয়াউর রহমান মেডিকেল কলেজ হাসপাতাল",
+    "মোহাম্মদ আলী হাসপাতাল",
+    "টিএমএসএস মেডিকেল কলেজ ও রাফাতুল্লাহ কমিউনিটি হাসপাতাল"
   ]
 };
 
