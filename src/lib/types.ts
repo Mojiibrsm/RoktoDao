@@ -1,4 +1,5 @@
 
+
 export type BloodRequest = {
   id: string;
   patientName: string;
@@ -10,6 +11,7 @@ export type BloodRequest = {
   uid?: string;
   status: 'Pending' | 'Approved' | 'Fulfilled' | 'Rejected';
   isEmergency?: boolean;
+  district: string;
 };
 
 export type Donor = {
@@ -41,4 +43,5 @@ export type Donor = {
   };
 };
 
+    
     
