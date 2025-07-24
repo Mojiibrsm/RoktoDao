@@ -67,6 +67,10 @@ export default function SignupPage() {
       district: '',
       upazila: '',
       isAvailable: true,
+      lastDonationDate: undefined,
+      dateOfBirth: undefined,
+      gender: undefined,
+      donationCount: 0,
     },
   });
   
@@ -273,7 +277,7 @@ export default function SignupPage() {
                  <FormField control={form.control} name="donationCount" render={({ field }) => (
                     <FormItem>
                     <FormLabel>মোট রক্তদান (ঐচ্ছিক)</FormLabel>
-                    <FormControl><Input type="number" min="0" placeholder="যেমন, ৫" {...field} /></FormControl>
+                    <FormControl><Input type="number" min="0" placeholder="যেমন, ৫" {...field} value={field.value || ''} /></FormControl>
                     <FormMessage />
                     </FormItem>
                 )} />

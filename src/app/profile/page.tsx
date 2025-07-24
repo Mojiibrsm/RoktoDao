@@ -47,13 +47,17 @@ export default function ProfilePage() {
   const form = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      isAvailable: true,
       fullName: '',
       bloodGroup: '',
       phoneNumber: '',
       division: '',
       district: '',
       upazila: '',
+      isAvailable: true,
+      lastDonationDate: undefined,
+      dateOfBirth: undefined,
+      gender: undefined,
+      donationCount: 0,
     },
   });
   
@@ -76,8 +80,8 @@ export default function ProfilePage() {
             lastDonationDate: donorProfile.lastDonationDate ? new Date(donorProfile.lastDonationDate) : undefined,
             isAvailable: donorProfile.isAvailable,
             dateOfBirth: donorProfile.dateOfBirth ? new Date(donorProfile.dateOfBirth) : undefined,
-            gender: donorProfile.gender,
-            donationCount: donorProfile.donationCount
+            gender: donorProfile.gender || undefined,
+            donationCount: donorProfile.donationCount || 0,
         });
     }
   }, [user, donorProfile, loading, router, form]);
@@ -255,7 +259,7 @@ export default function ProfilePage() {
                  <FormField control={form.control} name="donationCount" render={({ field }) => (
                     <FormItem>
                     <FormLabel>Previous Donation Count</FormLabel>
-                    <FormControl><Input type="number" min="0" placeholder="e.g., 5" {...field} /></FormControl>
+                    <FormControl><Input type="number" min="0" placeholder="e.g., 5" {...field} value={field.value || ''} /></FormControl>
                     <FormMessage />
                     </FormItem>
                 )} />
