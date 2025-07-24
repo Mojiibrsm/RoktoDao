@@ -14,7 +14,7 @@ export default function BlogPage() {
       <section className="w-full bg-primary/10 py-20 md:py-24">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl font-bold tracking-tighter text-primary md:text-6xl font-headline">
-            RoktoBondhu Blog
+            RoktoDao Blog
           </h1>
           <p className="mx-auto mt-4 max-w-3xl text-lg text-foreground/80 md:text-xl">
             Stay updated with the latest news, stories, and information about blood donation.

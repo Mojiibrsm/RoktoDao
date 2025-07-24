@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { HeartHandshake, Info } from 'lucide-react';
+import { Droplet, Info } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const loginSchema = z.object({
@@ -64,9 +64,9 @@ export default function LoginPage() {
     <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm shadow-xl">
         <CardHeader className="text-center">
-          <HeartHandshake className="mx-auto h-12 w-12 text-primary" />
+          <Droplet className="mx-auto h-12 w-12 text-primary" />
           <CardTitle className="text-2xl font-headline">Welcome Back</CardTitle>
-          <CardDescription>Log in to your RoktoBondhu account</CardDescription>
+          <CardDescription>Log in to your RoktoDao account</CardDescription>
         </CardHeader>
         <CardContent>
           <Alert className="mb-4">

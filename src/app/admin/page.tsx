@@ -10,7 +10,7 @@ export default function AdminDashboard() {
             <h1 className="text-2xl font-bold tracking-tight text-primary md:text-3xl font-headline">
                 Dashboard
             </h1>
-            <p className="text-muted-foreground">Welcome to the RoktoBondhu Admin Panel.</p>
+            <p className="text-muted-foreground">Welcome to the RoktoDao Admin Panel.</p>
         </header>
         <Separator />
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

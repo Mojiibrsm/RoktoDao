@@ -9,7 +9,7 @@ const teamMembers = [
   {
     name: "Jane Doe",
     role: "Founder & CEO",
-    bio: "Jane is the visionary behind RoktoBondhu, driven by a passion to save lives through technology. Her leadership and dedication inspire the entire team.",
+    bio: "Jane is the visionary behind RoktoDao, driven by a passion to save lives through technology. Her leadership and dedication inspire the entire team.",
     image: "https://placehold.co/400x400.png",
     hint: "woman portrait",
     social: {
@@ -33,7 +33,7 @@ const teamMembers = [
   {
     name: "Emily White",
     role: "UI/UX Designer",
-    bio: "Emily crafts the user-friendly and beautiful interface of RoktoBondhu, making the experience seamless for both donors and recipients.",
+    bio: "Emily crafts the user-friendly and beautiful interface of RoktoDao, making the experience seamless for both donors and recipients.",
     image: "https://placehold.co/400x400.png",
     hint: "woman smiling",
     social: {

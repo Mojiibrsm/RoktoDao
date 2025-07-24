@@ -8,7 +8,7 @@ export default function AboutPage() {
       <section className="w-full bg-primary/10 py-20 md:py-32">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl font-bold tracking-tighter text-primary md:text-6xl font-headline">
-            About RoktoBondhu
+            About RoktoDao
           </h1>
           <p className="mx-auto mt-4 max-w-3xl text-lg text-foreground/80 md:text-xl">
             We are a dedicated team passionate about using technology to bridge the gap between blood donors and those in need. Our mission is to make finding blood simple, fast, and efficient.
@@ -22,7 +22,7 @@ export default function AboutPage() {
             <h2 className="text-3xl font-bold text-primary font-headline">Our Story</h2>
             <Separator className="my-4" />
             <p className="text-muted-foreground leading-relaxed">
-              RoktoBondhu (meaning "Blood Friend" in Bengali) was born from a simple yet powerful idea: no one should suffer due to a shortage of blood. We witnessed the frantic searches and the anxiety faced by families in emergencies. We knew there had to be a better way.
+              RoktoDao (meaning "Give Blood" in Bengali) was born from a simple yet powerful idea: no one should suffer due to a shortage of blood. We witnessed the frantic searches and the anxiety faced by families in emergencies. We knew there had to be a better way.
             </p>
             <p className="mt-4 text-muted-foreground leading-relaxed">
               We created this platform to build a community of voluntary blood donors, making it easy for them to register and for recipients to find them in critical moments. We believe that by connecting people, we can save lives and build a stronger, more compassionate society.

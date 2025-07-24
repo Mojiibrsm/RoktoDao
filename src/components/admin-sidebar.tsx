@@ -3,14 +3,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { HeartHandshake, Home, Users, Bell, UserPlus, Settings, MessageSquareWarning, Droplet } from 'lucide-react';
+import { Droplet, Home, Users, Bell, UserPlus, Settings, MessageSquareWarning, Droplet as BloodDrop } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from './ui/separator';
 
 const navLinks = [
   { href: '/admin', label: 'Dashboard', icon: Home },
   { href: '/admin/donors', label: 'Donors', icon: Users },
-  { href: '/admin/requests', label: 'Blood Requests', icon: Droplet },
+  { href: '/admin/requests', label: 'Blood Requests', icon: BloodDrop },
   { href: '/admin/notifications', label: 'Notifications', icon: Bell },
   { href: '/admin/users', label: 'Admin Users', icon: UserPlus },
   { href: '/admin/feedback', label: 'Feedback/Reports', icon: MessageSquareWarning },
@@ -24,8 +24,8 @@ export default function AdminSidebar() {
     <aside className="hidden w-64 flex-col border-r bg-background sm:flex">
       <div className="flex h-16 items-center border-b px-6">
         <Link href="/admin" className="flex items-center gap-2 font-semibold">
-          <HeartHandshake className="h-6 w-6 text-primary" />
-          <span className="">RoktoBondhu Admin</span>
+          <Droplet className="h-6 w-6 text-primary" />
+          <span className="">RoktoDao Admin</span>
         </Link>
       </div>
       <nav className="flex-1 overflow-auto py-4">

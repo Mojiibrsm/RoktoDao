@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { HeartHandshake, Menu, LogOut, UserCircle } from 'lucide-react';
+import { Droplet, Menu, LogOut, UserCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import NoticeBar from './notice-bar';
@@ -30,8 +30,8 @@ export default function Header() {
       <NoticeBar />
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-2 font-bold text-primary text-xl">
-          <HeartHandshake className="h-7 w-7" />
-          <span className="font-headline">RoktoBondhu</span>
+          <Droplet className="h-7 w-7" />
+          <span className="font-headline">RoktoDao</span>
         </Link>
 
         <nav className="hidden items-center gap-6 md:flex">

@@ -18,7 +18,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, HeartHandshake } from 'lucide-react';
+import { CalendarIcon, Droplet } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { bloodGroups, locations, upazilas } from '@/lib/location-data';
@@ -92,7 +92,7 @@ export default function SignupPage() {
 
       toast({
         title: 'Account Created Successfully!',
-        description: "Welcome to RoktoBondhu. Your donor profile is active.",
+        description: "Welcome to RoktoDao. Your donor profile is active.",
       });
       router.push('/profile'); // Redirect to profile page for viewing/editing in future
 
@@ -111,7 +111,7 @@ export default function SignupPage() {
     <div className="flex items-center justify-center bg-background p-4 py-12">
       <Card className="w-full max-w-3xl shadow-xl">
         <CardHeader className="text-center">
-          <HeartHandshake className="mx-auto h-12 w-12 text-primary" />
+          <Droplet className="mx-auto h-12 w-12 text-primary" />
           <CardTitle className="text-2xl font-headline">জীবন রক্ষাকারী হোন</CardTitle>
           <CardDescription>আপনার রক্তবন্ধু অ্যাকাউন্ট এবং ডোনার প্রোফাইল তৈরি করুন</CardDescription>
         </CardHeader>

@@ -338,7 +338,7 @@ export default async function Home() {
                         </h2>
                         <Separator className="my-4" />
                         <p className="text-muted-foreground leading-relaxed">
-                            "রক্তবন্ধু একটি অলাভজনক উদ্যোগ যা রক্তদাতা এবং গ্রহীতাদের মধ্যে একটি সেতুবন্ধন তৈরির লক্ষ্যে কাজ করে। প্রযুক্তি ব্যবহার করে জীবন বাঁচানোর এই যাত্রায় আমাদের সঙ্গী হওয়ার জন্য আপনাকে ধন্যবাদ।"
+                            "RoktoDao একটি অলাভজনক উদ্যোগ যা রক্তদাতা এবং গ্রহীতাদের মধ্যে একটি সেতুবন্ধন তৈরির লক্ষ্যে কাজ করে। প্রযুক্তি ব্যবহার করে জীবন বাঁচানোর এই যাত্রায় আমাদের সঙ্গী হওয়ার জন্য আপনাকে ধন্যবাদ।"
                         </p>
                         <p className="font-semibold mt-4"> - মুজিবুর রহমান, প্রতিষ্ঠাতা</p>
                         <div className="flex justify-center md:justify-start gap-4 mt-4">
