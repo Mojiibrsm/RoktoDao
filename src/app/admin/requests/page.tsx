@@ -340,6 +340,7 @@ export default function AdminRequestsPage() {
             toast({ title: "Request Deleted", description: "The blood request has been deleted." });
             fetchRequests();
         } catch (error) {
+           console.error("Delete failed:", error);
            toast({ variant: "destructive", title: "Error", description: "Could not delete the request." });
         } finally {
             setIsDeleteDialogOpen(false);
