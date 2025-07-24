@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -53,7 +53,7 @@ const settingsSchema = z.object({
 
 export default function SettingsPage() {
   const { toast } = useToast();
-  const { user, donorProfile, loading: authLoading } = useAuth();
+  const { user, donorProfile, setDonorProfile, loading: authLoading } = useAuth();
   const router = useRouter();
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -73,8 +73,21 @@ export default function SettingsPage() {
     },
   });
   
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login');
+    }
+     if (donorProfile) {
+      form.reset({
+        fullName: donorProfile.fullName,
+        isAvailable: donorProfile.isAvailable,
+        // Reset other form values based on donorProfile if they exist
+      });
+    }
+  }, [authLoading, user, donorProfile, router, form]);
+
+
   if (!authLoading && !user) {
-    router.push('/login');
     return null;
   }
 
@@ -112,6 +125,11 @@ export default function SettingsPage() {
         const imageUrl = result.data.url;
         const userDocRef = doc(db, 'donors', user.uid);
         await setDoc(userDocRef, { profilePictureUrl: imageUrl }, { merge: true });
+        
+        if(donorProfile){
+            setDonorProfile({...donorProfile, profilePictureUrl: imageUrl});
+        }
+        
         toast({ title: 'Photo uploaded successfully!' });
         setPreviewUrl(null);
         setSelectedFile(null);
@@ -345,3 +363,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    

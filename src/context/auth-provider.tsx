@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
@@ -10,6 +11,7 @@ import type { Donor } from '@/lib/types';
 interface AuthContextType {
   user: User | null;
   donorProfile: Donor | null;
+  setDonorProfile: React.Dispatch<React.SetStateAction<Donor | null>>;
   isAdmin: boolean;
   loading: boolean;
   signOutUser: () => Promise<void>;
@@ -51,7 +53,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await signOut(auth);
   };
 
-  const value = { user, donorProfile, loading, signOutUser, isAdmin };
+  const value = { user, donorProfile, setDonorProfile, loading, signOutUser, isAdmin };
 
   return (
     <AuthContext.Provider value={value}>
@@ -59,3 +61,5 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     </AuthContext.Provider>
   );
 };
+
+    
