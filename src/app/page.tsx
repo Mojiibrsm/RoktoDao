@@ -93,6 +93,40 @@ export default async function Home() {
         </div>
       </section>
 
+      <section className="bg-background w-full py-16 md:py-24">
+        <div className="container mx-auto px-4">
+            <h2 className="text-center text-3xl font-bold text-primary md:text-4xl font-headline">
+                কেন রক্তদান করবেন?
+            </h2>
+            <p className="mx-auto mt-4 max-w-3xl text-center text-lg text-foreground/80">
+              রক্তদান শুধুমাত্র অন্যের জীবন বাঁচায় না, আপনার স্বাস্থ্যের জন্যও এটি উপকারী।
+            </p>
+            <Separator className="my-8" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+                <Card className="p-6 shadow-lg">
+                    <HeartPulse className="mx-auto h-12 w-12 text-primary mb-4" />
+                    <h3 className="text-xl font-bold">হার্ট ভালো থাকে</h3>
+                    <p className="text-muted-foreground mt-2">নিয়মিত রক্তদান করলে শরীরে আয়রনের মাত্রা নিয়ন্ত্রণে থাকে, যা হৃদরোগের ঝুঁকি কমায়।</p>
+                </Card>
+                <Card className="p-6 shadow-lg">
+                    <ShieldCheck className="mx-auto h-12 w-12 text-primary mb-4" />
+                    <h3 className="text-xl font-bold">নতুন রক্তকণিকা তৈরি হয়</h3>
+                    <p className="text-muted-foreground mt-2">রক্তদানের পর শরীর নতুন রক্তকণিকা তৈরিতে উৎসাহিত হয়, যা শরীরকে সতেজ রাখে।</p>
+                </Card>
+                <Card className="p-6 shadow-lg">
+                    <Stethoscope className="mx-auto h-12 w-12 text-primary mb-4" />
+                    <h3 className="text-xl font-bold">বিনামূল্যে স্বাস্থ্য পরীক্ষা</h3>
+                    <p className="text-muted-foreground mt-2">প্রতিবার রক্তদানের আগে আপনার স্বাস্থ্য পরীক্ষা করা হয়, যা আপনার সুস্থতা সম্পর্কে ধারণা দেয়।</p>
+                </Card>
+            </div>
+            <div className="mt-12 text-center">
+              <Button asChild>
+                  <Link href="/why-donate-blood">বিস্তারিত জানুন</Link>
+              </Button>
+            </div>
+        </div>
+      </section>
+
       <section className="w-full py-16 md:py-24">
         <div className="container mx-auto px-4">
           <div className="text-center">
@@ -241,41 +275,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="bg-background w-full py-16 md:py-24">
-        <div className="container mx-auto px-4">
-            <h2 className="text-center text-3xl font-bold text-primary md:text-4xl font-headline">
-                কেন রক্তদান করবেন?
-            </h2>
-            <p className="mx-auto mt-4 max-w-3xl text-center text-lg text-foreground/80">
-              রক্তদান শুধুমাত্র অন্যের জীবন বাঁচায় না, আপনার স্বাস্থ্যের জন্যও এটি উপকারী।
-            </p>
-            <Separator className="my-8" />
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-                <Card className="p-6 shadow-lg">
-                    <HeartPulse className="mx-auto h-12 w-12 text-primary mb-4" />
-                    <h3 className="text-xl font-bold">হার্ট ভালো থাকে</h3>
-                    <p className="text-muted-foreground mt-2">নিয়মিত রক্তদান করলে শরীরে আয়রনের মাত্রা নিয়ন্ত্রণে থাকে, যা হৃদরোগের ঝুঁকি কমায়।</p>
-                </Card>
-                <Card className="p-6 shadow-lg">
-                    <ShieldCheck className="mx-auto h-12 w-12 text-primary mb-4" />
-                    <h3 className="text-xl font-bold">নতুন রক্তকণিকা তৈরি হয়</h3>
-                    <p className="text-muted-foreground mt-2">রক্তদানের পর শরীর নতুন রক্তকণিকা তৈরিতে উৎসাহিত হয়, যা শরীরকে সতেজ রাখে।</p>
-                </Card>
-                <Card className="p-6 shadow-lg">
-                    <Stethoscope className="mx-auto h-12 w-12 text-primary mb-4" />
-                    <h3 className="text-xl font-bold">বিনামূল্যে স্বাস্থ্য পরীক্ষা</h3>
-                    <p className="text-muted-foreground mt-2">প্রতিবার রক্তদানের আগে আপনার স্বাস্থ্য পরীক্ষা করা হয়, যা আপনার সুস্থতা সম্পর্কে ধারণা দেয়।</p>
-                </Card>
-            </div>
-            <div className="mt-12 text-center">
-              <Button asChild>
-                  <Link href="/why-donate-blood">বিস্তারিত জানুন</Link>
-              </Button>
-            </div>
-        </div>
-      </section>
-
-       <section className="w-full py-16 md:py-24 bg-primary/5">
+      <section className="w-full py-16 md:py-24 bg-primary/5">
         <div className="container mx-auto px-4 text-center">
             <div className="mx-auto max-w-2xl h-40 flex items-center justify-center rounded-lg bg-muted/50 border-2 border-dashed">
                 <p className="text-muted-foreground">Advertisement Placeholder</p>
