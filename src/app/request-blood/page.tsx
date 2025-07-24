@@ -55,7 +55,7 @@ export default function RequestBloodPage() {
 
   const selectedDistrict = form.watch('district');
   const [availableHospitals, setAvailableHospitals] = useState<string[]>([]);
-
+  
   useEffect(() => {
     if (selectedDistrict && hospitalsByDistrict[selectedDistrict]) {
       setAvailableHospitals(hospitalsByDistrict[selectedDistrict]);
@@ -179,27 +179,20 @@ export default function RequestBloodPage() {
                     <Popover open={hospitalPopoverOpen} onOpenChange={setHospitalPopoverOpen}>
                       <PopoverTrigger asChild>
                         <FormControl>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            className={cn(
-                              "w-full justify-between",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value || "হাসপাতাল নির্বাচন করুন বা টাইপ করুন..."}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
+                           <Input
+                              placeholder="হাসপাতাল খুঁজুন বা টাইপ করুন..."
+                              {...field}
+                              onChange={(e) => {
+                                field.onChange(e.target.value);
+                              }}
+                              onClick={() => setHospitalPopoverOpen(true)}
+                            />
                         </FormControl>
                       </PopoverTrigger>
                       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                         <Command>
                            <CommandInput 
                             placeholder="হাসপাতাল খুঁজুন..."
-                            onInput={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                field.onChange(e.target.value);
-                            }}
-                            value={field.value}
                            />
                           <CommandList>
                             <CommandEmpty>কোনো হাসপাতাল পাওয়া যায়নি।</CommandEmpty>
@@ -209,14 +202,14 @@ export default function RequestBloodPage() {
                                   value={hospital}
                                   key={hospital}
                                   onSelect={(currentValue) => {
-                                    form.setValue("hospitalLocation", currentValue === field.value ? "" : currentValue);
+                                    form.setValue("hospitalLocation", currentValue);
                                     setHospitalPopoverOpen(false);
                                   }}
                                 >
                                   <Check
                                     className={cn(
                                       "mr-2 h-4 w-4",
-                                      hospital === field.value ? "opacity-100" : "opacity-0"
+                                      hospital.toLowerCase() === field.value?.toLowerCase() ? "opacity-100" : "opacity-0"
                                     )}
                                   />
                                   {hospital}
