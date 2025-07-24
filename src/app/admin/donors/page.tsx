@@ -1,5 +1,8 @@
 
-import { collection, getDocs } from 'firebase/firestore';
+"use client";
+
+import { useState, useEffect } from 'react';
+import { collection, getDocs, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Donor } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
@@ -7,18 +10,60 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, Edit, CheckCircle, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import Link from 'next/link';
 
-async function getDonors(): Promise<Donor[]> {
-  const donorsCollection = collection(db, 'donors');
-  const donorsSnapshot = await getDocs(donorsCollection);
-  const donorsList = donorsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Donor));
-  return donorsList;
-}
+export default function AdminDonorsPage() {
+  const [donors, setDonors] = useState<Donor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
-export default async function AdminDonorsPage() {
-  const donors = await getDonors();
+  const fetchDonors = async () => {
+    setLoading(true);
+    const donorsCollection = collection(db, 'donors');
+    const donorsSnapshot = await getDocs(donorsCollection);
+    const donorsList = donorsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Donor));
+    setDonors(donorsList);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchDonors();
+  }, []);
+
+  const handleVerifyDonor = async (donorId: string) => {
+    try {
+      const donorRef = doc(db, 'donors', donorId);
+      await updateDoc(donorRef, { isVerified: true });
+      toast({ title: "Donor Verified", description: "The donor has been marked as verified." });
+      fetchDonors();
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Could not verify the donor." });
+    }
+  };
+
+  const handleDeleteDonor = async (donorId: string) => {
+    try {
+      await deleteDoc(doc(db, 'donors', donorId));
+      toast({ title: "Donor Deleted", description: "The donor's record has been deleted." });
+      fetchDonors();
+    } catch (error) {
+       toast({ variant: "destructive", title: "Error", description: "Could not delete the donor." });
+    }
+  };
 
   return (
     <div>
@@ -49,7 +94,11 @@ export default async function AdminDonorsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {donors.map((donor) => (
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center">Loading donors...</TableCell>
+                </TableRow>
+              ) : donors.map((donor) => (
                 <TableRow key={donor.id}>
                   <TableCell className="font-medium">{donor.fullName}</TableCell>
                   <TableCell>
@@ -68,20 +117,44 @@ export default async function AdminDonorsPage() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button aria-haspopup="true" size="icon" variant="ghost">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Toggle menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
-                        <DropdownMenuItem>Verify</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive focus:text-destructive">Delete</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <AlertDialog>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button aria-haspopup="true" size="icon" variant="ghost">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Toggle menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/profile/settings?userId=${donor.id}`}><Edit className="mr-2 h-4 w-4" />Edit</Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleVerifyDonor(donor.id)}>
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Verify
+                          </DropdownMenuItem>
+                          <AlertDialogTrigger asChild>
+                            <DropdownMenuItem className="text-destructive focus:text-destructive">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                            </DropdownMenuItem>
+                          </AlertDialogTrigger>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the donor's data.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDeleteDonor(donor.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </TableCell>
                 </TableRow>
               ))}
