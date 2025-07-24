@@ -30,16 +30,26 @@ const requestSchema = z.object({
   numberOfBags: z.coerce.number().min(1, { message: 'At least 1 bag is required.' }),
   neededDate: z.date({ required_error: 'A date is required.' }),
   district: z.string().min(1, 'District is required'),
-  hospitalLocation: z.string().min(5, { message: 'Hospital name and location are required.' }),
+  hospitalLocation: z.string().min(1, { message: 'Hospital name is required.' }),
+  otherHospital: z.string().optional(),
   contactPhone: z.string().min(11, { message: 'A valid contact number is required.' }),
+}).refine(data => {
+    // If hospitalLocation is 'Other', then otherHospital must not be empty.
+    if (data.hospitalLocation === 'Other') {
+        return !!data.otherHospital && data.otherHospital.length > 0;
+    }
+    return true;
+}, {
+    message: 'Please specify the hospital name.',
+    path: ['otherHospital'], // an error will be display on this field
 });
+
 
 export default function RequestBloodPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [hospitalPopoverOpen, setHospitalPopoverOpen] = useState(false);
 
   const form = useForm<z.infer<typeof requestSchema>>({
     resolver: zodResolver(requestSchema),
@@ -48,29 +58,39 @@ export default function RequestBloodPage() {
       bloodGroup: '',
       numberOfBags: 1,
       hospitalLocation: '',
+      otherHospital: '',
       contactPhone: '',
       district: '',
     }
   });
 
   const selectedDistrict = form.watch('district');
+  const selectedHospital = form.watch('hospitalLocation');
+
   const [availableHospitals, setAvailableHospitals] = useState<string[]>([]);
   
   useEffect(() => {
     if (selectedDistrict && hospitalsByDistrict[selectedDistrict]) {
       setAvailableHospitals(hospitalsByDistrict[selectedDistrict]);
     } else {
-        const allHospitals = Object.values(hospitalsByDistrict).flat();
-        setAvailableHospitals(allHospitals);
+      const allHospitals = Object.values(hospitalsByDistrict).flat();
+      setAvailableHospitals(allHospitals.slice(0, 100)); // Limit initial list size
     }
   }, [selectedDistrict]);
 
   const onSubmit = async (values: z.infer<typeof requestSchema>) => {
     setIsSubmitting(true);
     
+    const finalHospitalName = values.hospitalLocation === 'Other' ? values.otherHospital : values.hospitalLocation;
+
     const requestData = {
-      ...values,
+      patientName: values.patientName,
+      bloodGroup: values.bloodGroup,
+      numberOfBags: values.numberOfBags,
       neededDate: values.neededDate.toISOString(),
+      district: values.district,
+      hospitalLocation: finalHospitalName,
+      contactPhone: values.contactPhone,
       uid: user?.uid, // Optional: associate request with user
     };
 
@@ -174,53 +194,32 @@ export default function RequestBloodPage() {
                 control={form.control}
                 name="hospitalLocation"
                 render={({ field }) => (
-                  <FormItem className="flex flex-col">
+                  <FormItem>
                     <FormLabel>হাসপাতালের নাম ও ঠিকানা</FormLabel>
-                    <Popover open={hospitalPopoverOpen} onOpenChange={setHospitalPopoverOpen}>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                           <Input
-                              placeholder="হাসপাতাল খুঁজুন বা টাইপ করুন..."
-                              {...field}
-                              onClick={() => setHospitalPopoverOpen(true)}
-                            />
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                        <Command>
-                           <CommandInput 
-                            placeholder="হাসপাতাল খুঁজুন..."
-                           />
-                          <CommandList>
-                            <CommandEmpty>কোনো হাসপাতাল পাওয়া যায়নি।</CommandEmpty>
-                            <CommandGroup>
-                              {availableHospitals.map((hospital) => (
-                                <CommandItem
-                                  key={hospital}
-                                  value={hospital}
-                                  onSelect={(currentValue) => {
-                                    form.setValue("hospitalLocation", currentValue === field.value ? "" : currentValue);
-                                    setHospitalPopoverOpen(false);
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      field.value?.toLowerCase() === hospital.toLowerCase() ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
-                                  {hospital}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
+                     <Select onValueChange={field.onChange} value={field.value} disabled={!selectedDistrict}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="হাসপাতাল নির্বাচন করুন" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                           {availableHospitals.map(hospital => (
+                            <SelectItem key={hospital} value={hospital}>{hospital}</SelectItem>
+                           ))}
+                           <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
+              {selectedHospital === 'Other' && (
+                <FormField control={form.control} name="otherHospital" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>অন্যান্য হাসপাতালের নাম</FormLabel>
+                    <FormControl><Input placeholder="হাসপাতালের নাম লিখুন" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              )}
+
 
               <FormField control={form.control} name="contactPhone" render={({ field }) => (
                 <FormItem>
@@ -243,3 +242,4 @@ export default function RequestBloodPage() {
   );
 }
 
+    
