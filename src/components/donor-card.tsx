@@ -13,30 +13,36 @@ export default function DonorCard({ donor }: DonorCardProps) {
   let donationDateIsValid = true;
 
   if (donor.lastDonationDate) {
-    const parsedDate = parseISO(donor.lastDonationDate);
-    if (isFuture(parsedDate)) {
-      donationDateIsValid = false;
-    } else {
-      lastDonatedDaysAgo = differenceInDays(new Date(), parsedDate);
+    try {
+        const parsedDate = parseISO(donor.lastDonationDate);
+        if (isFuture(parsedDate)) {
+            donationDateIsValid = false;
+        } else {
+            lastDonatedDaysAgo = differenceInDays(new Date(), parsedDate);
+        }
+    } catch (e) {
+        donationDateIsValid = false;
     }
   }
     
   const canDonatePhysically = lastDonatedDaysAgo === null || (lastDonatedDaysAgo >= 120 && donationDateIsValid);
-  const isAvailable = canDonatePhysically && donor.isAvailable;
 
   const getEligibilityText = () => {
     if (!donationDateIsValid) {
       return "Invalid date";
     }
     if (lastDonatedDaysAgo === null) {
-      return "Can donate now";
+      return "Eligible to donate";
     }
     if (canDonatePhysically) {
-        return "Can donate now";
+        return "Eligible to donate";
     }
     const daysRemaining = 120 - lastDonatedDaysAgo;
-    return `Can donate in ${daysRemaining} days`;
+    return `Eligible in ${daysRemaining} days`;
   }
+
+  // Use the isAvailable flag from the database directly for the main status badge
+  const isAvailable = donor.isAvailable;
 
   return (
     <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col">
