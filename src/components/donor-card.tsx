@@ -46,7 +46,7 @@ export default function DonorCard({ donor }: DonorCardProps) {
   };
 
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+    <Card className="shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-primary/20">
       <CardContent className="p-6">
         <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-4">
