@@ -108,7 +108,7 @@ export default function Header() {
                   ) : user ? (
                     <>
                       <Button variant="ghost" asChild>
-                         <Link href={profileLink}><ProfileIcon className="mr-2 h-4 w-4" />{profileButtonLabel}</Link>
+                         <Link href={profileLink}><ProfileIcon className="mr-2 h-4 w-4" />{profileButton.label}</Link>
                       </Button>
                       <Button variant="destructive" onClick={handleSignOut}>
                         <LogOut className="mr-2 h-4 w-4" />
