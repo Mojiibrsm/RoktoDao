@@ -155,7 +155,10 @@ export default function RequestBloodPage() {
               <FormField control={form.control} name="district" render={({ field }) => (
                 <FormItem>
                     <FormLabel>জেলা</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={(value) => {
+                      field.onChange(value);
+                      form.setValue('hospitalLocation', '');
+                    }} value={field.value}>
                     <FormControl><SelectTrigger><SelectValue placeholder="জেলা নির্বাচন করুন" /></SelectTrigger></FormControl>
                     <SelectContent>
                         {Object.keys(locations).flatMap(division => locations[division as keyof typeof locations].districts.map(district => (
@@ -199,14 +202,14 @@ export default function RequestBloodPage() {
                             value={field.value}
                            />
                           <CommandList>
-                            <CommandEmpty>No hospital found.</CommandEmpty>
+                            <CommandEmpty>কোনো হাসপাতাল পাওয়া যায়নি।</CommandEmpty>
                             <CommandGroup>
                               {availableHospitals.map((hospital) => (
                                 <CommandItem
                                   value={hospital}
                                   key={hospital}
-                                  onSelect={() => {
-                                    form.setValue("hospitalLocation", hospital);
+                                  onSelect={(currentValue) => {
+                                    form.setValue("hospitalLocation", currentValue === field.value ? "" : currentValue);
                                     setHospitalPopoverOpen(false);
                                   }}
                                 >
@@ -249,5 +252,3 @@ export default function RequestBloodPage() {
     </div>
   );
 }
-
-    
