@@ -7,7 +7,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyCEUQbfu7bP20JS9SHGIo88QjoYTASSQlE",
   authDomain: "mailjet-express.firebaseapp.com",
   projectId: "mailjet-express",
-  storageBucket: "mailjet-express.appspot.com",
+  storageBucket: "mailjet-express.firebasestorage.app",
   messagingSenderId: "1041255436136",
   appId: "1:1041255436136:web:9a2e9eb00211619d64d0dd"
 };
