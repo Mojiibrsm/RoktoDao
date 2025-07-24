@@ -127,6 +127,32 @@ export default async function Home() {
         </div>
       </section>
 
+      <section className="w-full py-16 md:py-24 bg-background">
+        <div className="container mx-auto px-4">
+          <div className="text-center">
+            <h2 className="text-3xl font-bold text-primary md:text-4xl font-headline">
+              আমাদের রক্তযোদ্ধারা
+            </h2>
+            <p className="mt-2 text-lg text-muted-foreground">Our active and available donors</p>
+          </div>
+          <Separator className="my-8" />
+          {topDonors.length > 0 ? (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {topDonors.map((donor) => (
+                <DonorCard key={donor.id} donor={donor} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-muted-foreground">No active donors found at the moment.</p>
+          )}
+           <div className="mt-12 text-center">
+            <Button asChild>
+                <Link href="/search-donors"><Users className="mr-2 h-5 w-5" />সকল ডোনার দেখুন</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
       <section className="w-full bg-primary/5 py-16 md:py-24">
         <div className="container mx-auto px-4 text-center">
             <h2 className="text-3xl font-bold text-primary md:text-4xl font-headline">
@@ -153,32 +179,6 @@ export default async function Home() {
                     <p className="text-muted-foreground">সফল ডোনেশন</p>
                 </div>
             </div>
-        </div>
-      </section>
-
-      <section className="w-full py-16 md:py-24 bg-background">
-        <div className="container mx-auto px-4">
-          <div className="text-center">
-            <h2 className="text-3xl font-bold text-primary md:text-4xl font-headline">
-              আমাদের রক্তযোদ্ধারা
-            </h2>
-            <p className="mt-2 text-lg text-muted-foreground">Our active and available donors</p>
-          </div>
-          <Separator className="my-8" />
-          {topDonors.length > 0 ? (
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {topDonors.map((donor) => (
-                <DonorCard key={donor.id} donor={donor} />
-              ))}
-            </div>
-          ) : (
-            <p className="text-center text-muted-foreground">No active donors found at the moment.</p>
-          )}
-           <div className="mt-12 text-center">
-            <Button asChild>
-                <Link href="/search-donors"><Users className="mr-2 h-5 w-5" />সকল ডোনার দেখুন</Link>
-            </Button>
-          </div>
         </div>
       </section>
 
