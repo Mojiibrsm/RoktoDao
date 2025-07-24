@@ -1,3 +1,4 @@
+
 export type BloodRequest = {
   id: string;
   patientName: string;
@@ -26,4 +27,14 @@ export type Donor = {
   gender?: 'Male' | 'Female' | 'Other';
   donationCount?: number;
   isAdmin?: boolean;
+  profilePictureUrl?: string;
+  notificationSettings?: {
+    getBloodRequests: boolean;
+    getEmailNotifications: boolean;
+    getSmsAlerts: boolean;
+  };
+  privacySettings?: {
+    contactVisibility: 'everyone' | 'verified' | 'hidden';
+    profileVisibility: 'public' | 'admin' | 'hidden';
+  };
 };

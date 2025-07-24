@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -15,13 +16,14 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, Settings } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { bloodGroups, locations, upazilas } from '@/lib/location-data';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Donor } from '@/lib/types';
+import Link from 'next/link';
 
 
 const profileSchema = z.object({
@@ -70,7 +72,6 @@ export default function ProfilePage() {
     }
     if (donorProfile) {
         form.reset({
-            ...donorProfile,
             fullName: donorProfile.fullName || '',
             phoneNumber: donorProfile.phoneNumber || '',
             bloodGroup: donorProfile.bloodGroup || '',
@@ -138,12 +139,21 @@ export default function ProfilePage() {
     <div className="container mx-auto max-w-4xl py-12 px-4">
       <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle className="text-3xl font-headline text-primary">
-            {donorProfile ? 'Update Your Profile' : 'Become a Donor'}
-          </CardTitle>
-          <CardDescription>
-            {donorProfile ? 'Keep your information up to date.' : 'Fill out the form to become a lifesaver.'}
-          </CardDescription>
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle className="text-3xl font-headline text-primary">
+                {donorProfile ? 'Update Your Profile' : 'Become a Donor'}
+              </CardTitle>
+              <CardDescription>
+                {donorProfile ? 'Keep your information up to date.' : 'Fill out the form to become a lifesaver.'}
+              </CardDescription>
+            </div>
+            <Button asChild variant="outline" size="icon">
+              <Link href="/profile/settings">
+                <Settings className="h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -151,14 +161,14 @@ export default function ProfilePage() {
               <FormField control={form.control} name="fullName" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Full Name</FormLabel>
-                  <FormControl><Input placeholder="John Doe" {...field} /></FormControl>
+                  <FormControl><Input placeholder="John Doe" {...field} value={field.value ?? ''} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
               <FormField control={form.control} name="phoneNumber" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Phone Number</FormLabel>
-                  <FormControl><Input placeholder="01XXXXXXXXX" {...field} /></FormControl>
+                  <FormControl><Input placeholder="01XXXXXXXXX" {...field} value={field.value ?? ''} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
@@ -185,7 +195,7 @@ export default function ProfilePage() {
                         </FormControl>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date()} initialFocus />
+                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={1950} toYear={new Date().getFullYear()} disabled={(date) => date > new Date()} initialFocus />
                         </PopoverContent>
                     </Popover>
                     <FormMessage />
@@ -205,7 +215,7 @@ export default function ProfilePage() {
                       </FormControl>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date()} initialFocus />
+                      <Calendar mode="single" selected={field.value} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={1950} toYear={new Date().getFullYear()} disabled={(date) => date > new Date()} initialFocus />
                     </PopoverContent>
                   </Popover>
                   <FormMessage />
@@ -259,7 +269,7 @@ export default function ProfilePage() {
                  <FormField control={form.control} name="donationCount" render={({ field }) => (
                     <FormItem>
                     <FormLabel>Previous Donation Count</FormLabel>
-                    <FormControl><Input type="number" min="0" placeholder="e.g., 5" {...field} value={field.value || ''} /></FormControl>
+                    <FormControl><Input type="number" min="0" placeholder="e.g., 5" {...field} value={field.value ?? ''} /></FormControl>
                     <FormMessage />
                     </FormItem>
                 )} />
