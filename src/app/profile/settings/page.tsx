@@ -114,7 +114,7 @@ export default function SettingsPage() {
     formData.append('image', selectedFile);
 
     try {
-      const response = await fetch(`https://api.imgbb.com/1/upload?key=${process.env.NEXT_PUBLIC_IMGBB_API_KEY}`, {
+      const response = await fetch(`https://api.imgbb.com/1/upload?key=5f2b775957a5369766578051a833503b`, {
         method: 'POST',
         body: formData,
       });
@@ -127,7 +127,8 @@ export default function SettingsPage() {
         await setDoc(userDocRef, { profilePictureUrl: imageUrl }, { merge: true });
         
         if(donorProfile){
-            setDonorProfile({...donorProfile, profilePictureUrl: imageUrl});
+            const newDonorProfile = {...donorProfile, profilePictureUrl: imageUrl};
+            setDonorProfile(newDonorProfile);
         }
         
         toast({ title: 'Photo uploaded successfully!' });
@@ -363,5 +364,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    
