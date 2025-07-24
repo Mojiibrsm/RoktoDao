@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +16,9 @@ export default function ThankYouPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          <p className="mb-4 text-muted-foreground">
+             আমাদের টিম শিগগিরই আপনার দেওয়া নম্বরে যোগাযোগ করে অনুরোধটি যাচাই করবে। অনুমোদনের পর আপনার অনুরোধটি আমাদের প্ল্যাটফর্মে লাইভ হবে।
+          </p>
           <p className="mb-6">
             একসাথে, আমরা একটি পরিবর্তন আনতে পারি। প্রতিটি রক্তবিন্দুই মূল্যবান।
           </p>
