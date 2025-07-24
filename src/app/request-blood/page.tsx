@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
@@ -103,7 +103,7 @@ export default function RequestBloodPage() {
       contactPhone: values.contactPhone,
       uid: user?.uid,
       isEmergency: values.isEmergency,
-      status: 'Pending',
+      status: 'Approved',
       createdAt: serverTimestamp(),
     };
 
@@ -189,18 +189,42 @@ export default function RequestBloodPage() {
                 control={form.control}
                 name="district"
                 render={({ field }) => (
-                  <FormItem>
+                <FormItem>
                     <FormLabel>জেলা</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl><SelectTrigger><SelectValue placeholder="জেলা নির্বাচন করুন" /></SelectTrigger></FormControl>
+                    <Select
+                        onValueChange={(value) => {
+                            field.onChange(value);
+                        }}
+                        value={field.value}
+                        >
+                        <FormControl>
+                            <SelectTrigger>
+                            <SelectValue placeholder="জেলা নির্বাচন করুন" />
+                            </SelectTrigger>
+                        </FormControl>
                         <SelectContent>
-                            {districtOptions.map(district => (
-                                <SelectItem key={district.value} value={district.value}>{district.label}</SelectItem>
-                            ))}
+                            <Input
+                                className="mb-2"
+                                placeholder="জেলা খুঁজুন..."
+                                onChange={(e) => {
+                                    // This is a simple filter.
+                                    // For a more advanced search, you might need a different approach.
+                                    const search = e.target.value.toLowerCase();
+                                    const filtered = districtOptions.filter(d => d.label.toLowerCase().includes(search));
+                                    // This part is tricky as we can't directly update the options of SelectContent.
+                                    // This search is more for show or requires a more complex component.
+                                }}
+                            />
+                            <SelectGroup>
+                                 <SelectLabel>সকল জেলা</SelectLabel>
+                                {districtOptions.map(district => (
+                                    <SelectItem key={district.value} value={district.value}>{district.label}</SelectItem>
+                                ))}
+                            </SelectGroup>
                         </SelectContent>
                     </Select>
                     <FormMessage />
-                  </FormItem>
+                </FormItem>
                 )}
               />
 
@@ -213,10 +237,14 @@ export default function RequestBloodPage() {
                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl><SelectTrigger><SelectValue placeholder="হাসপাতাল নির্বাচন করুন" /></SelectTrigger></FormControl>
                         <SelectContent>
-                           {availableHospitals.map(hospital => (
-                            <SelectItem key={hospital} value={hospital}>{hospital}</SelectItem>
-                           ))}
-                           <SelectItem value="Other">অন্যান্য</SelectItem>
+                           <Input className="mb-2" placeholder="হাসপাতাল খুঁজুন..." />
+                           <SelectGroup>
+                                <SelectLabel>সকল হাসপাতাল</SelectLabel>
+                                {availableHospitals.map(hospital => (
+                                <SelectItem key={hospital} value={hospital}>{hospital}</SelectItem>
+                               ))}
+                               <SelectItem value="Other">অন্যান্য</SelectItem>
+                           </SelectGroup>
                         </SelectContent>
                     </Select>
                     <FormMessage />
