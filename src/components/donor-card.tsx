@@ -46,8 +46,8 @@ export default function DonorCard({ donor }: DonorCardProps) {
                     </p>
                 </div>
             </div>
-            <Badge variant={isAvailable && eligibilityStatus.canDonate ? 'default' : 'destructive'} className={isAvailable && eligibilityStatus.canDonate ? 'bg-green-600' : ''}>
-              {(isAvailable && eligibilityStatus.canDonate) ? 'Available' : 'Unavailable'}
+            <Badge variant={isAvailable && eligibilityStatus.canDonate ? 'default' : 'destructive'} className={isAvailable && eligibilityStatus.canDonate ? 'bg-green-600 text-white' : 'bg-destructive text-destructive-foreground'}>
+              {(isAvailable && eligibilityStatus.canDonate) ? 'উপলব্ধ' : 'অনুপলব্ধ'}
             </Badge>
         </div>
 
@@ -63,15 +63,15 @@ export default function DonorCard({ donor }: DonorCardProps) {
             {donor.lastDonationDate && (
                 <div className="flex items-center gap-3">
                     <Calendar className="h-4 w-4" />
-                    <span>Last Donated: {format(new Date(donor.lastDonationDate), "PPP")}</span>
+                    <span>শেষ রক্তদান: {format(new Date(donor.lastDonationDate), "PPP")}</span>
                 </div>
             )}
              <div className="flex items-center gap-3">
                 <UserCheck className="h-4 w-4" />
                 <span>
                     {eligibilityStatus.canDonate 
-                        ? 'Eligible to donate'
-                        : `Can donate in ${eligibilityStatus.daysRemaining} days`
+                        ? 'রক্তদানে সক্ষম'
+                        : `${eligibilityStatus.daysRemaining} দিন পর রক্ত দিতে পারবেন`
                     }
                 </span>
             </div>
@@ -79,7 +79,7 @@ export default function DonorCard({ donor }: DonorCardProps) {
                 <div className="flex items-center gap-3">
                     <Droplet className="h-4 w-4" />
                     <span>
-                        Donated {donor.donationCount} time(s)
+                        {donor.donationCount} বার রক্ত দিয়েছেন
                     </span>
                 </div>
             )}
