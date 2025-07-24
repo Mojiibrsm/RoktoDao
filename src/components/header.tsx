@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Droplet, Menu, LogOut, UserCircle, HeartHandshake } from 'lucide-react';
+import { Droplet, Menu, LogOut, UserCircle, HeartHandshake, LayoutDashboard } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import NoticeBar from './notice-bar';
@@ -18,13 +18,17 @@ const navLinks = [
 ];
 
 export default function Header() {
-  const { user, loading, signOutUser } = useAuth();
+  const { user, loading, signOutUser, isAdmin } = useAuth();
   const router = useRouter();
 
   const handleSignOut = async () => {
     await signOutUser();
     router.push('/');
   };
+
+  const profileLink = isAdmin ? '/admin' : '/profile';
+  const profileButtonLabel = isAdmin ? 'Dashboard' : 'Profile';
+  const ProfileIcon = isAdmin ? LayoutDashboard : UserCircle;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -54,7 +58,7 @@ export default function Header() {
           ) : user ? (
             <>
               <Button variant="ghost" size="sm" asChild>
-                 <Link href="/profile"><UserCircle className="mr-2 h-4 w-4" />Profile</Link>
+                 <Link href={profileLink}><ProfileIcon className="mr-2 h-4 w-4" />{profileButtonLabel}</Link>
               </Button>
               <Button variant="destructive" size="sm" onClick={handleSignOut}>
                 <LogOut className="mr-2 h-4 w-4" />
@@ -104,7 +108,7 @@ export default function Header() {
                   ) : user ? (
                     <>
                       <Button variant="ghost" asChild>
-                         <Link href="/profile"><UserCircle className="mr-2 h-4 w-4" />Profile</Link>
+                         <Link href={profileLink}><ProfileIcon className="mr-2 h-4 w-4" />{profileButtonLabel}</Link>
                       </Button>
                       <Button variant="destructive" onClick={handleSignOut}>
                         <LogOut className="mr-2 h-4 w-4" />
