@@ -182,9 +182,6 @@ export default function RequestBloodPage() {
                            <Input
                               placeholder="হাসপাতাল খুঁজুন বা টাইপ করুন..."
                               {...field}
-                              onChange={(e) => {
-                                field.onChange(e.target.value);
-                              }}
                               onClick={() => setHospitalPopoverOpen(true)}
                             />
                         </FormControl>
@@ -199,17 +196,17 @@ export default function RequestBloodPage() {
                             <CommandGroup>
                               {availableHospitals.map((hospital) => (
                                 <CommandItem
-                                  value={hospital}
                                   key={hospital}
+                                  value={hospital}
                                   onSelect={(currentValue) => {
-                                    form.setValue("hospitalLocation", currentValue);
+                                    form.setValue("hospitalLocation", currentValue === field.value ? "" : currentValue);
                                     setHospitalPopoverOpen(false);
                                   }}
                                 >
                                   <Check
                                     className={cn(
                                       "mr-2 h-4 w-4",
-                                      hospital.toLowerCase() === field.value?.toLowerCase() ? "opacity-100" : "opacity-0"
+                                      field.value?.toLowerCase() === hospital.toLowerCase() ? "opacity-100" : "opacity-0"
                                     )}
                                   />
                                   {hospital}
@@ -245,3 +242,4 @@ export default function RequestBloodPage() {
     </div>
   );
 }
+
