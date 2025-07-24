@@ -28,8 +28,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, Shield, Bell, Power, Eye, Trash2 } from 'lucide-react';
+import { User, Shield, Bell, Power, Eye, Trash2, Upload } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+
 
 const settingsSchema = z.object({
   // Profile Settings
@@ -50,8 +53,12 @@ const settingsSchema = z.object({
 
 export default function SettingsPage() {
   const { toast } = useToast();
-  const { user, donorProfile } = useAuth();
+  const { user, donorProfile, loading: authLoading } = useAuth();
   const router = useRouter();
+
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const form = useForm<z.infer<typeof settingsSchema>>({
     resolver: zodResolver(settingsSchema),
@@ -65,6 +72,59 @@ export default function SettingsPage() {
       profileVisibility: 'public',
     },
   });
+  
+  if (!authLoading && !user) {
+    router.push('/login');
+    return null;
+  }
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSavePhoto = async () => {
+    if (!selectedFile || !user) {
+      toast({ variant: 'destructive', title: 'No file selected' });
+      return;
+    }
+    
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append('image', selectedFile);
+
+    try {
+      const response = await fetch(`https://api.imgbb.com/1/upload?key=${process.env.NEXT_PUBLIC_IMGBB_API_KEY}`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        const imageUrl = result.data.url;
+        const userDocRef = doc(db, 'donors', user.uid);
+        await setDoc(userDocRef, { profilePictureUrl: imageUrl }, { merge: true });
+        toast({ title: 'Photo uploaded successfully!' });
+        setPreviewUrl(null);
+        setSelectedFile(null);
+      } else {
+        throw new Error(result.error.message || 'Image upload failed');
+      }
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Upload failed', description: error.message });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
 
   const onSubmit = (values: z.infer<typeof settingsSchema>) => {
     console.log(values);
@@ -82,11 +142,6 @@ export default function SettingsPage() {
     // Add Firebase sendPasswordResetEmail logic here
   };
   
-  if (!user) {
-    router.push('/login');
-    return null;
-  }
-
   return (
     <div className="container mx-auto max-w-4xl py-12 px-4 space-y-8">
       <header>
@@ -106,15 +161,23 @@ export default function SettingsPage() {
             <CardContent className="space-y-6">
               <div className="flex items-center gap-4">
                   <Avatar className="h-20 w-20">
-                    <AvatarImage src={donorProfile?.profilePictureUrl || "https://placehold.co/200x200.png"} alt={donorProfile?.fullName || ''} data-ai-hint="placeholder person" />
+                    <AvatarImage src={previewUrl || donorProfile?.profilePictureUrl || "https://placehold.co/200x200.png"} alt={donorProfile?.fullName || ''} data-ai-hint="placeholder person" />
                     <AvatarFallback>{donorProfile?.fullName?.[0]}</AvatarFallback>
                   </Avatar>
-                  <Button type="button" variant="outline">Upload Photo</Button>
+                   <div>
+                    <Button asChild variant="outline">
+                        <label htmlFor="photo-upload" className="cursor-pointer">
+                           <Upload className="mr-2 h-4 w-4" /> Change Photo
+                        </label>
+                    </Button>
+                    <Input id="photo-upload" type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+                     {previewUrl && <Button onClick={handleSavePhoto} className="ml-2" disabled={isUploading}>{isUploading ? 'Saving...' : 'Save Photo'}</Button>}
+                  </div>
               </div>
                <FormField control={form.control} name="fullName" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Full Name</FormLabel>
-                  <FormControl><Input {...field} /></FormControl>
+                  <FormControl><Input {...field} defaultValue={donorProfile?.fullName} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
@@ -200,7 +263,7 @@ export default function SettingsPage() {
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select who can see your contact info" />
-                          </SelectTrigger>
+                          </Trigger>
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="everyone">Everyone</SelectItem>
@@ -222,7 +285,7 @@ export default function SettingsPage() {
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select your profile visibility" />
-                          </SelectTrigger>
+                          </Trigger>
                         </FormControl>
                         <SelectContent>
                            <SelectItem value="public">Public (Visible in Search)</SelectItem>
@@ -282,7 +345,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    
-
-    
