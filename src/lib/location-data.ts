@@ -68,6 +68,111 @@ export const upazilas = {
   "Sherpur": ["Sherpur Sadar", "Jhenaigati", "Nakla", "Nalitabari", "Sreebardi"],
 };
 
+export const hospitalsByDistrict: Record<string, string[]> = {
+  "Dhaka": [
+    "Dhaka Medical College Hospital",
+    "Bangabandhu Sheikh Mujib Medical University (BSMMU)",
+    "Sir Salimullah Medical College Hospital (Mitford)",
+    "Shaheed Suhrawardy Medical College Hospital",
+    "National Institute of Cardiovascular Diseases (NICVD)",
+    "National Institute of Traumatology and Orthopaedic Rehabilitation (NITOR)",
+    "Square Hospitals Ltd.",
+    "Evercare Hospital Dhaka",
+    "United Hospital Limited",
+    "Labaid Specialized Hospital",
+    "BIRDEM General Hospital",
+    "Combined Military Hospital (CMH), Dhaka",
+    "Ibn Sina Specialized Hospital",
+    "Kurmitola General Hospital",
+    "Mugda Medical College Hospital"
+  ],
+  "Chittagong": [
+    "Chittagong Medical College Hospital",
+    "National Institute of Tropical and Infectious Diseases",
+    "BGC Trust Medical College Hospital",
+    "Chittagong General Hospital",
+    "Evercare Hospital Chittagong",
+    "Imperial Hospital Limited",
+    "Max Hospital & Diagnostic Ltd.",
+    "Parkview Hospital & Diagnostic Ltd.",
+    "Combined Military Hospital (CMH), Chittagong"
+  ],
+  "Rajshahi": [
+    "Rajshahi Medical College Hospital",
+    "Rajshahi Central Hospital",
+    "Islami Bank Medical College Hospital, Rajshahi",
+    "Shah Mokhdum Medical College Hospital",
+    "Combined Military Hospital (CMH), Bogura"
+  ],
+  "Khulna": [
+    "Khulna Medical College Hospital",
+    "Shaheed Sheikh Abu Naser Specialized Hospital",
+    "Khulna City Medical College Hospital",
+    "Gazi Medical College Hospital",
+    "Combined Military Hospital (CMH), Jashore"
+  ],
+  "Sylhet": [
+    "Sylhet M.A.G. Osmani Medical College Hospital",
+    "North East Medical College Hospital",
+    "Jalalabad Ragib-Rabeya Medical College Hospital",
+    "Sylhet Women's Medical College Hospital",
+    "Mount Adora Hospital"
+  ],
+  "Barisal": [
+    "Sher-e-Bangla Medical College Hospital (SBMC)",
+    "Barisal General Hospital (Sadar Hospital)",
+    "Islami Bank Hospital, Barisal",
+    "Rahat Anwar Hospital"
+  ],
+  "Rangpur": [
+    "Rangpur Medical College Hospital",
+    "Rangpur General Hospital",
+    "Prime Medical College Hospital",
+    "Northern Medical College Hospital"
+  ],
+  "Mymensingh": [
+    "Mymensingh Medical College Hospital",
+    "Community Based Medical College Hospital (CBMC)",
+    "Nexus Hospital",
+    "Sodesh Hospital"
+  ],
+  "Comilla": [
+    "Comilla Medical College Hospital",
+    "Comilla General Hospital",
+    "Eastern Medical College Hospital",
+    "Moon Hospital"
+  ],
+  "Cox's Bazar": [
+    "Cox's Bazar Sadar Hospital",
+    "Cox's Bazar Medical College Hospital",
+    "Union Hospital",
+    "Digital Hospital",
+    "Hope Hospital"
+  ],
+  "Jessore": [
+    "Jessore 250 Bed General Hospital",
+    "Jessore Medical College Hospital",
+    "Ad-din Sakina Medical College Hospital",
+    "Queens Hospital"
+  ],
+  "Gazipur": [
+    "Shaheed Tajuddin Ahmad Medical College Hospital",
+    "Tairunnessa Memorial Medical College & Hospital",
+    "Gazipur City Medical College and Hospital"
+  ],
+  "Narayanganj": [
+    "Narayanganj General Hospital (Victoria Hospital)",
+    "US-Bangla Medical College and Hospital",
+    "Modern Hospital Narayanganj"
+  ],
+  "Bogra": [
+    "Shaheed Ziaur Rahman Medical College Hospital",
+    "Mohammad Ali Hospital",
+    "TMSS Medical College & Rafatullah Community Hospital"
+  ]
+};
+
+// Deprecated, use hospitalsByDistrict instead.
 export const hospitalList = [
   { value: "Dhaka Medical College Hospital, Dhaka", label: "Dhaka Medical College Hospital, Dhaka" },
   { value: "Bangabandhu Sheikh Mujib Medical University (BSMMU), Dhaka", label: "Bangabandhu Sheikh Mujib Medical University (BSMMU), Dhaka" },
