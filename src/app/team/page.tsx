@@ -75,7 +75,7 @@ const moderators = [
   }
 ];
 
-const TeamMemberCard = ({ member }: { member: typeof administrators[0] | typeof moderators[0] }) => {
+const TeamMemberCard = ({ member }: { member: typeof moderators[0] }) => {
     const { toast } = useToast();
     const handleCopy = (number: string) => {
         navigator.clipboard.writeText(number);
@@ -93,7 +93,7 @@ const TeamMemberCard = ({ member }: { member: typeof administrators[0] | typeof 
             <div className="space-y-1">
               <h3 className="text-xl font-bold font-headline">{member.name}</h3>
               <div className="flex items-center gap-2">
-                <Badge variant={member.role === 'প্রধান পরিচালক' ? 'destructive' : 'secondary'}>{member.role}</Badge>
+                <Badge variant='secondary'>{member.role}</Badge>
                 <Badge variant="outline" className="text-primary border-primary">{member.bloodGroup}</Badge>
               </div>
             </div>
@@ -123,6 +123,57 @@ const TeamMemberCard = ({ member }: { member: typeof administrators[0] | typeof 
     );
 };
 
+const DirectorCard = ({ member }: { member: typeof administrators[0] }) => {
+    const { toast } = useToast();
+    const handleCopy = (number: string) => {
+        navigator.clipboard.writeText(number);
+        toast({ title: "Number copied!" });
+    };
+
+    return (
+        <Card className="w-full max-w-2xl overflow-hidden shadow-xl transition-all duration-300 hover:shadow-2xl bg-gradient-to-br from-card to-muted/50">
+            <div className="md:flex">
+                <div className="md:flex-shrink-0 p-6 flex items-center justify-center">
+                    <Avatar className="h-32 w-32 border-4 border-primary/30 shadow-lg">
+                        <AvatarImage src={member.avatar} alt={member.name} data-ai-hint={member.avatarHint} />
+                        <AvatarFallback className="text-4xl">{member.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                </div>
+                <div className="p-6 flex-grow">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <h2 className="text-3xl font-bold font-headline text-primary">{member.name}</h2>
+                            <p className="text-lg font-semibold text-amber-600">{member.role}</p>
+                        </div>
+                        <Badge variant="outline" className="text-lg text-primary border-primary">{member.bloodGroup}</Badge>
+                    </div>
+                    <Separator className="my-4" />
+                    <div className="space-y-3 text-muted-foreground text-sm">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <Phone className="h-4 w-4" />
+                                <span>{member.phone}</span>
+                            </div>
+                            <Button variant="ghost" size="icon" onClick={() => handleCopy(member.phone)} className="h-8 w-8">
+                                <Copy className="h-4 w-4" />
+                            </Button>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <Mail className="h-4 w-4" />
+                            <span>{member.email}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <MapPin className="h-4 w-4" />
+                            <span>{member.location}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Card>
+    );
+};
+
+
 export default function TeamPage() {
   return (
     <div className="bg-background">
@@ -145,7 +196,7 @@ export default function TeamPage() {
           </div>
           <div className="flex justify-center">
             {administrators.map((member) => (
-                <TeamMemberCard key={member.email} member={member} />
+                <DirectorCard key={member.email} member={member} />
             ))}
           </div>
         </div>
@@ -153,7 +204,7 @@ export default function TeamPage() {
         <Separator />
 
         <div>
-           <div className="flex items-center gap-3 mb-6">
+           <div className="flex items-center justify-start gap-3 mb-6">
             <Shield className="h-8 w-8 text-blue-500" />
             <h2 className="text-3xl font-bold font-headline text-primary">Moderators</h2>
             <Badge variant="default" className="text-lg">{moderators.length}</Badge>
