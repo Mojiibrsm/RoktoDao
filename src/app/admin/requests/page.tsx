@@ -120,7 +120,14 @@ export default function AdminRequestsPage() {
             const requestsRef = collection(db, 'requests');
             const q = query(requestsRef, orderBy('neededDate', 'desc'));
             const querySnapshot = await getDocs(q);
-            const requestsList = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, status: doc.data().status || 'Pending' } as BloodRequest));
+            const requestsList = querySnapshot.docs.map(doc => {
+              const data = doc.data();
+              return { 
+                ...data, 
+                id: doc.id, 
+                status: data.status || 'Pending' 
+              } as BloodRequest;
+            });
             setRequests(requestsList);
         } catch (error) {
             console.error(error);
@@ -137,7 +144,7 @@ export default function AdminRequestsPage() {
     const handleUpdateStatus = async (requestId: string, status: BloodRequest['status']) => {
         try {
             const requestRef = doc(db, 'requests', requestId);
-            await updateDoc(requestRef, { status });
+            await updateDoc(requestRef, { status: status });
             toast({ title: "Status Updated", description: `Request has been marked as ${status}.` });
             fetchRequests();
         } catch (error) {
@@ -598,3 +605,4 @@ export default function AdminRequestsPage() {
     );
 
     
+
