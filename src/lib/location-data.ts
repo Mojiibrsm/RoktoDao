@@ -89,6 +89,11 @@ export const hospitalList = [
   { value: "Khulna Medical College Hospital, Khulna", label: "Khulna Medical College Hospital, Khulna" },
   { value: "Sher-e-Bangla Medical College Hospital, Barisal", label: "Sher-e-Bangla Medical College Hospital, Barisal" },
   { value: "Rangpur Medical College Hospital, Rangpur", label: "Rangpur Medical College Hospital, Rangpur" },
-  { value: "Cox's Bazar Sadar Hospital, Cox's Bazar", label: "Cox's Bazar Sadar Hospital, Cox's Bazar" },
   { value: "Comilla Medical College Hospital, Comilla", label: "Comilla Medical College Hospital, Comilla" },
+  { value: "Cox's Bazar Sadar Hospital, Cox's Bazar", label: "Cox's Bazar Sadar Hospital, Cox's Bazar" },
+  { value: "Cox's Bazar General Hospital, Cox's Bazar", label: "Cox's Bazar General Hospital, Cox's Bazar" },
+  { value: "Union Hospital, Cox's Bazar", label: "Union Hospital, Cox's Bazar" },
+  { value: "Cox's Bazar Central Hospital, Cox's Bazar", label: "Cox's Bazar Central Hospital, Cox's Bazar" },
+  { value: "Digital Hospital, Cox's Bazar", label: "Digital Hospital, Cox's Bazar" },
+  { value: "Hope Hospital, Cox's Bazar", label: "Hope Hospital, Cox's Bazar" }
 ];
