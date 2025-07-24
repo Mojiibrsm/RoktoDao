@@ -67,3 +67,28 @@ export const upazilas = {
   "Netrokona": ["Netrokona Sadar", "Atpara", "Barhatta", "Durgapur", "Kalmakanda", "Kendua", "Khaliajuri", "Madan", "Mohanganj", "Purbadhala"],
   "Sherpur": ["Sherpur Sadar", "Jhenaigati", "Nakla", "Nalitabari", "Sreebardi"],
 };
+
+export const hospitalList = [
+  { value: "Dhaka Medical College Hospital, Dhaka", label: "Dhaka Medical College Hospital, Dhaka" },
+  { value: "Bangabandhu Sheikh Mujib Medical University (BSMMU), Dhaka", label: "Bangabandhu Sheikh Mujib Medical University (BSMMU), Dhaka" },
+  { value: "Sir Salimullah Medical College Hospital (Mitford), Dhaka", label: "Sir Salimullah Medical College Hospital (Mitford), Dhaka" },
+  { value: "Shaheed Suhrawardy Medical College Hospital, Dhaka", label: "Shaheed Suhrawardy Medical College Hospital, Dhaka" },
+  { value: "National Institute of Cardiovascular Diseases (NICVD), Dhaka", label: "National Institute of Cardiovascular Diseases (NICVD), Dhaka" },
+  { value: "National Institute of Traumatology and Orthopaedic Rehabilitation (NITOR), Dhaka", label: "National Institute of Traumatology and Orthopaedic Rehabilitation (NITOR), Dhaka" },
+  { value: "Square Hospitals Ltd., Dhaka", label: "Square Hospitals Ltd., Dhaka" },
+  { value: "Apollo Hospitals Dhaka (Evercare)", label: "Apollo Hospitals Dhaka (Evercare)" },
+  { value: "United Hospital Limited, Dhaka", label: "United Hospital Limited, Dhaka" },
+  { value: "Labaid Specialized Hospital, Dhaka", label: "Labaid Specialized Hospital, Dhaka" },
+  { value: "Chittagong Medical College Hospital, Chittagong", label: "Chittagong Medical College Hospital, Chittagong" },
+  { value: "BIRDEM General Hospital, Dhaka", label: "BIRDEM General Hospital, Dhaka" },
+  { value: "Combined Military Hospital (CMH), Dhaka", label: "Combined Military Hospital (CMH), Dhaka" },
+  { value: "Ibn Sina Specialized Hospital, Dhaka", label: "Ibn Sina Specialized Hospital, Dhaka" },
+  { value: "Rajshahi Medical College Hospital, Rajshahi", label: "Rajshahi Medical College Hospital, Rajshahi" },
+  { value: "Mymensingh Medical College Hospital, Mymensingh", label: "Mymensingh Medical College Hospital, Mymensingh" },
+  { value: "Sylhet M.A.G. Osmani Medical College Hospital, Sylhet", label: "Sylhet M.A.G. Osmani Medical College Hospital, Sylhet" },
+  { value: "Khulna Medical College Hospital, Khulna", label: "Khulna Medical College Hospital, Khulna" },
+  { value: "Sher-e-Bangla Medical College Hospital, Barisal", label: "Sher-e-Bangla Medical College Hospital, Barisal" },
+  { value: "Rangpur Medical College Hospital, Rangpur", label: "Rangpur Medical College Hospital, Rangpur" },
+  { value: "Cox's Bazar Sadar Hospital, Cox's Bazar", label: "Cox's Bazar Sadar Hospital, Cox's Bazar" },
+  { value: "Comilla Medical College Hospital, Comilla", label: "Comilla Medical College Hospital, Comilla" },
+];

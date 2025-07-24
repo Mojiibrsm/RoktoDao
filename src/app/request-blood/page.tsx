@@ -14,13 +14,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, ChevronsUpDown, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { bloodGroups } from '@/lib/location-data';
+import { bloodGroups, hospitalList } from '@/lib/location-data';
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 
 const requestSchema = z.object({
   patientName: z.string().min(3, { message: 'Patient name is required.' }),
@@ -36,6 +37,7 @@ export default function RequestBloodPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isHospitalPopoverOpen, setIsHospitalPopoverOpen] = useState(false);
 
   const form = useForm<z.infer<typeof requestSchema>>({
     resolver: zodResolver(requestSchema),
@@ -128,13 +130,65 @@ export default function RequestBloodPage() {
                 </FormItem>
               )} />
               
-              <FormField control={form.control} name="hospitalLocation" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>হাসপাতালের নাম ও ঠিকানা</FormLabel>
-                  <FormControl><Input placeholder="যেমন, ঢাকা মেডিকেল কলেজ হাসপাতাল" {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
+              <FormField
+                control={form.control}
+                name="hospitalLocation"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>হাসপাতালের নাম ও ঠিকানা</FormLabel>
+                    <Popover open={isHospitalPopoverOpen} onOpenChange={setIsHospitalPopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-full justify-between",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value
+                              ? hospitalList.find(
+                                  (hospital) => hospital.value === field.value
+                                )?.label
+                              : "হাসপাতাল নির্বাচন করুন"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[--radix-popover-trigger-width] max-h-[--radix-popover-content-available-height] p-0">
+                        <Command>
+                          <CommandInput placeholder="হাসপাতাল খুঁজুন..." />
+                          <CommandEmpty>কোনো হাসপাতাল পাওয়া যায়নি।</CommandEmpty>
+                          <CommandGroup>
+                            {hospitalList.map((hospital) => (
+                              <CommandItem
+                                value={hospital.label}
+                                key={hospital.value}
+                                onSelect={() => {
+                                  form.setValue("hospitalLocation", hospital.value)
+                                  setIsHospitalPopoverOpen(false)
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    hospital.value === field.value
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                                {hospital.label}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <FormField control={form.control} name="contactPhone" render={({ field }) => (
                 <FormItem>
