@@ -7,7 +7,7 @@ import type { BloodRequest as BloodRequestType } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { MoreHorizontal, Check, X, Trash2, CheckCheck, PlusCircle, AlertTriangle, Edit, Copy } from 'lucide-react';
 import { format } from 'date-fns';
@@ -307,43 +307,39 @@ export default function AdminRequestsPage() {
                     <FormMessage />
                     </FormItem>
                 )} />
-               <FormField
+                <FormField
                     control={form.control}
                     name="district"
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>জেলা</FormLabel>
-                        <Select
-                        value={field.value}
-                        onValueChange={(value) => {
-                            field.onChange(value);
-                        }}
-                        >
-                        <FormControl>
-                            <SelectTrigger>
-                            <SelectValue placeholder="জেলা নির্বাচন করুন" />
-                            </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                            <Input
-                            className="mb-2"
-                            placeholder="জেলা খুঁজুন..."
-                            value={districtSearch}
-                            onChange={(e) => setDistrictSearch(e.target.value)}
-                            />
-                            <SelectGroup>
-                            <SelectLabel>সকল জেলা</SelectLabel>
-                            {districtOptions
-                                .filter((d) =>
-                                d.label.toLowerCase().includes(districtSearch.toLowerCase())
-                                )
-                                .map((district) => (
-                                <SelectItem key={district.value} value={district.value}>
-                                    {district.label}
-                                </SelectItem>
-                                ))}
-                            </SelectGroup>
-                        </SelectContent>
+                         <Select
+                            value={field.value}
+                            onValueChange={field.onChange}
+                            >
+                            <FormControl>
+                                <SelectTrigger>
+                                <SelectValue placeholder="জেলা নির্বাচন করুন" />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                               <Input
+                                    className="mb-2"
+                                    placeholder="জেলা খুঁজুন..."
+                                    value={districtSearch}
+                                    onChange={(e) => setDistrictSearch(e.target.value)}
+                                />
+                                <SelectGroup>
+                                    <SelectLabel>সকল জেলা</SelectLabel>
+                                    {districtOptions
+                                    .filter((d) => d.label.toLowerCase().includes(districtSearch.toLowerCase()))
+                                    .map((district) => (
+                                        <SelectItem key={district.value} value={district.value}>
+                                            {district.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectGroup>
+                            </SelectContent>
                         </Select>
                         <FormMessage />
                     </FormItem>
@@ -411,10 +407,20 @@ export default function AdminRequestsPage() {
         );
     };
 
-    const handleCopy = (number: string) => {
-        navigator.clipboard.writeText(number);
-        toast({ title: "Number copied!" });
+    const handleCopy = (text: string) => {
+        navigator.clipboard.writeText(text);
+        toast({ title: "Copied to clipboard!" });
     };
+
+    const formatCopyText = (req: BloodRequest) => {
+    return `🩸 জরুরী রক্তের আবেদন 🩸
+রোগীর নামঃ ${req.patientName}
+রক্তের গ্রুপঃ ${req.bloodGroup}
+প্রয়োজনের তারিখঃ ${format(new Date(req.neededDate), "PPP")}
+ব্যাগঃ ${req.numberOfBags}
+হাসপাতালঃ ${req.hospitalLocation}, ${req.district}
+যোগাযোগঃ ${req.contactPhone}`;
+  };
 
 
     return (
@@ -508,6 +514,10 @@ export default function AdminRequestsPage() {
                                    <DropdownMenuItem onClick={() => openEditDialog(req)}>
                                     <Edit className="mr-2 h-4 w-4" /> Edit
                                   </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleCopy(formatCopyText(req))}>
+                                    <Copy className="mr-2 h-4 w-4" /> Copy Details
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
                                   <DropdownMenuItem onClick={() => handleUpdateStatus(req.id, 'Approved')}>
                                     <Check className="mr-2 h-4 w-4" /> Approve
                                   </DropdownMenuItem>
@@ -517,6 +527,7 @@ export default function AdminRequestsPage() {
                                   <DropdownMenuItem onClick={() => handleUpdateStatus(req.id, 'Rejected')}>
                                     <X className="mr-2 h-4 w-4" /> Reject
                                   </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
                                   <AlertDialogTrigger asChild>
                                     <DropdownMenuItem className="text-destructive focus:text-destructive">
                                         <Trash2 className="mr-2 h-4 w-4" /> Delete

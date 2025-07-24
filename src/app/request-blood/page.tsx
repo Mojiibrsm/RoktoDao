@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGr
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, CheckIcon, ChevronsUpDown, AlertTriangle, Droplet, MapPin, Syringe, Phone } from 'lucide-react';
+import { CalendarIcon, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { bloodGroups, locations, hospitalsByDistrict } from '@/lib/location-data';
@@ -24,6 +24,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { BloodRequest } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
+import RequestCard from '@/components/request-card';
 
 
 const requestSchema = z.object({
@@ -53,6 +54,7 @@ export default function RequestBloodPage() {
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [recentRequests, setRecentRequests] = useState<BloodRequest[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const form = useForm<z.infer<typeof requestSchema>>({
     resolver: zodResolver(requestSchema),
@@ -76,6 +78,7 @@ export default function RequestBloodPage() {
   const [hospitalSearch, setHospitalSearch] = useState("");
 
    const fetchRecentRequests = async () => {
+    setLoading(true);
     try {
         const requestsRef = collection(db, 'requests');
         const q = query(requestsRef, orderBy('createdAt', 'desc'), limit(6));
@@ -87,6 +90,8 @@ export default function RequestBloodPage() {
         setRecentRequests(requests);
     } catch (error) {
         console.error("Error fetching recent requests:", error);
+    } finally {
+        setLoading(false);
     }
   };
   
@@ -98,15 +103,18 @@ export default function RequestBloodPage() {
       setAvailableHospitals(allHospitals);
     }
     form.setValue('hospitalLocation', '');
-    fetchRecentRequests();
   }, [selectedDistrict, form]);
+  
+  useEffect(() => {
+    fetchRecentRequests();
+  }, []);
 
     const districtOptions = Object.keys(locations).flatMap(division => 
         locations[division as keyof typeof locations].districts.map(district => ({
             value: district,
             label: district,
         }))
-    ).sort((a, b) => a.label.localeCompare(b.label, 'bn'));
+    ).sort((a, b) => a.label.localeCompare(b, 'bn'));
 
   const onSubmit = async (values: z.infer<typeof requestSchema>) => {
     setIsSubmitting(true);
@@ -211,32 +219,33 @@ export default function RequestBloodPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>জেলা</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="জেলা নির্বাচন করুন" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <Input
-                          className="mb-2"
-                          placeholder="জেলা খুঁজুন..."
-                          value={districtSearch}
-                          onChange={(e) => setDistrictSearch(e.target.value)}
-                        />
-                        <SelectGroup>
-                          <SelectLabel>সকল জেলা</SelectLabel>
-                          {districtOptions
-                            .filter((d) =>
-                              d.label.toLowerCase().includes(districtSearch.toLowerCase())
-                            )
-                            .map((district) => (
-                              <SelectItem key={district.value} value={district.value}>
-                                {district.label}
-                              </SelectItem>
-                            ))}
-                        </SelectGroup>
-                      </SelectContent>
+                     <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        >
+                        <FormControl>
+                            <SelectTrigger>
+                            <SelectValue placeholder="জেলা নির্বাচন করুন" />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                           <Input
+                                className="mb-2"
+                                placeholder="জেলা খুঁজুন..."
+                                value={districtSearch}
+                                onChange={(e) => setDistrictSearch(e.target.value)}
+                            />
+                            <SelectGroup>
+                                <SelectLabel>সকল জেলা</SelectLabel>
+                                {districtOptions
+                                .filter((d) => d.label.toLowerCase().includes(districtSearch.toLowerCase()))
+                                .map((district) => (
+                                    <SelectItem key={district.value} value={district.value}>
+                                        {district.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectGroup>
+                        </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
@@ -309,41 +318,14 @@ export default function RequestBloodPage() {
       <section className="mt-16">
         <h2 className="text-3xl font-bold text-center mb-2 font-headline text-primary">সকল সক্রিয় অনুরোধ</h2>
         <Separator className="my-6" />
-        {recentRequests.length > 0 ? (
+        {loading ? (
+          <div className="text-center py-16 border-2 border-dashed rounded-lg">
+            <p className="text-muted-foreground text-lg">Loading requests...</p>
+          </div>
+        ) : recentRequests.length > 0 ? (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {recentRequests.map((req) => (
-              <Card key={req.id} className="flex flex-col justify-between shadow-lg hover:shadow-xl transition-shadow duration-300">
-                <CardHeader>
-                  <CardTitle className="flex items-start justify-between">
-                    <span className="text-xl flex items-center gap-2">
-                       {req.isEmergency && <AlertTriangle className="h-5 w-5 text-destructive" />}
-                       {req.patientName}
-                    </span>
-                    <span className="flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-base font-bold text-primary">
-                      <Droplet className="h-4 w-4" />
-                      {req.bloodGroup}
-                    </span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center gap-3 text-muted-foreground">
-                    <MapPin className="h-5 w-5 flex-shrink-0" />
-                    <span>{`${req.hospitalLocation}, ${req.district}`}</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-muted-foreground">
-                    <CalendarIcon className="h-5 w-5 flex-shrink-0" />
-                    <span>Needed by: {format(new Date(req.neededDate), "PPP")}</span>
-                  </div>
-                   <div className="flex items-center gap-3 text-muted-foreground">
-                    <Phone className="h-5 w-5 flex-shrink-0" />
-                    <span>Contact: {req.contactPhone}</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-muted-foreground">
-                    <Syringe className="h-5 w-5 flex-shrink-0" />
-                    <span>{req.numberOfBags} Bag(s)</span>
-                  </div>
-                </CardContent>
-              </Card>
+              <RequestCard key={req.id} req={req} />
             ))}
           </div>
         ) : (

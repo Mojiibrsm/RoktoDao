@@ -7,7 +7,6 @@ import { db } from '@/lib/firebase';
 import type { BloodRequest, Donor } from '@/lib/types';
 import { collection, getDocs, limit, orderBy, query, where,getCountFromServer, Timestamp } from 'firebase/firestore';
 import { Droplet, MapPin, Calendar, Syringe, Search, Heart, Phone, LifeBuoy, HeartPulse, ShieldCheck, Stethoscope, LocateFixed, MessageCircle, Newspaper, Github, Linkedin, Twitter, Users, Globe, HandHeart, ListChecks, AlertTriangle } from 'lucide-react';
-import { format } from 'date-fns';
 import {
   Accordion,
   AccordionContent,
@@ -17,6 +16,7 @@ import {
 import { getBlogPosts } from '@/lib/blog-data';
 import Image from 'next/image';
 import DonorCard from '@/components/donor-card';
+import RequestCard from '@/components/request-card';
 
 async function getUrgentRequests() {
   try {
@@ -194,38 +194,7 @@ export default async function Home() {
           {urgentRequests.length > 0 ? (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {urgentRequests.map((req) => (
-                <Card key={req.id} className="flex flex-col justify-between shadow-lg hover:shadow-xl transition-shadow duration-300">
-                  <CardHeader>
-                    <CardTitle className="flex items-start justify-between">
-                      <span className="text-xl flex items-center gap-2">
-                         {req.isEmergency && <AlertTriangle className="h-5 w-5 text-destructive" />}
-                         {req.patientName}
-                      </span>
-                      <span className="flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-base font-bold text-primary">
-                        <Droplet className="h-4 w-4" />
-                        {req.bloodGroup}
-                      </span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center gap-3 text-muted-foreground">
-                      <MapPin className="h-5 w-5 flex-shrink-0" />
-                      <span>{`${req.hospitalLocation}, ${req.district}`}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-muted-foreground">
-                      <Calendar className="h-5 w-5 flex-shrink-0" />
-                      <span>Needed by: {format(new Date(req.neededDate), "PPP")}</span>
-                    </div>
-                     <div className="flex items-center gap-3 text-muted-foreground">
-                      <Phone className="h-5 w-5 flex-shrink-0" />
-                      <span>Contact: {req.contactPhone}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-muted-foreground">
-                      <Syringe className="h-5 w-5 flex-shrink-0" />
-                      <span>{req.numberOfBags} Bag(s)</span>
-                    </div>
-                  </CardContent>
-                </Card>
+                <RequestCard key={req.id} req={req} />
               ))}
             </div>
           ) : (

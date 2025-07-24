@@ -3,13 +3,8 @@
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { BloodRequest } from '@/lib/types';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Droplet, MapPin, Calendar, Syringe, Phone, AlertTriangle, Copy } from 'lucide-react';
-import { format } from 'date-fns';
 import { useEffect, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
+import RequestCard from '@/components/request-card';
 
 async function getAllRequests(): Promise<BloodRequest[]> {
   try {
@@ -26,54 +21,6 @@ async function getAllRequests(): Promise<BloodRequest[]> {
     return [];
   }
 }
-
-const RequestCard = ({ req }: { req: BloodRequest }) => {
-    const { toast } = useToast();
-    const handleCopy = (number: string) => {
-        navigator.clipboard.writeText(number);
-        toast({ title: "Number copied!" });
-    };
-
-    return (
-        <Card className="flex flex-col justify-between shadow-lg hover:shadow-xl transition-shadow duration-300">
-            <CardHeader>
-              <CardTitle className="flex items-start justify-between">
-                <span className="text-xl flex items-center gap-2">
-                   {req.isEmergency && <AlertTriangle className="h-5 w-5 text-destructive" />}
-                   {req.patientName}
-                </span>
-                <span className="flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-base font-bold text-primary">
-                  <Droplet className="h-4 w-4" />
-                  {req.bloodGroup}
-                </span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center gap-3 text-muted-foreground">
-                <MapPin className="h-5 w-5 flex-shrink-0" />
-                <span>{`${req.hospitalLocation}, ${req.district}`}</span>
-              </div>
-              <div className="flex items-center gap-3 text-muted-foreground">
-                <Calendar className="h-5 w-5 flex-shrink-0" />
-                <span>Needed by: {format(new Date(req.neededDate), "PPP")}</span>
-              </div>
-               <div className="flex items-center justify-between text-muted-foreground">
-                    <div className="flex items-center gap-3">
-                        <Phone className="h-5 w-5 flex-shrink-0" />
-                        <span>{req.contactPhone}</span>
-                    </div>
-                    <Button variant="ghost" size="icon" onClick={() => handleCopy(req.contactPhone)} className="h-8 w-8">
-                        <Copy className="h-4 w-4" />
-                    </Button>
-                </div>
-              <div className="flex items-center gap-3 text-muted-foreground">
-                <Syringe className="h-5 w-5 flex-shrink-0" />
-                <span>{req.numberOfBags} Bag(s)</span>
-              </div>
-            </CardContent>
-        </Card>
-    );
-};
 
 export default function AllRequestsPage() {
   const [allRequests, setAllRequests] = useState<BloodRequest[]>([]);
