@@ -22,7 +22,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
   Dialog,
@@ -46,7 +45,6 @@ import { cn } from '@/lib/utils';
 import { CalendarIcon } from 'lucide-react';
 import { bloodGroups, locations, hospitalsByDistrict } from '@/lib/location-data';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 
 type BloodRequest = BloodRequestType & { id: string };
 
@@ -267,6 +265,8 @@ export default function AdminRequestsPage() {
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState<BloodRequest | null>(null);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [requestToDelete, setRequestToDelete] = useState<string | null>(null);
 
     const form = useForm<z.infer<typeof requestSchema>>({
         resolver: zodResolver(requestSchema),
@@ -333,14 +333,23 @@ export default function AdminRequestsPage() {
         }
     };
 
-    const handleDeleteRequest = async (requestId: string) => {
+    const handleDeleteRequest = async (requestId: string | null) => {
+        if (!requestId) return;
         try {
             await deleteDoc(doc(db, 'requests', requestId));
             toast({ title: "Request Deleted", description: "The blood request has been deleted." });
             fetchRequests();
         } catch (error) {
            toast({ variant: "destructive", title: "Error", description: "Could not delete the request." });
+        } finally {
+            setIsDeleteDialogOpen(false);
+            setRequestToDelete(null);
         }
+    };
+    
+    const openDeleteDialog = (requestId: string) => {
+        setRequestToDelete(requestId);
+        setIsDeleteDialogOpen(true);
     };
 
     const handleAddRequest = async (values: z.infer<typeof requestSchema>) => {
@@ -582,26 +591,14 @@ export default function AdminRequestsPage() {
                                             <X className="mr-2 h-4 w-4" /> Reject
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator />
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={(e) => e.preventDefault()}>
-                                                    <Trash2 className="mr-2 h-4 w-4" />
-                                                    Delete
-                                                </DropdownMenuItem>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    This action cannot be undone. This will permanently delete this blood request.
-                                                </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                <AlertDialogAction onClick={() => handleDeleteRequest(req.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
+                                        <DropdownMenuItem 
+                                            className="text-destructive focus:text-destructive" 
+                                            onSelect={(e) => e.preventDefault()}
+                                            onClick={() => openDeleteDialog(req.id)}
+                                        >
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            Delete
+                                        </DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             </div>
@@ -633,6 +630,21 @@ export default function AdminRequestsPage() {
                     {selectedRequest && <RequestForm form={form} onSubmit={handleEditRequest} isSubmitting={form.formState.isSubmitting} submitText="Update Request" />}
                   </DialogContent>
             </Dialog>
+
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete this blood request.
+                    </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setRequestToDelete(null)}>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => handleDeleteRequest(requestToDelete)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
