@@ -55,6 +55,7 @@ const searchHospitalsFlow = ai.defineFlow(
       const data = await response.json();
 
       if (!data.items) {
+        console.log("No items found in Google Custom Search API response for query:", query);
         return [];
       }
 
