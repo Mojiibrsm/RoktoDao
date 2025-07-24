@@ -1,7 +1,10 @@
 import type { Donor } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { cn } from '@/lib/utils';
+import { format, differenceInDays, addDays } from 'date-fns';
+import { Phone, MapPin, Calendar, UserCheck, Droplet } from 'lucide-react';
 
 type DonorCardProps = {
   donor: Donor;
@@ -9,35 +12,78 @@ type DonorCardProps = {
 
 export default function DonorCard({ donor }: DonorCardProps) {
   const isAvailable = donor.isAvailable;
+  
+  const eligibility = () => {
+    if (!donor.lastDonationDate) {
+      return { canDonate: true, daysRemaining: 0 };
+    }
+    const lastDonation = new Date(donor.lastDonationDate);
+    const nextDonationDate = addDays(lastDonation, 120); // Assuming 120 days restriction
+    const daysRemaining = differenceInDays(nextDonationDate, new Date());
+
+    if (daysRemaining <= 0) {
+      return { canDonate: true, daysRemaining: 0 };
+    }
+    return { canDonate: false, daysRemaining };
+  };
+
+  const eligibilityStatus = eligibility();
 
   return (
-    <Card className={cn(
-        "text-center shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 border-2",
-        isAvailable ? 'border-transparent' : 'border-destructive/50 bg-destructive/5'
-    )}>
-      <CardContent className="p-6 flex flex-col items-center gap-3">
-        <Avatar className="h-32 w-32 border-4 border-white shadow-md">
-            <AvatarImage src={donor.profilePictureUrl || 'https://placehold.co/150x150.png'} alt={donor.fullName} />
-            <AvatarFallback>{donor.fullName?.[0].toUpperCase()}</AvatarFallback>
-        </Avatar>
-
-        <h3 className="text-2xl font-bold font-headline mt-4">{donor.fullName}</h3>
-
-        <p className="text-2xl font-bold text-primary">{donor.bloodGroup}</p>
-
-        <p className="text-muted-foreground text-base">{donor.address.district}</p>
-
-        {donor.donationCount && donor.donationCount > 0 && (
-            <div className="mt-2 bg-primary/10 text-primary font-semibold px-4 py-2 rounded-full">
-                দান করেছেন: {donor.donationCount} বার
+    <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+      <CardContent className="p-6">
+        <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center gap-4">
+                 <Avatar className="h-12 w-12">
+                    <AvatarImage src={donor.profilePictureUrl || ''} alt={donor.fullName} />
+                    <AvatarFallback>{donor.fullName?.[0].toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <div>
+                    <h3 className="text-xl font-bold font-headline">{donor.fullName}</h3>
+                    <p className="flex items-center gap-2 text-primary font-bold text-lg">
+                        <Droplet className="h-5 w-5" />
+                        {donor.bloodGroup}
+                    </p>
+                </div>
             </div>
-        )}
+            <Badge variant={isAvailable && eligibilityStatus.canDonate ? 'default' : 'destructive'} className={isAvailable && eligibilityStatus.canDonate ? 'bg-green-600' : ''}>
+              {(isAvailable && eligibilityStatus.canDonate) ? 'Available' : 'Unavailable'}
+            </Badge>
+        </div>
 
-        {!isAvailable && (
-             <div className="mt-2 bg-destructive/10 text-destructive font-semibold px-4 py-2 rounded-full">
-                অনুপলব্ধ
+        <div className="space-y-3 text-muted-foreground">
+            <div className="flex items-center gap-3">
+                <Phone className="h-4 w-4" />
+                <span>{donor.phoneNumber}</span>
             </div>
-        )}
+            <div className="flex items-center gap-3">
+                <MapPin className="h-4 w-4" />
+                <span>{`${donor.address.upazila}, ${donor.address.district}`}</span>
+            </div>
+            {donor.lastDonationDate && (
+                <div className="flex items-center gap-3">
+                    <Calendar className="h-4 w-4" />
+                    <span>Last Donated: {format(new Date(donor.lastDonationDate), "PPP")}</span>
+                </div>
+            )}
+             <div className="flex items-center gap-3">
+                <UserCheck className="h-4 w-4" />
+                <span>
+                    {eligibilityStatus.canDonate 
+                        ? 'Eligible to donate'
+                        : `Can donate in ${eligibilityStatus.daysRemaining} days`
+                    }
+                </span>
+            </div>
+             {donor.donationCount && donor.donationCount > 0 && (
+                <div className="flex items-center gap-3">
+                    <Droplet className="h-4 w-4" />
+                    <span>
+                        Donated {donor.donationCount} time(s)
+                    </span>
+                </div>
+            )}
+        </div>
       </CardContent>
     </Card>
   );
