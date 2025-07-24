@@ -120,9 +120,10 @@ export default function AdminRequestsPage() {
             const requestsRef = collection(db, 'requests');
             const q = query(requestsRef, orderBy('neededDate', 'desc'));
             const querySnapshot = await getDocs(q);
-            const requestsList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), status: doc.data().status || 'Pending' } as BloodRequest));
+            const requestsList = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, status: doc.data().status || 'Pending' } as BloodRequest));
             setRequests(requestsList);
         } catch (error) {
+            console.error(error);
             toast({ variant: "destructive", title: "Error", description: "Could not fetch requests." });
         } finally {
             setLoading(false);
@@ -257,8 +258,8 @@ export default function AdminRequestsPage() {
     };
 
     const RequestForm = ({ onSubmit, isSubmitting, submitText }: { onSubmit: (values: z.infer<typeof requestSchema>) => void; isSubmitting: boolean; submitText: string }) => {
-        const [districtSearch, setDistrictSearch] = useState('');
-        const [hospitalSearch, setHospitalSearch] = useState('');
+      const [districtSearch, setDistrictSearch] = useState('');
+      const [hospitalSearch, setHospitalSearch] = useState('');
 
         return (
              <Form {...form}>
@@ -315,7 +316,9 @@ export default function AdminRequestsPage() {
                     <FormItem>
                       <FormLabel>জেলা</FormLabel>
                       <Select
-                        onValueChange={field.onChange}
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                        }}
                         value={field.value}
                       >
                         <FormControl>
@@ -330,11 +333,13 @@ export default function AdminRequestsPage() {
                             value={districtSearch}
                             onChange={(e) => setDistrictSearch(e.target.value)}
                           />
-                          <SelectGroup>
+                          <SelectGroup className="max-h-60 overflow-y-auto">
                             <SelectLabel>সকল জেলা</SelectLabel>
                             {districtOptions
                               .filter((d) =>
-                                d.label.toLowerCase().includes(districtSearch.toLowerCase())
+                                d.label
+                                  .toLowerCase()
+                                  .includes(districtSearch.toLowerCase())
                               )
                               .map((district) => (
                                 <SelectItem key={district.value} value={district.value}>
@@ -359,7 +364,7 @@ export default function AdminRequestsPage() {
                             <FormControl><SelectTrigger><SelectValue placeholder="হাসপাতাল নির্বাচন করুন" /></SelectTrigger></FormControl>
                             <SelectContent>
                                <Input className="mb-2" placeholder="হাসপাতাল খুঁজুন..." value={hospitalSearch} onChange={(e) => setHospitalSearch(e.target.value)} />
-                                <SelectGroup>
+                                <SelectGroup className="max-h-60 overflow-y-auto">
                                     <SelectLabel>সকল হাসপাতাল</SelectLabel>
                                     {availableHospitals.filter(h => h.toLowerCase().includes(hospitalSearch.toLowerCase())).map(hospital => (
                                     <SelectItem key={hospital} value={hospital}>{hospital}</SelectItem>

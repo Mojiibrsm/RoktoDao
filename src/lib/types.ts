@@ -1,7 +1,6 @@
 
 
 export type BloodRequest = {
-  id: string;
   patientName: string;
   bloodGroup: string;
   neededDate: string;
@@ -12,11 +11,10 @@ export type BloodRequest = {
   status: 'Pending' | 'Approved' | 'Fulfilled' | 'Rejected';
   isEmergency?: boolean;
   district: string;
-  createdAt: string;
+  createdAt?: string;
 };
 
 export type Donor = {
-  id:string;
   uid: string;
   fullName: string;
   bloodGroup: string;
@@ -42,5 +40,6 @@ export type Donor = {
     contactVisibility: 'everyone' | 'verified' | 'hidden';
     profileVisibility: 'public' | 'admin' | 'hidden';
   };
-  createdAt?: string;
+  isVerified?: boolean;
+  createdAt?: any;
 };
