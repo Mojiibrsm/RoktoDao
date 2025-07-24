@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { db } from '@/lib/firebase';
 import type { BloodRequest, Donor } from '@/lib/types';
-import { collection, getDocs, limit, orderBy, query, where } from 'firebase/firestore';
+import { collection, getDocs, limit, orderBy, query, where,getCountFromServer } from 'firebase/firestore';
 import { Droplet, MapPin, Calendar, Syringe, Search, Heart, Phone, LifeBuoy, HeartPulse, ShieldCheck, Stethoscope, LocateFixed, MessageCircle, Newspaper, Github, Linkedin, Twitter, Users, Globe, HandHeart, ListChecks } from 'lucide-react';
 import { format } from 'date-fns';
 import {
@@ -50,6 +50,29 @@ async function getTopDonors() {
   }
 }
 
+async function getStats() {
+    try {
+        const donorsCol = collection(db, "donors");
+        const requestsCol = collection(db, "requests");
+
+        const donorSnapshot = await getCountFromServer(donorsCol);
+        const requestSnapshot = await getCountFromServer(requestsCol);
+
+        return {
+            totalDonors: donorSnapshot.data().count,
+            totalRequests: requestSnapshot.data().count,
+            donationsFulfilled: 0, // Placeholder
+        };
+    } catch (error) {
+        console.error("Error fetching stats: ", error);
+        return {
+            totalDonors: 0,
+            totalRequests: 0,
+            donationsFulfilled: 0,
+        }
+    }
+}
+
 const faqs = [
   {
     question: "রক্তদানের জন্য সর্বনিম্ন বয়স কত?",
@@ -69,6 +92,7 @@ export default async function Home() {
   const urgentRequests = await getUrgentRequests();
   const topDonors = await getTopDonors();
   const latestPosts = getBlogPosts().slice(0, 3);
+  const stats = await getStats();
 
   return (
     <div className="flex flex-col items-center">
@@ -207,7 +231,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="w-full bg-primary/5 py-16 md:py-24">
+       <section className="w-full bg-primary/5 py-16 md:py-24">
         <div className="container mx-auto px-4 text-center">
             <h2 className="text-3xl font-bold text-primary md:text-4xl font-headline">
                 আমাদের পরিসংখ্যান
@@ -219,17 +243,17 @@ export default async function Home() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="flex flex-col items-center gap-2">
                     <Users className="h-12 w-12 text-primary" />
-                    <p className="text-4xl font-bold">5,000+</p>
+                    <p className="text-4xl font-bold">{stats.totalDonors.toLocaleString()}+</p>
                     <p className="text-muted-foreground">মোট ডোনার</p>
                 </div>
                 <div className="flex flex-col items-center gap-2">
                     <ListChecks className="h-12 w-12 text-primary" />
-                    <p className="text-4xl font-bold">10,000+</p>
+                    <p className="text-4xl font-bold">{stats.totalRequests.toLocaleString()}+</p>
                     <p className="text-muted-foreground">মোট রিকোয়েস্ট</p>
                 </div>
                 <div className="flex flex-col items-center gap-2">
                     <HandHeart className="h-12 w-12 text-primary" />
-                    <p className="text-4xl font-bold">8,500+</p>
+                    <p className="text-4xl font-bold">{stats.donationsFulfilled.toLocaleString()}+</p>
                     <p className="text-muted-foreground">সফল ডোনেশন</p>
                 </div>
             </div>
