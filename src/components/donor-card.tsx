@@ -1,16 +1,24 @@
+"use client";
+
 import type { Donor } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { cn } from '@/lib/utils';
 import { format, differenceInDays, addDays } from 'date-fns';
-import { Phone, MapPin, Calendar, UserCheck, Droplet } from 'lucide-react';
+import { Phone, MapPin, Calendar, UserCheck, Droplet, Copy } from 'lucide-react';
+import { Button } from './ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react';
 
 type DonorCardProps = {
   donor: Donor;
 };
 
 export default function DonorCard({ donor }: DonorCardProps) {
+  const { toast } = useToast();
+  const [copied, setCopied] = useState(false);
+  
   const isAvailable = donor.isAvailable;
   
   const eligibility = () => {
@@ -28,6 +36,13 @@ export default function DonorCard({ donor }: DonorCardProps) {
   };
 
   const eligibilityStatus = eligibility();
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(donor.phoneNumber);
+    setCopied(true);
+    toast({ title: "Number copied!" });
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
@@ -52,9 +67,14 @@ export default function DonorCard({ donor }: DonorCardProps) {
         </div>
 
         <div className="space-y-3 text-muted-foreground">
-            <div className="flex items-center gap-3">
-                <Phone className="h-4 w-4" />
-                <span>{donor.phoneNumber}</span>
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <Phone className="h-4 w-4" />
+                    <span>{donor.phoneNumber}</span>
+                </div>
+                <Button variant="ghost" size="icon" onClick={handleCopy} className="h-8 w-8">
+                    <Copy className="h-4 w-4" />
+                </Button>
             </div>
             <div className="flex items-center gap-3">
                 <MapPin className="h-4 w-4" />

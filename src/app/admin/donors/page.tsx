@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -10,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { MoreHorizontal, Edit, CheckCircle, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Edit, CheckCircle, Trash2, Copy } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -64,6 +63,12 @@ export default function AdminDonorsPage() {
        toast({ variant: "destructive", title: "Error", description: "Could not delete the donor." });
     }
   };
+  
+  const handleCopy = (number: string) => {
+    navigator.clipboard.writeText(number);
+    toast({ title: "Number copied!" });
+  };
+
 
   return (
     <div>
@@ -107,7 +112,14 @@ export default function AdminDonorsPage() {
                     </Badge>
                   </TableCell>
                   <TableCell>{`${donor.address.upazila}, ${donor.address.district}`}</TableCell>
-                  <TableCell>{donor.phoneNumber}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {donor.phoneNumber}
+                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleCopy(donor.phoneNumber)}>
+                          <Copy className="h-4 w-4" />
+                       </Button>
+                    </div>
+                  </TableCell>
                   <TableCell>
                     {donor.lastDonationDate ? format(new Date(donor.lastDonationDate), 'dd MMM yyyy') : 'N/A'}
                   </TableCell>

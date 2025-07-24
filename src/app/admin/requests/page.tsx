@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -10,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { MoreHorizontal, Check, X, Trash2, CheckCheck, PlusCircle, AlertTriangle, Edit } from 'lucide-react';
+import { MoreHorizontal, Check, X, Trash2, CheckCheck, PlusCircle, AlertTriangle, Edit, Copy } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -39,7 +38,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
@@ -258,14 +257,11 @@ export default function AdminRequestsPage() {
 
     const RequestForm = ({ onSubmit, isSubmitting, submitText }: { onSubmit: (values: z.infer<typeof requestSchema>) => void; isSubmitting: boolean; submitText: string }) => {
         const [districtSearch, setDistrictSearch] = useState('');
-        const [isDistrictPopoverOpen, setIsDistrictPopoverOpen] = useState(false);
         const [hospitalSearch, setHospitalSearch] = useState('');
-
-        const filteredDistricts = districtOptions.filter(d => d.label.toLowerCase().includes(districtSearch.toLowerCase()));
 
         return (
              <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-6">
                   <FormField control={form.control} name="patientName" render={({ field }) => (
                     <FormItem>
                     <FormLabel>Patient Name</FormLabel>
@@ -312,55 +308,46 @@ export default function AdminRequestsPage() {
                     </FormItem>
                 )} />
                <FormField
-                  control={form.control}
-                  name="district"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>জেলা</FormLabel>
-                      <Popover open={isDistrictPopoverOpen} onOpenChange={setIsDistrictPopoverOpen}>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              className={cn(
-                                "w-full justify-between",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value
-                                ? districtOptions.find(
-                                    (district) => district.value === field.value
-                                  )?.label
-                                : "জেলা নির্বাচন করুন"}
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                          <Command>
-                            <CommandInput placeholder="জেলা খুঁজুন..." value={districtSearch} onValueChange={setDistrictSearch} />
-                            <CommandList>
-                                <CommandEmpty>কোন জেলা পাওয়া যায়নি।</CommandEmpty>
-                                {filteredDistricts.map((district) => (
-                                  <CommandItem
-                                    value={district.label}
-                                    key={district.value}
-                                    onSelect={() => {
-                                      form.setValue("district", district.value);
-                                      form.setValue("hospitalLocation", "");
-                                      setIsDistrictPopoverOpen(false);
-                                    }}
-                                  >
+                    control={form.control}
+                    name="district"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>জেলা</FormLabel>
+                        <Select
+                        value={field.value}
+                        onValueChange={(value) => {
+                            field.onChange(value);
+                        }}
+                        >
+                        <FormControl>
+                            <SelectTrigger>
+                            <SelectValue placeholder="জেলা নির্বাচন করুন" />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            <Input
+                            className="mb-2"
+                            placeholder="জেলা খুঁজুন..."
+                            value={districtSearch}
+                            onChange={(e) => setDistrictSearch(e.target.value)}
+                            />
+                            <SelectGroup>
+                            <SelectLabel>সকল জেলা</SelectLabel>
+                            {districtOptions
+                                .filter((d) =>
+                                d.label.toLowerCase().includes(districtSearch.toLowerCase())
+                                )
+                                .map((district) => (
+                                <SelectItem key={district.value} value={district.value}>
                                     {district.label}
-                                  </CommandItem>
+                                </SelectItem>
                                 ))}
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
+                            </SelectGroup>
+                        </SelectContent>
+                        </Select>
+                        <FormMessage />
                     </FormItem>
-                  )}
+                    )}
                 />
                  <FormField
                     control={form.control}
@@ -372,10 +359,13 @@ export default function AdminRequestsPage() {
                             <FormControl><SelectTrigger><SelectValue placeholder="হাসপাতাল নির্বাচন করুন" /></SelectTrigger></FormControl>
                             <SelectContent>
                                <Input className="mb-2" placeholder="হাসপাতাল খুঁজুন..." value={hospitalSearch} onChange={(e) => setHospitalSearch(e.target.value)} />
-                               {availableHospitals.filter(h => h.toLowerCase().includes(hospitalSearch.toLowerCase())).map(hospital => (
-                                <SelectItem key={hospital} value={hospital}>{hospital}</SelectItem>
-                               ))}
-                               <SelectItem value="Other">অন্যান্য</SelectItem>
+                                <SelectGroup>
+                                    <SelectLabel>সকল হাসপাতাল</SelectLabel>
+                                    {availableHospitals.filter(h => h.toLowerCase().includes(hospitalSearch.toLowerCase())).map(hospital => (
+                                    <SelectItem key={hospital} value={hospital}>{hospital}</SelectItem>
+                                    ))}
+                                    <SelectItem value="Other">অন্যান্য</SelectItem>
+                               </SelectGroup>
                             </SelectContent>
                         </Select>
                         <FormMessage />
@@ -419,6 +409,11 @@ export default function AdminRequestsPage() {
               </form>
             </Form>
         );
+    };
+
+    const handleCopy = (number: string) => {
+        navigator.clipboard.writeText(number);
+        toast({ title: "Number copied!" });
     };
 
 
@@ -482,7 +477,14 @@ export default function AdminRequestsPage() {
                             </Badge>
                           </TableCell>
                           <TableCell>{req.hospitalLocation}</TableCell>
-                          <TableCell>{req.contactPhone}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                                {req.contactPhone}
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleCopy(req.contactPhone)}>
+                                    <Copy className="h-4 w-4" />
+                                </Button>
+                            </div>
+                          </TableCell>
                           <TableCell>
                             {format(new Date(req.neededDate), 'dd MMM yyyy')}
                           </TableCell>
@@ -560,8 +562,3 @@ export default function AdminRequestsPage() {
         </div>
     );
 }
-
-
-    
-
-    
