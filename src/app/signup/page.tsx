@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -23,6 +24,7 @@ import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { bloodGroups, locations, upazilas } from '@/lib/location-data';
 import type { Donor } from '@/lib/types';
+import { useAuth } from '@/hooks/use-auth';
 
 const signupSchema = z.object({
   fullName: z.string().min(3, { message: 'Full name is required.' }),
@@ -44,6 +46,14 @@ export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.push('/profile');
+    }
+  }, [user, loading, router]);
+
 
   const form = useForm<z.infer<typeof signupSchema>>({
     resolver: zodResolver(signupSchema),
@@ -106,6 +116,14 @@ export default function SignupPage() {
       setIsLoading(false);
     }
   };
+  
+    if (loading || user) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center justify-center bg-background p-4 py-12">
