@@ -258,6 +258,10 @@ export default function AdminRequestsPage() {
     const RequestForm = ({ onSubmit, isSubmitting, submitText }: { onSubmit: (values: z.infer<typeof requestSchema>) => void; isSubmitting: boolean; submitText: string }) => {
         const [districtSearch, setDistrictSearch] = useState('');
         const [hospitalSearch, setHospitalSearch] = useState('');
+        const [districtOpen, setDistrictOpen] = useState(false);
+        const filteredDistricts = districtOptions.filter((d) =>
+          d.label.toLowerCase().includes(districtSearch.toLowerCase())
+        );
 
         return (
              <Form {...form}>
@@ -313,34 +317,37 @@ export default function AdminRequestsPage() {
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>জেলা</FormLabel>
-                         <Select
-                            value={field.value}
-                            onValueChange={field.onChange}
-                            >
-                            <FormControl>
-                                <SelectTrigger>
-                                <SelectValue placeholder="জেলা নির্বাচন করুন" />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                               <Input
-                                    className="mb-2"
-                                    placeholder="জেলা খুঁজুন..."
-                                    value={districtSearch}
-                                    onChange={(e) => setDistrictSearch(e.target.value)}
-                                />
-                                <SelectGroup>
-                                    <SelectLabel>সকল জেলা</SelectLabel>
-                                    {districtOptions
-                                    .filter((d) => d.label.toLowerCase().includes(districtSearch.toLowerCase()))
-                                    .map((district) => (
-                                        <SelectItem key={district.value} value={district.value}>
-                                            {district.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
+                        <Select
+                           onValueChange={field.onChange}
+                           value={field.value}
+                           onSearch={setDistrictSearch}
+                         >
+                           <FormControl>
+                             <SelectTrigger>
+                               <SelectValue placeholder="জেলা নির্বাচন করুন" />
+                             </SelectTrigger>
+                           </FormControl>
+                           <SelectContent>
+                             <Input
+                               className="mb-2"
+                               placeholder="জেলা খুঁজুন..."
+                               value={districtSearch}
+                               onChange={(e) => setDistrictSearch(e.target.value)}
+                             />
+                             <SelectGroup>
+                               <SelectLabel>সকল জেলা</SelectLabel>
+                               {districtOptions
+                                 .filter((d) =>
+                                   d.label.toLowerCase().includes(districtSearch.toLowerCase())
+                                 )
+                                 .map((district) => (
+                                   <SelectItem key={district.value} value={district.value}>
+                                     {district.label}
+                                   </SelectItem>
+                                 ))}
+                             </SelectGroup>
+                           </SelectContent>
+                         </Select>
                         <FormMessage />
                     </FormItem>
                     )}
@@ -463,7 +470,7 @@ export default function AdminRequestsPage() {
                         <TableHead>Date Needed</TableHead>
                         <TableHead>Bags</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead><span className="sr-only">Actions</span></TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -501,53 +508,55 @@ export default function AdminRequestsPage() {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <AlertDialog>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button aria-haspopup="true" size="icon" variant="ghost">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                    <span className="sr-only">Toggle menu</span>
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                   <DropdownMenuItem onClick={() => openEditDialog(req)}>
-                                    <Edit className="mr-2 h-4 w-4" /> Edit
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleCopy(formatCopyText(req))}>
-                                    <Copy className="mr-2 h-4 w-4" /> Copy Details
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem onClick={() => handleUpdateStatus(req.id, 'Approved')}>
-                                    <Check className="mr-2 h-4 w-4" /> Approve
-                                  </DropdownMenuItem>
-                                   <DropdownMenuItem onClick={() => handleUpdateStatus(req.id, 'Fulfilled')}>
-                                    <CheckCheck className="mr-2 h-4 w-4" /> Mark as Fulfilled
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleUpdateStatus(req.id, 'Rejected')}>
-                                    <X className="mr-2 h-4 w-4" /> Reject
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <AlertDialogTrigger asChild>
-                                    <DropdownMenuItem className="text-destructive focus:text-destructive">
-                                        <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                    </DropdownMenuItem>
-                                  </AlertDialogTrigger>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This action cannot be undone. This will permanently delete this blood request.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDeleteRequest(req.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
+                            <div className="flex items-center gap-1">
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleCopy(formatCopyText(req))}>
+                                    <Copy className="h-4 w-4" />
+                                </Button>
+                                <AlertDialog>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button aria-haspopup="true" size="icon" variant="ghost">
+                                        <MoreHorizontal className="h-4 w-4" />
+                                        <span className="sr-only">Toggle menu</span>
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                       <DropdownMenuItem onClick={() => openEditDialog(req)}>
+                                        <Edit className="mr-2 h-4 w-4" /> Edit
+                                      </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem onClick={() => handleUpdateStatus(req.id, 'Approved')}>
+                                        <Check className="mr-2 h-4 w-4" /> Approve
+                                      </DropdownMenuItem>
+                                       <DropdownMenuItem onClick={() => handleUpdateStatus(req.id, 'Fulfilled')}>
+                                        <CheckCheck className="mr-2 h-4 w-4" /> Mark as Fulfilled
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleUpdateStatus(req.id, 'Rejected')}>
+                                        <X className="mr-2 h-4 w-4" /> Reject
+                                      </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                      <AlertDialogTrigger asChild>
+                                        <DropdownMenuItem className="text-destructive focus:text-destructive">
+                                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                        </DropdownMenuItem>
+                                      </AlertDialogTrigger>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        This action cannot be undone. This will permanently delete this blood request.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleDeleteRequest(req.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
