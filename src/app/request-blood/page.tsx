@@ -225,6 +225,10 @@ export default function RequestBloodPage() {
                                       form.setValue("district", district.value);
                                       setIsDistrictPopoverOpen(false);
                                     }}
+                                    onClick={() => {
+                                        form.setValue("district", district.value);
+                                        setIsDistrictPopoverOpen(false);
+                                    }}
                                 >
                                     <CheckIcon
                                     className={cn(

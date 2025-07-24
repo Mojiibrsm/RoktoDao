@@ -46,7 +46,7 @@ import { cn } from '@/lib/utils';
 import { CalendarIcon, CheckIcon, ChevronsUpDown } from 'lucide-react';
 import { bloodGroups, locations, hospitalsByDistrict } from '@/lib/location-data';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 
 
 const requestSchema = z.object({
@@ -54,7 +54,7 @@ const requestSchema = z.object({
   bloodGroup: z.string({ required_error: 'Blood group is required.' }),
   numberOfBags: z.coerce.number().min(1, { message: 'At least 1 bag is required.' }),
   neededDate: z.date({ required_error: 'A date is required.' }),
-  district: z.string().min(1, 'District is required'),
+  district: z.string().min(1, 'জেলা আবশ্যক'),
   hospitalLocation: z.string().min(1, { message: 'Hospital name is required.' }),
   otherHospital: z.string().optional(),
   contactPhone: z.string().min(11, { message: 'A valid contact number is required.' }),
@@ -75,6 +75,7 @@ export default function AdminRequestsPage() {
     const [loading, setLoading] = useState(true);
     const { toast } = useToast();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [isDistrictPopoverOpen, setIsDistrictPopoverOpen] = useState(false);
 
     const form = useForm<z.infer<typeof requestSchema>>({
         resolver: zodResolver(requestSchema),
@@ -278,54 +279,60 @@ export default function AdminRequestsPage() {
                                 render={({ field }) => (
                                 <FormItem className="flex flex-col">
                                     <FormLabel>জেলা</FormLabel>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
+                                     <Popover open={isDistrictPopoverOpen} onOpenChange={setIsDistrictPopoverOpen}>
+                                      <PopoverTrigger asChild>
                                         <FormControl>
-                                            <Button
+                                          <Button
                                             variant="outline"
                                             role="combobox"
                                             className={cn(
-                                                "w-full justify-between",
-                                                !field.value && "text-muted-foreground"
+                                              "w-full justify-between",
+                                              !field.value && "text-muted-foreground"
                                             )}
-                                            >
+                                          >
                                             {field.value
-                                                ? districtOptions.find(
-                                                    (district) => district.value === field.value
+                                              ? districtOptions.find(
+                                                  (district) => district.value === field.value
                                                 )?.label
-                                                : "জেলা নির্বাচন করুন"}
+                                              : "জেলা নির্বাচন করুন"}
                                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                            </Button>
+                                          </Button>
                                         </FormControl>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                            <Command>
-                                                <CommandInput placeholder="জেলা খুঁজুন..." />
-                                                <CommandEmpty>কোন জেলা পাওয়া যায়নি।</CommandEmpty>
-                                                <CommandGroup>
+                                      </PopoverTrigger>
+                                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                        <Command>
+                                           <CommandInput placeholder="জেলা খুঁজুন..." />
+                                            <CommandEmpty>কোন জেলা পাওয়া যায়নি।</CommandEmpty>
+                                          <CommandList>
+                                            <CommandGroup>
                                                 {districtOptions.map((district) => (
-                                                    <CommandItem
+                                                <CommandItem
                                                     value={district.label}
                                                     key={district.value}
                                                     onSelect={() => {
-                                                        form.setValue("district", district.value);
-                                                        form.setValue('hospitalLocation', '');
+                                                      form.setValue("district", district.value);
+                                                      setIsDistrictPopoverOpen(false);
                                                     }}
-                                                    >
+                                                    onClick={() => {
+                                                        form.setValue("district", district.value);
+                                                        setIsDistrictPopoverOpen(false);
+                                                    }}
+                                                >
                                                     <CheckIcon
-                                                        className={cn(
+                                                    className={cn(
                                                         "mr-2 h-4 w-4",
                                                         district.value === field.value
-                                                            ? "opacity-100"
-                                                            : "opacity-0"
-                                                        )}
+                                                        ? "opacity-100"
+                                                        : "opacity-0"
+                                                    )}
                                                     />
                                                     {district.label}
-                                                    </CommandItem>
+                                                </CommandItem>
                                                 ))}
-                                                </CommandGroup>
-                                            </Command>
-                                        </PopoverContent>
+                                            </CommandGroup>
+                                          </CommandList>
+                                        </Command>
+                                      </PopoverContent>
                                     </Popover>
                                     <FormMessage />
                                 </FormItem>
