@@ -81,7 +81,7 @@ export default async function Home() {
             <p className="mx-auto mt-4 max-w-xl text-lg text-foreground/80 md:text-xl">
               এগিয়ে আসুন, হোন একজন জীবনদাতা।
             </p>
-            <div className="mt-8 flex flex-col justify-center gap-4 sm:flex-row">
+            <div className="mt-8 flex flex-row justify-center gap-4">
               <Button asChild size="lg" variant="outline" className="bg-background hover:bg-muted">
                 <Link href="/search-donors"><Search className="mr-2 h-5 w-5" />রক্ত খুঁজছি</Link>
               </Button>
