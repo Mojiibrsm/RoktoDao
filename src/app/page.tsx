@@ -5,8 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { db } from '@/lib/firebase';
 import type { BloodRequest, Donor } from '@/lib/types';
-import { collection, getDocs, limit, orderBy, query, where,getCountFromServer } from 'firebase/firestore';
-import { Droplet, MapPin, Calendar, Syringe, Search, Heart, Phone, LifeBuoy, HeartPulse, ShieldCheck, Stethoscope, LocateFixed, MessageCircle, Newspaper, Github, Linkedin, Twitter, Users, Globe, HandHeart, ListChecks } from 'lucide-react';
+import { collection, getDocs, limit, orderBy, query, where,getCountFromServer, Timestamp } from 'firebase/firestore';
+import { Droplet, MapPin, Calendar, Syringe, Search, Heart, Phone, LifeBuoy, HeartPulse, ShieldCheck, Stethoscope, LocateFixed, MessageCircle, Newspaper, Github, Linkedin, Twitter, Users, Globe, HandHeart, ListChecks, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import {
   Accordion,
@@ -58,10 +58,15 @@ async function getStats() {
         const donorSnapshot = await getCountFromServer(donorsCol);
         const requestSnapshot = await getCountFromServer(requestsCol);
 
+        // This is a placeholder. A real implementation would require a 'status' field in requests.
+        const fulfilledQuery = query(requestsCol, where("status", "==", "Fulfilled"));
+        const fulfilledSnapshot = await getCountFromServer(fulfilledQuery);
+
+
         return {
             totalDonors: donorSnapshot.data().count,
             totalRequests: requestSnapshot.data().count,
-            donationsFulfilled: 0, // Placeholder
+            donationsFulfilled: fulfilledSnapshot.data().count,
         };
     } catch (error) {
         console.error("Error fetching stats: ", error);
@@ -192,7 +197,10 @@ export default async function Home() {
                 <Card key={req.id} className="flex flex-col justify-between shadow-lg hover:shadow-xl transition-shadow duration-300">
                   <CardHeader>
                     <CardTitle className="flex items-start justify-between">
-                      <span className="text-xl">{req.patientName}</span>
+                      <span className="text-xl flex items-center gap-2">
+                         {req.isEmergency && <AlertTriangle className="h-5 w-5 text-destructive" />}
+                         {req.patientName}
+                      </span>
                       <span className="flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-base font-bold text-primary">
                         <Droplet className="h-4 w-4" />
                         {req.bloodGroup}
@@ -453,3 +461,5 @@ export default async function Home() {
     </div>
   );
 }
+
+    

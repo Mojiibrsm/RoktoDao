@@ -9,6 +9,7 @@ export type BloodRequest = {
   contactPhone: string;
   uid?: string;
   status: 'Pending' | 'Approved' | 'Fulfilled' | 'Rejected';
+  isEmergency?: boolean;
 };
 
 export type Donor = {
@@ -39,3 +40,5 @@ export type Donor = {
     profileVisibility: 'public' | 'admin' | 'hidden';
   };
 };
+
+    

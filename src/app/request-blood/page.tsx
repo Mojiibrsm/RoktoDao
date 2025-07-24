@@ -21,6 +21,7 @@ import { bloodGroups, locations, hospitalsByDistrict } from '@/lib/location-data
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const requestSchema = z.object({
   patientName: z.string().min(3, { message: 'Patient name is required.' }),
@@ -31,6 +32,7 @@ const requestSchema = z.object({
   hospitalLocation: z.string().min(1, { message: 'Hospital name is required.' }),
   otherHospital: z.string().optional(),
   contactPhone: z.string().min(11, { message: 'A valid contact number is required.' }),
+  isEmergency: z.boolean().default(false).optional(),
 }).refine(data => {
     if (data.hospitalLocation === 'Other') {
         return !!data.otherHospital && data.otherHospital.length > 0;
@@ -58,6 +60,7 @@ export default function RequestBloodPage() {
       otherHospital: '',
       contactPhone: '',
       district: '',
+      isEmergency: false,
     }
   });
 
@@ -70,7 +73,7 @@ export default function RequestBloodPage() {
     if (selectedDistrict && hospitalsByDistrict[selectedDistrict]) {
       setAvailableHospitals(hospitalsByDistrict[selectedDistrict]);
     } else {
-      const allHospitals = Object.values(hospitalsByDistrict).flat().sort();
+      const allHospitals = Object.values(hospitalsByDistrict).flat().sort((a, b) => a.localeCompare(b, 'bn'));
       setAvailableHospitals(allHospitals);
     }
   }, [selectedDistrict]);
@@ -89,6 +92,8 @@ export default function RequestBloodPage() {
       hospitalLocation: finalHospitalName,
       contactPhone: values.contactPhone,
       uid: user?.uid,
+      isEmergency: values.isEmergency,
+      status: 'Pending',
     };
 
     try {
@@ -226,6 +231,16 @@ export default function RequestBloodPage() {
                 </FormItem>
               )} />
 
+              <FormField control={form.control} name="isEmergency" render={({ field }) => (
+                  <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
+                      <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                      <div className="space-y-1 leading-none">
+                          <FormLabel>এটি একটি জরুরি অনুরোধ?</FormLabel>
+                          <FormMessage />
+                      </div>
+                  </FormItem>
+              )} />
+
               <div className="text-right">
                 <Button type="submit" size="lg" disabled={isSubmitting}>
                     {isSubmitting ? 'জমা দেওয়া হচ্ছে...' : 'অনুরোধ পোস্ট করুন'}
@@ -238,3 +253,5 @@ export default function RequestBloodPage() {
     </div>
   );
 }
+
+    

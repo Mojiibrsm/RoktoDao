@@ -4,7 +4,7 @@ import { db } from '@/lib/firebase';
 import type { BloodRequest } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Droplet, MapPin, Calendar, Syringe, Phone } from 'lucide-react';
+import { Droplet, MapPin, Calendar, Syringe, Phone, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 
 async function getAllRequests() {
@@ -46,7 +46,10 @@ export default async function AllRequestsPage() {
               <Card key={req.id} className="flex flex-col justify-between shadow-lg hover:shadow-xl transition-shadow duration-300">
                 <CardHeader>
                   <CardTitle className="flex items-start justify-between">
-                    <span className="text-xl">{req.patientName}</span>
+                    <span className="text-xl flex items-center gap-2">
+                       {req.isEmergency && <AlertTriangle className="h-5 w-5 text-destructive" />}
+                       {req.patientName}
+                    </span>
                     <span className="flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-base font-bold text-primary">
                       <Droplet className="h-4 w-4" />
                       {req.bloodGroup}
@@ -84,3 +87,5 @@ export default async function AllRequestsPage() {
     </div>
   );
 }
+
+    

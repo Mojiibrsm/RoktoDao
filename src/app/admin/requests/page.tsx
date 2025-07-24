@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { MoreHorizontal, Check, X, Trash2, CheckCheck, PlusCircle } from 'lucide-react';
+import { MoreHorizontal, Check, X, Trash2, CheckCheck, PlusCircle, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -45,6 +45,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { CalendarIcon } from 'lucide-react';
 import { bloodGroups, locations, hospitalsByDistrict } from '@/lib/location-data';
+import { Checkbox } from '@/components/ui/checkbox';
 
 
 const requestSchema = z.object({
@@ -56,6 +57,7 @@ const requestSchema = z.object({
   hospitalLocation: z.string().min(1, { message: 'Hospital name is required.' }),
   otherHospital: z.string().optional(),
   contactPhone: z.string().min(11, { message: 'A valid contact number is required.' }),
+  isEmergency: z.boolean().default(false).optional(),
 }).refine(data => {
     if (data.hospitalLocation === 'Other') {
         return !!data.otherHospital && data.otherHospital.length > 0;
@@ -83,6 +85,7 @@ export default function AdminRequestsPage() {
             otherHospital: '',
             contactPhone: '',
             district: '',
+            isEmergency: false,
         }
     });
 
@@ -95,7 +98,7 @@ export default function AdminRequestsPage() {
         if (selectedDistrict && hospitalsByDistrict[selectedDistrict]) {
           setAvailableHospitals(hospitalsByDistrict[selectedDistrict]);
         } else {
-          const allHospitals = Object.values(hospitalsByDistrict).flat().sort();
+          const allHospitals = Object.values(hospitalsByDistrict).flat().sort((a, b) => a.localeCompare(b, 'bn'));
           setAvailableHospitals(allHospitals);
         }
     }, [selectedDistrict]);
@@ -151,6 +154,7 @@ export default function AdminRequestsPage() {
           hospitalLocation: finalHospitalName,
           contactPhone: values.contactPhone,
           status: 'Approved', // Requests added by admin are pre-approved
+          isEmergency: values.isEmergency,
         };
     
         try {
@@ -262,9 +266,9 @@ export default function AdminRequestsPage() {
                             )} />
                             <FormField control={form.control} name="district" render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>District</FormLabel>
+                                    <FormLabel>জেলা</FormLabel>
                                     <Select onValueChange={(value) => { field.onChange(value); form.setValue('hospitalLocation', ''); }} value={field.value}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder="Select district" /></SelectTrigger></FormControl>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="জেলা নির্বাচন করুন" /></SelectTrigger></FormControl>
                                     <SelectContent>
                                         {Object.keys(locations).flatMap(division => locations[division as keyof typeof locations].districts.map(district => (
                                             <SelectItem key={district} value={district}>{district}</SelectItem>
@@ -279,14 +283,14 @@ export default function AdminRequestsPage() {
                                 name="hospitalLocation"
                                 render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Hospital Name & Address</FormLabel>
+                                    <FormLabel>হাসপাতালের নাম ও ঠিকানা</FormLabel>
                                     <Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl><SelectTrigger><SelectValue placeholder="Select hospital" /></SelectTrigger></FormControl>
+                                        <FormControl><SelectTrigger><SelectValue placeholder="হাসপাতাল নির্বাচন করুন" /></SelectTrigger></FormControl>
                                         <SelectContent>
                                         {availableHospitals.map(hospital => (
                                             <SelectItem key={hospital} value={hospital}>{hospital}</SelectItem>
                                         ))}
-                                        <SelectItem value="Other">Other</SelectItem>
+                                        <SelectItem value="Other">অন্যান্য</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />
@@ -310,6 +314,15 @@ export default function AdminRequestsPage() {
                                 <FormMessage />
                                 </FormItem>
                             )} />
+                             <FormField control={form.control} name="isEmergency" render={({ field }) => (
+                                <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
+                                    <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                    <div className="space-y-1 leading-none">
+                                        <FormLabel>এটি একটি জরুরি অনুরোধ?</FormLabel>
+                                        <FormMessage />
+                                    </div>
+                                </FormItem>
+                             )} />
                             <DialogFooter>
                                 <DialogClose asChild>
                                     <Button type="button" variant="secondary">Cancel</Button>
@@ -330,7 +343,6 @@ export default function AdminRequestsPage() {
                         <TableHead>Patient Name</TableHead>
                         <TableHead>Blood Group</TableHead>
                         <TableHead>Location</TableHead>
-                        <TableHead>Contact</TableHead>
                         <TableHead>Date Needed</TableHead>
                         <TableHead>Bags</TableHead>
                         <TableHead>Status</TableHead>
@@ -340,18 +352,20 @@ export default function AdminRequestsPage() {
                     <TableBody>
                       {loading ? (
                          <TableRow>
-                            <TableCell colSpan={8} className="text-center">Loading requests...</TableCell>
+                            <TableCell colSpan={7} className="text-center">Loading requests...</TableCell>
                         </TableRow>
                       ) : requests.map((req) => (
                         <TableRow key={req.id}>
-                          <TableCell className="font-medium">{req.patientName}</TableCell>
+                          <TableCell className="font-medium flex items-center gap-2">
+                             {req.isEmergency && <AlertTriangle className="h-4 w-4 text-destructive" />}
+                             {req.patientName}
+                          </TableCell>
                           <TableCell>
                             <Badge variant="outline" className="text-primary border-primary">
                               {req.bloodGroup}
                             </Badge>
                           </TableCell>
                           <TableCell>{req.hospitalLocation}</TableCell>
-                          <TableCell>{req.contactPhone}</TableCell>
                           <TableCell>
                             {format(new Date(req.neededDate), 'dd MMM yyyy')}
                           </TableCell>
