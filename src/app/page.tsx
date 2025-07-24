@@ -185,7 +185,7 @@ export default async function Home() {
         <div className="container mx-auto px-4">
           <div className="text-center">
             <h2 className="text-3xl font-bold text-primary md:text-4xl font-headline">
-              আমাদের সক্রিয় রক্ত দাতারা
+              আমাদের রক্তযোদ্ধারা
             </h2>
             <p className="mt-2 text-lg text-muted-foreground">Our active and available donors</p>
           </div>
@@ -382,6 +382,8 @@ export default async function Home() {
     </div>
   );
 }
+
+    
 
     
 
