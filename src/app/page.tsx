@@ -143,17 +143,17 @@ export default async function Home() {
             </p>
             <Separator className="my-8" />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-                <Card className="p-6 shadow-lg">
+                <Card className="p-6 shadow-lg transition-transform duration-300 hover:scale-105 hover:shadow-xl hover:-translate-y-1">
                     <HeartPulse className="mx-auto h-12 w-12 text-primary mb-4" />
                     <h3 className="text-xl font-bold">হার্ট ভালো থাকে</h3>
                     <p className="text-muted-foreground mt-2">নিয়মিত রক্তদান করলে শরীরে আয়রনের মাত্রা নিয়ন্ত্রণে থাকে, যা হৃদরোগের ঝুঁকি কমায়।</p>
                 </Card>
-                <Card className="p-6 shadow-lg">
+                <Card className="p-6 shadow-lg transition-transform duration-300 hover:scale-105 hover:shadow-xl hover:-translate-y-1">
                     <ShieldCheck className="mx-auto h-12 w-12 text-primary mb-4" />
                     <h3 className="text-xl font-bold">নতুন রক্তকণিকা তৈরি হয়</h3>
                     <p className="text-muted-foreground mt-2">রক্তদানের পর শরীর নতুন রক্তকণিকা তৈরিতে উৎসাহিত হয়, যা শরীরকে সতেজ রাখে।</p>
                 </Card>
-                <Card className="p-6 shadow-lg">
+                <Card className="p-6 shadow-lg transition-transform duration-300 hover:scale-105 hover:shadow-xl hover:-translate-y-1">
                     <Stethoscope className="mx-auto h-12 w-12 text-primary mb-4" />
                     <h3 className="text-xl font-bold">বিনামূল্যে স্বাস্থ্য পরীক্ষা</h3>
                     <p className="text-muted-foreground mt-2">প্রতিবার রক্তদানের আগে আপনার স্বাস্থ্য পরীক্ষা করা হয়, যা আপনার সুস্থতা সম্পর্কে ধারণা দেয়।</p>
@@ -291,21 +291,21 @@ export default async function Home() {
           </p>
           <Separator className="my-8" />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card className="text-center p-6 shadow-lg">
+            <Card className="text-center p-6 shadow-lg transition-transform duration-300 hover:scale-105 hover:shadow-xl hover:-translate-y-1">
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
                   <LifeBuoy className="h-8 w-8 text-primary" />
                 </div>
                 <h3 className="text-xl font-bold font-headline">জীবন বাঁচান</h3>
                 <p className="text-muted-foreground mt-2">আপনার এক ব্যাগ রক্ত একজন মুমূর্ষু রোগীর জীবন বাঁচাতে পারে। জরুরি মুহূর্তে আপনার এই ত্যাগ অমূল্য।</p>
             </Card>
-             <Card className="text-center p-6 shadow-lg">
+             <Card className="text-center p-6 shadow-lg transition-transform duration-300 hover:scale-105 hover:shadow-xl hover:-translate-y-1">
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
                   <LocateFixed className="h-8 w-8 text-primary" />
                 </div>
                 <h3 className="text-xl font-bold font-headline">লোকেশন ভিত্তিক সার্চ</h3>
                 <p className="text-muted-foreground mt-2">বিভাগ ও জেলা অনুযায়ী রক্তদাতা খুঁজে জরুরি মুহূর্তে সময় বাঁচান।</p>
             </Card>
-             <Card className="text-center p-6 shadow-lg">
+             <Card className="text-center p-6 shadow-lg transition-transform duration-300 hover:scale-105 hover:shadow-xl hover:-translate-y-1">
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
                   <MessageCircle className="h-8 w-8 text-primary" />
                 </div>
@@ -335,7 +335,7 @@ export default async function Home() {
           <Separator className="my-8" />
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {latestPosts.map((post) => (
-                <Card key={post.slug} className="flex flex-col justify-between shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <Card key={post.slug} className="flex flex-col justify-between shadow-lg hover:shadow-xl transition-shadow duration-300 hover:-translate-y-1">
                   <CardHeader>
                     <CardTitle>
                       <Link href={`/blog/${post.slug}`} className="hover:text-primary transition-colors">

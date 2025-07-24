@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { Donor } from '@/lib/types';
@@ -45,7 +46,7 @@ export default function DonorCard({ donor }: DonorCardProps) {
   };
 
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+    <Card className="shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
       <CardContent className="p-6">
         <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-4">

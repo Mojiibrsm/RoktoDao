@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { BloodRequest } from '@/lib/types';
@@ -24,7 +25,7 @@ export default function RequestCard({ req }: { req: BloodRequest }) {
 যোগাযোগঃ ${req.contactPhone}`;
 
   return (
-    <Card className="flex flex-col justify-between shadow-lg hover:shadow-xl transition-shadow duration-300">
+    <Card className="flex flex-col justify-between shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
       <CardHeader>
         <CardTitle className="flex items-start justify-between">
           <span className="text-xl flex items-center gap-2">
