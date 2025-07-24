@@ -22,7 +22,7 @@ import { collection, addDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 
 
 const requestSchema = z.object({
@@ -30,7 +30,7 @@ const requestSchema = z.object({
   bloodGroup: z.string({ required_error: 'Blood group is required.' }),
   numberOfBags: z.coerce.number().min(1, { message: 'At least 1 bag is required.' }),
   neededDate: z.date({ required_error: 'A date is required.' }),
-  district: z.string().min(1, 'District is required'),
+  district: z.string().min(1, 'জেলা আবশ্যক'),
   hospitalLocation: z.string().min(1, { message: 'Hospital name is required.' }),
   otherHospital: z.string().optional(),
   contactPhone: z.string().min(11, { message: 'A valid contact number is required.' }),
@@ -51,6 +51,7 @@ export default function RequestBloodPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDistrictPopoverOpen, setIsDistrictPopoverOpen] = useState(false);
 
   const form = useForm<z.infer<typeof requestSchema>>({
     resolver: zodResolver(requestSchema),
@@ -78,7 +79,8 @@ export default function RequestBloodPage() {
       const allHospitals = Object.values(hospitalsByDistrict).flat().sort((a, b) => a.localeCompare(b, 'bn'));
       setAvailableHospitals(allHospitals);
     }
-  }, [selectedDistrict]);
+    form.setValue('hospitalLocation', '');
+  }, [selectedDistrict, form]);
 
     const districtOptions = Object.keys(locations).flatMap(division => 
         locations[division as keyof typeof locations].districts.map(district => ({
@@ -108,8 +110,8 @@ export default function RequestBloodPage() {
     try {
       await addDoc(collection(db, 'requests'), requestData);
       toast({
-        title: 'অনুরোধ জমা দেওয়া হয়েছে',
-        description: 'আপনার রক্তের অনুরোধ পোস্ট করা হয়েছে। আমরা আশা করি আপনি দ্রুত একজন দাতা খুঁজে পাবেন।',
+        title: 'ধন্যবাদ!',
+        description: 'আপনার রক্তের অনুরোধ সফলভাবে জমা দেওয়া হয়েছে।',
       });
       router.push('/thank-you');
     } catch (error) {
@@ -189,7 +191,7 @@ export default function RequestBloodPage() {
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
                     <FormLabel>জেলা</FormLabel>
-                     <Popover>
+                     <Popover open={isDistrictPopoverOpen} onOpenChange={setIsDistrictPopoverOpen}>
                       <PopoverTrigger asChild>
                         <FormControl>
                           <Button
@@ -213,28 +215,30 @@ export default function RequestBloodPage() {
                         <Command>
                            <CommandInput placeholder="জেলা খুঁজুন..." />
                             <CommandEmpty>কোন জেলা পাওয়া যায়নি।</CommandEmpty>
-                          <CommandGroup>
-                            {districtOptions.map((district) => (
-                              <CommandItem
-                                value={district.label}
-                                key={district.value}
-                                onSelect={() => {
-                                  form.setValue("district", district.value)
-                                  form.setValue('hospitalLocation', '');
-                                }}
-                              >
-                                <CheckIcon
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    district.value === field.value
-                                      ? "opacity-100"
-                                      : "opacity-0"
-                                  )}
-                                />
-                                {district.label}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
+                          <CommandList>
+                            <CommandGroup>
+                                {districtOptions.map((district) => (
+                                <CommandItem
+                                    value={district.label}
+                                    key={district.value}
+                                    onSelect={() => {
+                                      form.setValue("district", district.value);
+                                      setIsDistrictPopoverOpen(false);
+                                    }}
+                                >
+                                    <CheckIcon
+                                    className={cn(
+                                        "mr-2 h-4 w-4",
+                                        district.value === field.value
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                    />
+                                    {district.label}
+                                </CommandItem>
+                                ))}
+                            </CommandGroup>
+                          </CommandList>
                         </Command>
                       </PopoverContent>
                     </Popover>
