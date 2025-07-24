@@ -44,7 +44,7 @@ export default function LoginPage() {
         description: 'Welcome back!',
       });
       // A mock check for admin credentials
-      if (values.email === 'admin@roktobondhu.org') {
+      if (values.email === 'admin@roktobondhu.com') {
         router.push('/admin');
       } else {
         router.push('/profile');
@@ -73,7 +73,7 @@ export default function LoginPage() {
             <Info className="h-4 w-4" />
             <AlertTitle>Admin Access</AlertTitle>
             <AlertDescription>
-              Use <strong>admin@roktobondhu.org</strong> and password <strong>123456</strong> to log in as an admin.
+              Use <strong>admin@roktobondhu.com</strong> and password <strong>123456</strong> to log in as an admin.
             </AlertDescription>
           </Alert>
           <Form {...form}>
