@@ -122,10 +122,10 @@ export default function AdminRequestsPage() {
             const querySnapshot = await getDocs(q);
             const requestsList = querySnapshot.docs.map(doc => {
               const data = doc.data();
-              return { 
-                ...data, 
-                id: doc.id, 
-                status: data.status || 'Pending' 
+              return {
+                ...data,
+                id: doc.id,
+                status: data.status || 'Pending'
               } as BloodRequest;
             });
             setRequests(requestsList);
@@ -605,4 +605,3 @@ export default function AdminRequestsPage() {
     );
 
     
-
