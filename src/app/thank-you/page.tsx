@@ -9,17 +9,17 @@ export default function ThankYouPage() {
       <Card className="w-full max-w-lg text-center shadow-xl">
         <CardHeader>
           <CheckCircle className="mx-auto h-16 w-16 text-green-500" />
-          <CardTitle className="mt-4 text-3xl font-headline text-primary">Thank You!</CardTitle>
+          <CardTitle className="mt-4 text-3xl font-headline text-primary">ধন্যবাদ!</CardTitle>
           <CardDescription className="mt-2 text-lg text-muted-foreground">
-            Your submission has been received. We appreciate your contribution to this life-saving cause.
+            আপনার অনুরোধটি সফলভাবে জমা দেওয়া হয়েছে। এই জীবন বাঁচানোর উদ্যোগে আপনার অবদানের জন্য আমরা কৃতজ্ঞ।
           </CardDescription>
         </CardHeader>
         <CardContent>
           <p className="mb-6">
-            Together, we can make a difference. Every drop counts.
+            একসাথে, আমরা একটি পরিবর্তন আনতে পারি। প্রতিটি রক্তবিন্দুই মূল্যবান।
           </p>
           <Button asChild size="lg">
-            <Link href="/">Return to Home</Link>
+            <Link href="/">হোম পেজে ফিরে যান</Link>
           </Button>
         </CardContent>
       </Card>
