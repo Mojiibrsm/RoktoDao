@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -14,8 +15,8 @@ import { Send, Users, Locate, Droplet } from 'lucide-react';
 export default function AdminNotificationsPage() {
     const [message, setMessage] = useState('');
     const [targetGroup, setTargetGroup] = useState('all');
-    const [bloodGroup, setBloodGroup] = useState('');
-    const [district, setDistrict] = useState('');
+    const [bloodGroup, setBloodGroup] = useState('any');
+    const [district, setDistrict] = useState('any');
     const { toast } = useToast();
 
     const handleSendNotification = () => {
@@ -32,8 +33,8 @@ export default function AdminNotificationsPage() {
         console.log({
             message,
             targetGroup,
-            bloodGroup,
-            district
+            bloodGroup: bloodGroup === 'any' ? null : bloodGroup,
+            district: district === 'any' ? null : district
         });
 
         toast({
@@ -91,7 +92,7 @@ export default function AdminNotificationsPage() {
                                                 <SelectValue placeholder="Select blood group" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="">Any</SelectItem>
+                                                <SelectItem value="any">Any</SelectItem>
                                                 {bloodGroups.map(group => <SelectItem key={group} value={group}>{group}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
@@ -106,7 +107,7 @@ export default function AdminNotificationsPage() {
                                                 <SelectValue placeholder="Select district" />
                                             </SelectTrigger>
                                             <SelectContent className="max-h-60">
-                                                 <SelectItem value="">Any</SelectItem>
+                                                 <SelectItem value="any">Any</SelectItem>
                                                 {Object.values(locations).flatMap(division => division.districts).sort((a,b) => a.localeCompare(b, 'bn')).map(dist => (
                                                     <SelectItem key={dist} value={dist}>{dist}</SelectItem>
                                                 ))}
