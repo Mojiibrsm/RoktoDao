@@ -1,6 +1,6 @@
 'use server';
 /**
- * @fileOverview A flow for searching hospitals using Google Custom Search API.
+ * @fileOverview A flow for searching hospitals using Google Custom Search's autocomplete API.
  * 
  * - searchHospitals - A function that handles the hospital search process.
  * - HospitalSearchResult - The type for a single hospital search result.
@@ -12,10 +12,11 @@ import "server-only";
 
 const HospitalSearchInputSchema = z.string();
 
+// The custom search autocomplete API returns a simple array of strings.
 const HospitalSearchResultSchema = z.object({
-  title: z.string().describe("The name of the hospital."),
-  link: z.string().describe("A link to the hospital's website or information page."),
-  snippet: z.string().describe("A short description or address of the hospital."),
+    title: z.string(),
+    snippet: z.string(),
+    link: z.string(),
 });
 export type HospitalSearchResult = z.infer<typeof HospitalSearchResultSchema>;
 
@@ -26,6 +27,7 @@ export async function searchHospitals(query: string): Promise<HospitalSearchResu
   return searchHospitalsFlow(query);
 }
 
+// This flow now uses the autocomplete/suggestion endpoint.
 const searchHospitalsFlow = ai.defineFlow(
   {
     name: 'searchHospitalsFlow',
@@ -33,43 +35,54 @@ const searchHospitalsFlow = ai.defineFlow(
     outputSchema: HospitalSearchOutputSchema,
   },
   async (query) => {
-    const apiKey = process.env.GOOGLE_SEARCH_API_KEY;
     const engineId = process.env.GOOGLE_SEARCH_ENGINE_ID;
 
-    if (!apiKey || !engineId) {
-      console.error("Google Search API Key or Engine ID is not set in environment variables.");
-      // Return an empty array or a default list if keys are missing
+    if (!engineId) {
+      console.error("Google Search Engine ID is not set in environment variables.");
       return [];
     }
-
-    const searchUrl = `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${engineId}&q=${encodeURIComponent(query + ' hospital in Bangladesh')}&num=10`;
+    
+    // This is the autocomplete/suggestion endpoint, not the main search API.
+    const searchUrl = `https://clients1.google.com/complete/search?client=partner-web&hl=en&sugexp=csems&gs_ri=partner-web&partnerid=${engineId}&types=t&ds=cse&cp=4&q=${encodeURIComponent(query + ' hospital in Bangladesh')}&callback=google.sbox.p50`;
 
     try {
       const response = await fetch(searchUrl);
       if (!response.ok) {
-        const errorBody = await response.json();
-        console.error("Google Custom Search API request failed:", errorBody);
-        throw new Error(`API request failed with status ${response.status}`);
+        console.error(`API request failed with status ${response.status}`);
+        return [];
       }
       
-      const data = await response.json();
+      // The response is JSONP (e.g., "google.sbox.p50(...)"), so we need to extract the JSON part.
+      let text = await response.text();
+      const jsonpMatch = text.match(/^google\.sbox\.p\d+\((.*)\)$/);
+      
+      if (!jsonpMatch || !jsonpMatch[1]) {
+        console.error("Failed to parse JSONP response.");
+        return [];
+      }
+      
+      const data = JSON.parse(jsonpMatch[1]);
 
-      if (!data.items) {
-        console.log("No items found in Google Custom Search API response for query:", query);
+      // The suggestions are in the second element of the array, and each suggestion is an array itself.
+      const suggestions = data[1];
+
+      if (!suggestions || !Array.isArray(suggestions)) {
+        console.log("No items found in Google Custom Search autocomplete response for query:", query);
         return [];
       }
 
-      const results: HospitalSearchResult[] = data.items.map((item: any) => ({
-        title: item.title,
-        link: item.link,
-        snippet: item.snippet,
+      // Format the string suggestions into the expected object structure.
+      const results: HospitalSearchResult[] = suggestions.map((item: any) => ({
+        // The suggestion text is in the first element of the inner array.
+        title: item[0], 
+        snippet: 'Google Suggestion', // Snippet is not provided by this API
+        link: '' // Link is not provided by this API
       }));
       
       return results;
 
     } catch (error) {
-      console.error("Error calling Google Custom Search API:", error);
-      // In case of an error, return an empty list to prevent the app from crashing.
+      console.error("Error calling Google Custom Search autocomplete API:", error);
       return [];
     }
   }

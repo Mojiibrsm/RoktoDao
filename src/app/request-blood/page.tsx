@@ -195,10 +195,10 @@ export default function RequestBloodPage() {
                             {isSearching && <CommandEmpty>অনুসন্ধান করা হচ্ছে...</CommandEmpty>}
                             {!isSearching && hospitalResults.length === 0 && hospitalSearchQuery.length > 2 && <CommandEmpty>কোনো হাসপাতাল পাওয়া যায়নি।</CommandEmpty>}
                             <CommandGroup>
-                              {hospitalResults.map((hospital) => (
+                              {hospitalResults.map((hospital, index) => (
                                 <CommandItem
                                   value={hospital.title}
-                                  key={hospital.link}
+                                  key={`${hospital.title}-${index}`}
                                   onSelect={() => {
                                     form.setValue("hospitalLocation", hospital.title)
                                     setHospitalSearchQuery('');
@@ -214,10 +214,7 @@ export default function RequestBloodPage() {
                                         : "opacity-0"
                                     )}
                                   />
-                                  <div>
-                                    <p>{hospital.title}</p>
-                                    <p className="text-xs text-muted-foreground">{hospital.snippet}</p>
-                                  </div>
+                                  <div dangerouslySetInnerHTML={{ __html: hospital.title }} />
                                 </CommandItem>
                               ))}
                             </CommandGroup>
@@ -225,7 +222,7 @@ export default function RequestBloodPage() {
                         </Command>
                       </PopoverContent>
                     </Popover>
-                    <FormMessage />
+                     <FormMessage />
                   </FormItem>
                 )}
               />
