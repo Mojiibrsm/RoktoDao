@@ -4,17 +4,16 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Droplet, Menu, LogOut, UserCircle, HeartHandshake, LayoutDashboard } from 'lucide-react';
+import { Droplet, Menu, LogOut, UserCircle, HeartHandshake, LayoutDashboard, Info, Phone, Users } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import NoticeBar from './notice-bar';
 
 const navLinks = [
-  { href: '/search-donors', label: 'Find Donors' },
-  { href: '/request-blood', label: 'Request Blood' },
-  { href: '/blog', label: 'Blog' },
-  { href: '/about', label: 'About' },
-  { href: '/team', label: 'Our Team' },
+  { href: '/search-donors', label: 'রক্তদাতা খুঁজুন' },
+  { href: '/request-blood', label: 'রক্তের অনুরোধ' },
+  { href: '/about', label: 'আমাদের সম্পর্কে' },
+  { href: '/team', label: 'আমাদের টিম' },
 ];
 
 export default function Header() {
@@ -27,7 +26,7 @@ export default function Header() {
   };
 
   const profileLink = isAdmin ? '/admin' : '/profile';
-  const profileButtonLabel = isAdmin ? 'Dashboard' : 'Profile';
+  const profileButtonLabel = isAdmin ? 'ড্যাশবোর্ড' : 'প্রোফাইল';
   const ProfileIcon = isAdmin ? LayoutDashboard : UserCircle;
 
   return (
@@ -43,12 +42,11 @@ export default function Header() {
         <nav className="hidden items-center gap-6 md:flex">
           {navLinks.map(link => (
             <Link key={link.href} href={link.href} className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary flex items-center gap-2">
-              {link.icon && <link.icon className="h-4 w-4" />}
               {link.label}
             </Link>
           ))}
            <Link href="mailto:support@roktobondhu.org" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
-              Contact
+              যোগাযোগ
             </Link>
         </nav>
 
@@ -62,16 +60,16 @@ export default function Header() {
               </Button>
               <Button variant="destructive" size="sm" onClick={handleSignOut}>
                 <LogOut className="mr-2 h-4 w-4" />
-                Logout
+                লগআউট
               </Button>
             </>
           ) : (
             <>
               <Button variant="outline" size="sm" asChild>
-                <Link href="/login">Login</Link>
+                <Link href="/login">লগইন</Link>
               </Button>
               <Button size="sm" asChild>
-                <Link href="/signup">Sign Up</Link>
+                <Link href="/signup">রেজিস্ট্রেশন</Link>
               </Button>
             </>
           )}
@@ -88,18 +86,17 @@ export default function Header() {
               <nav className="flex flex-col gap-6 pt-8">
                 {navLinks.map(link => (
                   <Link key={link.href} href={link.href} className="text-lg font-medium text-muted-foreground transition-colors hover:text-primary flex items-center gap-2">
-                     {link.icon && <link.icon className="h-5 w-5" />}
                     {link.label}
                   </Link>
                 ))}
                  <Link href="/why-donate-blood" className="text-lg font-medium text-muted-foreground transition-colors hover:text-primary">
-                    Why Donate
+                    কেন রক্ত দিবেন
                   </Link>
                   <Link href="/faq" className="text-lg font-medium text-muted-foreground transition-colors hover:text-primary">
-                    FAQ
+                    সাধারণ জিজ্ঞাসা
                   </Link>
                    <Link href="mailto:support@roktobondhu.org" className="text-lg font-medium text-muted-foreground transition-colors hover:text-primary">
-                    Contact
+                    যোগাযোগ
                   </Link>
               </nav>
                <div className="mt-8 flex flex-col gap-4">
@@ -112,16 +109,16 @@ export default function Header() {
                       </Button>
                       <Button variant="destructive" onClick={handleSignOut}>
                         <LogOut className="mr-2 h-4 w-4" />
-                        Logout
+                        লগআউট
                       </Button>
                     </>
                   ) : (
                     <>
                       <Button variant="outline" asChild>
-                        <Link href="/login">Login</Link>
+                        <Link href="/login">লগইন</Link>
                       </Button>
                       <Button asChild>
-                        <Link href="/signup">Sign Up</Link>
+                        <Link href="/signup">রেজিস্ট্রেশন</Link>
                       </Button>
                     </>
                   )}
