@@ -82,7 +82,7 @@ export default async function Home() {
               দ্রুত রক্ত খুঁজুন অথবা স্বেচ্ছাসেবী হোন
             </p>
             <div className="mt-8 flex flex-col justify-center gap-4 sm:flex-row">
-              <Button asChild size="lg" variant="outline">
+              <Button asChild size="lg" variant="outline" className="bg-background hover:bg-muted">
                 <Link href="/search-donors"><Search className="mr-2 h-5 w-5" />রক্ত খুঁজুন</Link>
               </Button>
               <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground">
@@ -325,7 +325,7 @@ export default async function Home() {
                 <div className="grid md:grid-cols-3 gap-8 items-center">
                     <div className="md:col-span-1 flex justify-center">
                         <Image
-                            src="https://tools.bartanow.com/uploads/f62b892a-586a-41c0-a3ba-a4bf7f02548c.png"
+                            src="https://i.ibb.co/3k5fVb3/mojibrsm.png"
                             alt="mojibrsm"
                             width={200}
                             height={200}
@@ -388,3 +388,4 @@ export default async function Home() {
     
 
     
+
