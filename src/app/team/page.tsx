@@ -13,7 +13,7 @@ const administrators = [
   {
     name: "Mojib Rsm",
     role: "প্রধান পরিচালক",
-    bloodGroup: "O+",
+    bloodGroup: "AB+",
     phone: "01601519007",
     email: "mojibrsm@example.com",
     location: "Ramu, Cox's Bazar",
