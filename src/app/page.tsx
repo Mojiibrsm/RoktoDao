@@ -72,21 +72,33 @@ export default async function Home() {
 
   return (
     <div className="flex flex-col items-center">
-      <section className="w-full bg-primary/10 py-20 md:py-32">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl font-bold tracking-tighter text-primary md:text-6xl font-headline">
-            রক্ত দিন, জীবন বাঁচান — এখন আরও সহজে!
-          </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-lg text-foreground/80 md:text-xl">
-            দ্রুত রক্ত খুঁজুন অথবা স্বেচ্ছাসেবী হোন
-          </p>
-          <div className="mt-8 flex flex-col justify-center gap-4 sm:flex-row">
-            <Button asChild size="lg" variant="outline">
-              <Link href="/search-donors"><Search className="mr-2 h-5 w-5" />রক্ত খুঁজুন</Link>
-            </Button>
-            <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground">
-              <Link href="/signup"><Heart className="mr-2 h-5 w-5" />ডোনার হোন</Link>
-            </Button>
+      <section className="w-full bg-primary/10 py-20 md:py-24">
+        <div className="container mx-auto px-4 grid md:grid-cols-2 gap-12 items-center">
+          <div className="text-center md:text-left">
+            <h1 className="text-4xl font-bold tracking-tighter text-primary md:text-6xl font-headline">
+              রক্ত দিন, জীবন বাঁচান — এখন আরও সহজে!
+            </h1>
+            <p className="mx-auto mt-4 max-w-xl text-lg text-foreground/80 md:text-xl md:mx-0">
+              দ্রুত রক্ত খুঁজুন অথবা স্বেচ্ছাসেবী হোন
+            </p>
+            <div className="mt-8 flex flex-col justify-center gap-4 sm:flex-row md:justify-start">
+              <Button asChild size="lg" variant="outline">
+                <Link href="/search-donors"><Search className="mr-2 h-5 w-5" />রক্ত খুঁজুন</Link>
+              </Button>
+              <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                <Link href="/signup"><Heart className="mr-2 h-5 w-5" />ডোনার হোন</Link>
+              </Button>
+            </div>
+          </div>
+          <div className="flex items-center justify-center">
+            <Image 
+              src="https://storage.googleapis.com/gemini-pro-vex-test-project-1-20240508/118331165_blood-donation-illustration.jpg"
+              alt="Blood donation illustration"
+              width={500}
+              height={500}
+              className="rounded-lg"
+              data-ai-hint="blood donation illustration"
+            />
           </div>
         </div>
       </section>
