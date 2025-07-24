@@ -51,7 +51,6 @@ export default function RequestBloodPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isDistrictPopoverOpen, setIsDistrictPopoverOpen] = useState(false);
 
   const form = useForm<z.infer<typeof requestSchema>>({
     resolver: zodResolver(requestSchema),
@@ -87,7 +86,7 @@ export default function RequestBloodPage() {
             value: district,
             label: district,
         }))
-    );
+    ).sort((a, b) => a.label.localeCompare(b.label, 'bn'));
 
   const onSubmit = async (values: z.infer<typeof requestSchema>) => {
     setIsSubmitting(true);
@@ -190,61 +189,16 @@ export default function RequestBloodPage() {
                 control={form.control}
                 name="district"
                 render={({ field }) => (
-                  <FormItem className="flex flex-col">
+                  <FormItem>
                     <FormLabel>জেলা</FormLabel>
-                    <Popover open={isDistrictPopoverOpen} onOpenChange={setIsDistrictPopoverOpen}>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            className={cn(
-                              "w-full justify-between",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value
-                              ? districtOptions.find(
-                                  (district) => district.value === field.value
-                                )?.label
-                              : "জেলা নির্বাচন করুন"}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                        <Command 
-                          onValueChange={(value) => {
-                            form.setValue("district", value)
-                            setIsDistrictPopoverOpen(false)
-                          }}
-                          value={field.value}
-                          >
-                          <CommandInput placeholder="জেলা খুঁজুন..." />
-                          <CommandEmpty>কোন জেলা পাওয়া যায়নি।</CommandEmpty>
-                          <CommandList>
-                            <CommandGroup>
-                                {districtOptions.map((district) => (
-                                <CommandItem
-                                    value={district.value}
-                                    key={district.value}
-                                >
-                                    <CheckIcon
-                                    className={cn(
-                                        "mr-2 h-4 w-4",
-                                        district.value === field.value
-                                        ? "opacity-100"
-                                        : "opacity-0"
-                                    )}
-                                    />
-                                    {district.label}
-                                </CommandItem>
-                                ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="জেলা নির্বাচন করুন" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                            {districtOptions.map(district => (
+                                <SelectItem key={district.value} value={district.value}>{district.label}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

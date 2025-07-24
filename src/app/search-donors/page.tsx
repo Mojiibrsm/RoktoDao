@@ -11,10 +11,6 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Donor } from '@/lib/types';
 import DonorCard from '@/components/donor-card';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { cn } from '@/lib/utils';
-import { CheckIcon, ChevronsUpDown } from 'lucide-react';
 
 export default function SearchDonorsPage() {
   const [bloodGroup, setBloodGroup] = useState('any');
@@ -24,7 +20,6 @@ export default function SearchDonorsPage() {
   const [donors, setDonors] = useState<Donor[]>([]);
   const [isPending, startTransition] = useTransition();
   const [isClient, setIsClient] = useState(false);
-  const [isDistrictPopoverOpen, setIsDistrictPopoverOpen] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -61,10 +56,10 @@ export default function SearchDonorsPage() {
   }, []);
   
   const districtOptions = division !== 'any' 
-    ? locations[division as keyof typeof locations]?.districts.map(d => ({ value: d, label: d }))
+    ? locations[division as keyof typeof locations]?.districts.map(d => ({ value: d, label: d })).sort((a, b) => a.label.localeCompare(b.label, 'bn'))
     : Object.keys(locations).flatMap(div => 
         locations[div as keyof typeof locations].districts.map(d => ({ value: d, label: d }))
-      );
+      ).sort((a, b) => a.label.localeCompare(b.label, 'bn'));
 
   if (!isClient) {
     return null;
@@ -101,63 +96,13 @@ export default function SearchDonorsPage() {
             </div>
             <div className="space-y-2">
                 <Label htmlFor="district">District</Label>
-                <Popover open={isDistrictPopoverOpen} onOpenChange={setIsDistrictPopoverOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      className="w-full justify-between font-normal"
-                    >
-                      {district !== 'any'
-                        ? district
-                        : "Select district"}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                    <Command
-                      onValueChange={(value) => {
-                          setDistrict(value)
-                          setUpazila("any")
-                          setIsDistrictPopoverOpen(false)
-                      }}
-                      value={district}
-                    >
-                      <CommandInput placeholder="Search district..." />
-                      <CommandEmpty>No district found.</CommandEmpty>
-                      <CommandList>
-                        <CommandGroup>
-                        <CommandItem
-                            value="any"
-                            key="any-district"
-                            >
-                            <CheckIcon
-                                className={cn(
-                                "mr-2 h-4 w-4",
-                                "any" === district ? "opacity-100" : "opacity-0"
-                                )}
-                            />
-                            Any
-                        </CommandItem>
-                        {districtOptions.map((d) => (
-                          <CommandItem
-                            value={d.value}
-                            key={d.value}
-                          >
-                            <CheckIcon
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                d.value === district ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            {d.label}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                <Select value={district} onValueChange={(val) => {setDistrict(val); setUpazila('any');}}>
+                    <SelectTrigger id="district"><SelectValue placeholder="Any" /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="any">Any</SelectItem>
+                        {districtOptions.map(d => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}
+                    </SelectContent>
+                </Select>
               </div>
              <div className="space-y-2">
               <Label htmlFor="upazila">Upazila / Area</Label>

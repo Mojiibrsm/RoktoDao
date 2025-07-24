@@ -19,13 +19,12 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, Droplet, CheckIcon, ChevronsUpDown } from 'lucide-react';
-import { format } from 'date-fns';
+import { CalendarIcon, Droplet } from 'lucide-react';
+import { format, addYears } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { bloodGroups, locations, upazilas } from '@/lib/location-data';
 import type { Donor } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 
 
 const signupSchema = z.object({
@@ -49,7 +48,6 @@ export default function SignupPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const { user, loading } = useAuth();
-  const [isDistrictPopoverOpen, setIsDistrictPopoverOpen] = useState(false);
 
 
   useEffect(() => {
@@ -85,7 +83,7 @@ export default function SignupPage() {
     ? locations[selectedDivision as keyof typeof locations]?.districts.map(district => ({
         value: district,
         label: district,
-      }))
+      })).sort((a,b) => a.label.localeCompare(b.label, 'bn'))
     : [];
 
   const onSubmit = async (values: z.infer<typeof signupSchema>) => {
@@ -275,62 +273,16 @@ export default function SignupPage() {
                 control={form.control}
                 name="district"
                 render={({ field }) => (
-                  <FormItem className="flex flex-col">
+                  <FormItem>
                     <FormLabel>জেলা</FormLabel>
-                    <Popover open={isDistrictPopoverOpen} onOpenChange={setIsDistrictPopoverOpen}>
-                      <PopoverTrigger asChild disabled={!selectedDivision}>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            className={cn(
-                              "w-full justify-between",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value
-                              ? districtOptions.find(
-                                  (district) => district.value === field.value
-                                )?.label
-                              : "জেলা নির্বাচন করুন"}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                        <Command
-                           onValueChange={(value) => {
-                              form.setValue("district", value)
-                              form.setValue("upazila", "")
-                              setIsDistrictPopoverOpen(false)
-                            }}
-                          value={field.value}
-                        >
-                           <CommandInput placeholder="জেলা খুঁজুন..." />
-                            <CommandEmpty>কোন জেলা পাওয়া যায়নি।</CommandEmpty>
-                          <CommandList>
-                            <CommandGroup>
-                                {districtOptions.map((district) => (
-                                <CommandItem
-                                    value={district.value}
-                                    key={district.value}
-                                >
-                                    <CheckIcon
-                                    className={cn(
-                                        "mr-2 h-4 w-4",
-                                        district.value === field.value
-                                        ? "opacity-100"
-                                        : "opacity-0"
-                                    )}
-                                    />
-                                    {district.label}
-                                </CommandItem>
-                                ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
+                    <Select onValueChange={(value) => { field.onChange(value); form.setValue('upazila', ''); }} value={field.value} disabled={!selectedDivision}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="জেলা নির্বাচন করুন" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                            {districtOptions.map(district => (
+                                <SelectItem key={district.value} value={district.value}>{district.label}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
