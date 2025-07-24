@@ -114,7 +114,11 @@ export default function SettingsPage() {
     formData.append('image', selectedFile);
 
     try {
-      const response = await fetch(`https://api.imgbb.com/1/upload?key=5f2b775957a5369766578051a833503b`, {
+      const apiKey = "6a420b435223f273b4830154e1952210";
+      if (!apiKey) {
+        throw new Error("IMGBB API key is not configured.");
+      }
+      const response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
         method: 'POST',
         body: formData,
       });

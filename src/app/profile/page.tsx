@@ -1,9 +1,8 @@
 
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/use-auth';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -24,6 +23,7 @@ import { doc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Donor } from '@/lib/types';
 import Link from 'next/link';
+import { useAuth } from '@/hooks/use-auth';
 
 
 const profileSchema = z.object({
@@ -67,7 +67,7 @@ export default function ProfilePage() {
   const selectedDivision = form.watch('division');
   const selectedDistrict = form.watch('district');
 
-  const districtOptions = React.useMemo(() => {
+  const districtOptions = useMemo(() => {
     if (!selectedDivision || !locations[selectedDivision as keyof typeof locations]) {
       return [];
     }
@@ -79,7 +79,7 @@ export default function ProfilePage() {
       .sort((a, b) => a.label.localeCompare(b.label, 'bn'));
   }, [selectedDivision]);
 
-  const upazilaOptions = React.useMemo(() => {
+  const upazilaOptions = useMemo(() => {
     if (!selectedDistrict || !upazilas[selectedDistrict as keyof typeof upazilas]) {
       return [];
     }
