@@ -106,7 +106,7 @@ export default function SettingsPage() {
             <CardContent className="space-y-6">
               <div className="flex items-center gap-4">
                   <Avatar className="h-20 w-20">
-                    <AvatarImage src={donorProfile?.profilePictureUrl || "https://placehold.co/200x200.png"} alt={donorProfile?.fullName} />
+                    <AvatarImage src={donorProfile?.profilePictureUrl || "https://placehold.co/200x200.png"} alt={donorProfile?.fullName || ''} data-ai-hint="placeholder person" />
                     <AvatarFallback>{donorProfile?.fullName?.[0]}</AvatarFallback>
                   </Avatar>
                   <Button type="button" variant="outline">Upload Photo</Button>
@@ -282,5 +282,7 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
 
     
