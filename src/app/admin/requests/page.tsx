@@ -593,8 +593,10 @@ export default function AdminRequestsPage() {
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem 
                                             className="text-destructive focus:text-destructive" 
-                                            onSelect={(e) => e.preventDefault()}
-                                            onClick={() => openDeleteDialog(req.id)}
+                                            onSelect={(e) => {
+                                                e.preventDefault();
+                                                openDeleteDialog(req.id);
+                                            }}
                                         >
                                             <Trash2 className="mr-2 h-4 w-4" />
                                             Delete
@@ -648,5 +650,3 @@ export default function AdminRequestsPage() {
         </div>
     );
 }
-
-    
