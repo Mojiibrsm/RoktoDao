@@ -8,6 +8,7 @@ export type BloodRequest = {
   numberOfBags: number;
   contactPhone: string;
   uid?: string;
+  status: 'Pending' | 'Approved' | 'Fulfilled' | 'Rejected';
 };
 
 export type Donor = {
