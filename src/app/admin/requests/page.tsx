@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -258,10 +259,6 @@ export default function AdminRequestsPage() {
     const RequestForm = ({ onSubmit, isSubmitting, submitText }: { onSubmit: (values: z.infer<typeof requestSchema>) => void; isSubmitting: boolean; submitText: string }) => {
         const [districtSearch, setDistrictSearch] = useState('');
         const [hospitalSearch, setHospitalSearch] = useState('');
-        const [districtOpen, setDistrictOpen] = useState(false);
-        const filteredDistricts = districtOptions.filter((d) =>
-          d.label.toLowerCase().includes(districtSearch.toLowerCase())
-        );
 
         return (
              <Form {...form}>
@@ -312,46 +309,46 @@ export default function AdminRequestsPage() {
                     </FormItem>
                 )} />
                 <FormField
-                    control={form.control}
-                    name="district"
-                    render={({ field }) => (
+                  control={form.control}
+                  name="district"
+                  render={({ field }) => (
                     <FormItem>
-                        <FormLabel>জেলা</FormLabel>
-                        <Select
-                           onValueChange={field.onChange}
-                           value={field.value}
-                           onSearch={setDistrictSearch}
-                         >
-                           <FormControl>
-                             <SelectTrigger>
-                               <SelectValue placeholder="জেলা নির্বাচন করুন" />
-                             </SelectTrigger>
-                           </FormControl>
-                           <SelectContent>
-                             <Input
-                               className="mb-2"
-                               placeholder="জেলা খুঁজুন..."
-                               value={districtSearch}
-                               onChange={(e) => setDistrictSearch(e.target.value)}
-                             />
-                             <SelectGroup>
-                               <SelectLabel>সকল জেলা</SelectLabel>
-                               {districtOptions
-                                 .filter((d) =>
-                                   d.label.toLowerCase().includes(districtSearch.toLowerCase())
-                                 )
-                                 .map((district) => (
-                                   <SelectItem key={district.value} value={district.value}>
-                                     {district.label}
-                                   </SelectItem>
-                                 ))}
-                             </SelectGroup>
-                           </SelectContent>
-                         </Select>
-                        <FormMessage />
+                      <FormLabel>জেলা</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="জেলা নির্বাচন করুন" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <Input
+                            className="mb-2"
+                            placeholder="জেলা খুঁজুন..."
+                            value={districtSearch}
+                            onChange={(e) => setDistrictSearch(e.target.value)}
+                          />
+                          <SelectGroup>
+                            <SelectLabel>সকল জেলা</SelectLabel>
+                            {districtOptions
+                              .filter((d) =>
+                                d.label.toLowerCase().includes(districtSearch.toLowerCase())
+                              )
+                              .map((district) => (
+                                <SelectItem key={district.value} value={district.value}>
+                                  {district.label}
+                                </SelectItem>
+                              ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
                     </FormItem>
-                    )}
+                  )}
                 />
+
                  <FormField
                     control={form.control}
                     name="hospitalLocation"
@@ -429,6 +426,16 @@ export default function AdminRequestsPage() {
 যোগাযোগঃ ${req.contactPhone}`;
   };
 
+  const handleCopyAllRequests = () => {
+    if (requests.length === 0) {
+      toast({ variant: "destructive", title: "No requests to copy" });
+      return;
+    }
+    const allRequestsText = requests.map(req => formatCopyText(req)).join('\n\n---\n\n');
+    navigator.clipboard.writeText(allRequestsText);
+    toast({ title: "All requests copied!" });
+  };
+
 
     return (
         <div>
@@ -444,20 +451,23 @@ export default function AdminRequestsPage() {
                     <CardTitle>All Blood Requests</CardTitle>
                     <CardDescription>A list of all user-submitted blood requests.</CardDescription>
                   </div>
-                   <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button><PlusCircle className="mr-2 h-4 w-4" /> Add Request</Button>
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-[625px]">
-                        <DialogHeader>
-                          <DialogTitle>Add New Blood Request</DialogTitle>
-                          <DialogDescription>
-                            Fill in the details below to add a new request to the system.
-                          </DialogDescription>
-                        </DialogHeader>
-                         <RequestForm onSubmit={handleAddRequest} isSubmitting={form.formState.isSubmitting} submitText="Add Request" />
-                      </DialogContent>
-                    </Dialog>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" onClick={handleCopyAllRequests}><Copy className="mr-2 h-4 w-4" /> Copy All</Button>
+                    <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button><PlusCircle className="mr-2 h-4 w-4" /> Add Request</Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[625px]">
+                          <DialogHeader>
+                            <DialogTitle>Add New Blood Request</DialogTitle>
+                            <DialogDescription>
+                              Fill in the details below to add a new request to the system.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <RequestForm onSubmit={handleAddRequest} isSubmitting={form.formState.isSubmitting} submitText="Add Request" />
+                        </DialogContent>
+                      </Dialog>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <Table>
@@ -581,4 +591,5 @@ export default function AdminRequestsPage() {
             </Dialog>
         </div>
     );
-}
+
+    
