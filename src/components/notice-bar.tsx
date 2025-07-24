@@ -3,7 +3,7 @@
 
 import { Bell, Droplet } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
-import { collection, query, orderBy, getDocs, where } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, where, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { BloodRequest } from '@/lib/types';
 
@@ -35,16 +35,27 @@ const NoticeBar = () => {
             const requestsCollection = collection(db, 'requests');
             const requestsQuery = query(
                 requestsCollection,
-                where('status', 'in', ['Pending', 'Approved']),
-                orderBy('createdAt', 'desc')
+                where('status', 'in', ['Pending', 'Approved'])
             );
             const requestsSnapshot = await getDocs(requestsQuery);
-            const urgentRequests: Notice[] = requestsSnapshot.docs.map(doc => {
-                const data = doc.data() as BloodRequest;
+            
+            const fetchedRequests = requestsSnapshot.docs.map(doc => {
+                 const data = doc.data();
+                 return {
+                    id: doc.id,
+                    ...data,
+                    createdAt: data.createdAt?.toDate()?.toISOString() || new Date().toISOString(),
+                 }
+            }) as (BloodRequest & {id: string, createdAt: string})[];
+
+            // Sort on the client side to avoid composite index requirement
+            const sortedRequests = fetchedRequests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+            const urgentRequests: Notice[] = sortedRequests.map(data => {
                 const emergencyText = data.isEmergency ? "জরুরী: " : "";
                 const text = `${emergencyText}${data.district}-এ ${data.bloodGroup} রক্তের প্রয়োজন। যোগাযোগ করুন।`;
                 return {
-                    id: doc.id,
+                    id: data.id,
                     text: text,
                     type: 'request'
                 };
