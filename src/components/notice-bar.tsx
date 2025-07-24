@@ -3,7 +3,7 @@
 
 import { Bell, Droplet } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
-import { collection, query, orderBy, getDocs, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 interface Notice {
@@ -20,19 +20,12 @@ const NoticeBar = () => {
         try {
             const noticesCollection = collection(db, 'marquee-notices');
             const q = query(noticesCollection, orderBy('createdAt', 'desc'));
-
-            // Use onSnapshot for real-time updates
-            const unsubscribe = onSnapshot(q, (querySnapshot) => {
-                const noticesList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notice));
-                setNotices(noticesList);
-                setLoading(false);
-            });
-            
-            // Cleanup subscription on component unmount
-            return () => unsubscribe();
-
+            const querySnapshot = await getDocs(q);
+            const noticesList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notice));
+            setNotices(noticesList);
         } catch (error) {
             console.error("Error fetching notices: ", error);
+        } finally {
             setLoading(false);
         }
     };
