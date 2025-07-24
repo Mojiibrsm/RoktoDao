@@ -1,9 +1,10 @@
+
 "use client";
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Droplet, Menu, LogOut, UserCircle } from 'lucide-react';
+import { Droplet, Menu, LogOut, UserCircle, HeartHandshake } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import NoticeBar from './notice-bar';
@@ -32,6 +33,7 @@ export default function Header() {
         <Link href="/" className="flex items-center gap-2 font-bold text-primary text-xl">
           <Droplet className="h-7 w-7" />
           <span className="font-headline">RoktoDao</span>
+          <HeartHandshake className="h-7 w-7" />
         </Link>
 
         <nav className="hidden items-center gap-6 md:flex">

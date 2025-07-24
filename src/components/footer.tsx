@@ -1,5 +1,6 @@
+
 import Link from 'next/link';
-import { Droplet } from 'lucide-react';
+import { Droplet, HeartHandshake } from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -8,6 +9,7 @@ export default function Footer() {
         <div className="flex items-center gap-2">
           <Droplet className="h-6 w-6 text-primary" />
           <p className="text-lg font-bold text-primary font-headline">RoktoDao</p>
+          <HeartHandshake className="h-6 w-6 text-primary" />
         </div>
         <div className="text-center text-sm text-muted-foreground md:text-left">
           <p>&copy; {new Date().getFullYear()} RoktoDao. All rights reserved.</p>
