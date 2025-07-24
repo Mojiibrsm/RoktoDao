@@ -14,15 +14,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGr
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, CheckIcon, ChevronsUpDown } from 'lucide-react';
+import { CalendarIcon, CheckIcon, ChevronsUpDown, AlertTriangle, Droplet, MapPin, Syringe, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { bloodGroups, locations, hospitalsByDistrict } from '@/lib/location-data';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import type { BloodRequest } from '@/lib/types';
+import { Separator } from '@/components/ui/separator';
 
 
 const requestSchema = z.object({
@@ -51,6 +52,7 @@ export default function RequestBloodPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [recentRequests, setRecentRequests] = useState<BloodRequest[]>([]);
 
   const form = useForm<z.infer<typeof requestSchema>>({
     resolver: zodResolver(requestSchema),
@@ -70,6 +72,23 @@ export default function RequestBloodPage() {
   const selectedHospital = form.watch('hospitalLocation');
 
   const [availableHospitals, setAvailableHospitals] = useState<string[]>([]);
+  const [districtSearch, setDistrictSearch] = useState("");
+  const [hospitalSearch, setHospitalSearch] = useState("");
+
+   const fetchRecentRequests = async () => {
+    try {
+        const requestsRef = collection(db, 'requests');
+        const q = query(requestsRef, orderBy('createdAt', 'desc'), limit(6));
+        const querySnapshot = await getDocs(q);
+        const requests = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        })) as BloodRequest[];
+        setRecentRequests(requests);
+    } catch (error) {
+        console.error("Error fetching recent requests:", error);
+    }
+  };
   
   useEffect(() => {
     if (selectedDistrict && hospitalsByDistrict[selectedDistrict]) {
@@ -79,6 +98,7 @@ export default function RequestBloodPage() {
       setAvailableHospitals(allHospitals);
     }
     form.setValue('hospitalLocation', '');
+    fetchRecentRequests();
   }, [selectedDistrict, form]);
 
     const districtOptions = Object.keys(locations).flatMap(division => 
@@ -126,7 +146,7 @@ export default function RequestBloodPage() {
   };
 
   return (
-    <div className="container mx-auto max-w-2xl py-12 px-4">
+    <div className="container mx-auto max-w-4xl py-12 px-4">
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="text-3xl font-headline text-primary">রক্তের জন্য অনুরোধ</CardTitle>
@@ -189,42 +209,37 @@ export default function RequestBloodPage() {
                 control={form.control}
                 name="district"
                 render={({ field }) => (
-                <FormItem>
+                  <FormItem>
                     <FormLabel>জেলা</FormLabel>
-                    <Select
-                        onValueChange={(value) => {
-                            field.onChange(value);
-                        }}
-                        value={field.value}
-                        >
-                        <FormControl>
-                            <SelectTrigger>
-                            <SelectValue placeholder="জেলা নির্বাচন করুন" />
-                            </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                            <Input
-                                className="mb-2"
-                                placeholder="জেলা খুঁজুন..."
-                                onChange={(e) => {
-                                    // This is a simple filter.
-                                    // For a more advanced search, you might need a different approach.
-                                    const search = e.target.value.toLowerCase();
-                                    const filtered = districtOptions.filter(d => d.label.toLowerCase().includes(search));
-                                    // This part is tricky as we can't directly update the options of SelectContent.
-                                    // This search is more for show or requires a more complex component.
-                                }}
-                            />
-                            <SelectGroup>
-                                 <SelectLabel>সকল জেলা</SelectLabel>
-                                {districtOptions.map(district => (
-                                    <SelectItem key={district.value} value={district.value}>{district.label}</SelectItem>
-                                ))}
-                            </SelectGroup>
-                        </SelectContent>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="জেলা নির্বাচন করুন" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <Input
+                          className="mb-2"
+                          placeholder="জেলা খুঁজুন..."
+                          value={districtSearch}
+                          onChange={(e) => setDistrictSearch(e.target.value)}
+                        />
+                        <SelectGroup>
+                          <SelectLabel>সকল জেলা</SelectLabel>
+                          {districtOptions
+                            .filter((d) =>
+                              d.label.toLowerCase().includes(districtSearch.toLowerCase())
+                            )
+                            .map((district) => (
+                              <SelectItem key={district.value} value={district.value}>
+                                {district.label}
+                              </SelectItem>
+                            ))}
+                        </SelectGroup>
+                      </SelectContent>
                     </Select>
                     <FormMessage />
-                </FormItem>
+                  </FormItem>
                 )}
               />
 
@@ -237,10 +252,10 @@ export default function RequestBloodPage() {
                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl><SelectTrigger><SelectValue placeholder="হাসপাতাল নির্বাচন করুন" /></SelectTrigger></FormControl>
                         <SelectContent>
-                           <Input className="mb-2" placeholder="হাসপাতাল খুঁজুন..." />
+                           <Input className="mb-2" placeholder="হাসপাতাল খুঁজুন..." value={hospitalSearch} onChange={(e) => setHospitalSearch(e.target.value)}/>
                            <SelectGroup>
                                 <SelectLabel>সকল হাসপাতাল</SelectLabel>
-                                {availableHospitals.map(hospital => (
+                                {availableHospitals.filter(h => h.toLowerCase().includes(hospitalSearch.toLowerCase())).map(hospital => (
                                 <SelectItem key={hospital} value={hospital}>{hospital}</SelectItem>
                                ))}
                                <SelectItem value="Other">অন্যান্য</SelectItem>
@@ -290,6 +305,59 @@ export default function RequestBloodPage() {
           </Form>
         </CardContent>
       </Card>
+
+      <section className="mt-16">
+        <h2 className="text-3xl font-bold text-center mb-2 font-headline text-primary">সকল সক্রিয় অনুরোধ</h2>
+        <Separator className="my-6" />
+        {recentRequests.length > 0 ? (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {recentRequests.map((req) => (
+              <Card key={req.id} className="flex flex-col justify-between shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <CardHeader>
+                  <CardTitle className="flex items-start justify-between">
+                    <span className="text-xl flex items-center gap-2">
+                       {req.isEmergency && <AlertTriangle className="h-5 w-5 text-destructive" />}
+                       {req.patientName}
+                    </span>
+                    <span className="flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-base font-bold text-primary">
+                      <Droplet className="h-4 w-4" />
+                      {req.bloodGroup}
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-center gap-3 text-muted-foreground">
+                    <MapPin className="h-5 w-5 flex-shrink-0" />
+                    <span>{`${req.hospitalLocation}, ${req.district}`}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-muted-foreground">
+                    <CalendarIcon className="h-5 w-5 flex-shrink-0" />
+                    <span>Needed by: {format(new Date(req.neededDate), "PPP")}</span>
+                  </div>
+                   <div className="flex items-center gap-3 text-muted-foreground">
+                    <Phone className="h-5 w-5 flex-shrink-0" />
+                    <span>Contact: {req.contactPhone}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-muted-foreground">
+                    <Syringe className="h-5 w-5 flex-shrink-0" />
+                    <span>{req.numberOfBags} Bag(s)</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-16 border-2 border-dashed rounded-lg">
+            <p className="text-muted-foreground text-lg">No active blood requests at the moment.</p>
+          </div>
+        )}
+        <div className="mt-8 text-center">
+            <Button asChild variant="outline">
+                <a href="/requests">সকল অনুরোধ দেখুন</a>
+            </Button>
+        </div>
+      </section>
+
     </div>
   );
 }

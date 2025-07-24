@@ -12,6 +12,7 @@ export type BloodRequest = {
   status: 'Pending' | 'Approved' | 'Fulfilled' | 'Rejected';
   isEmergency?: boolean;
   district: string;
+  createdAt: any;
 };
 
 export type Donor = {
@@ -41,6 +42,7 @@ export type Donor = {
     contactVisibility: 'everyone' | 'verified' | 'hidden';
     profileVisibility: 'public' | 'admin' | 'hidden';
   };
+  createdAt?: any;
 };
 
     

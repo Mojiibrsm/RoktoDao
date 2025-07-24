@@ -210,7 +210,7 @@ export default async function Home() {
                   <CardContent className="space-y-3">
                     <div className="flex items-center gap-3 text-muted-foreground">
                       <MapPin className="h-5 w-5 flex-shrink-0" />
-                      <span>{req.hospitalLocation}</span>
+                      <span>{`${req.hospitalLocation}, ${req.district}`}</span>
                     </div>
                     <div className="flex items-center gap-3 text-muted-foreground">
                       <Calendar className="h-5 w-5 flex-shrink-0" />
