@@ -67,12 +67,30 @@ export default function ProfilePage() {
   const selectedDivision = form.watch('division');
   const selectedDistrict = form.watch('district');
 
-  const districtOptions = selectedDivision 
-    ? locations[selectedDivision as keyof typeof locations]?.districts.map(district => ({
+  const districtOptions = React.useMemo(() => {
+    if (!selectedDivision || !locations[selectedDivision as keyof typeof locations]) {
+      return [];
+    }
+    return locations[selectedDivision as keyof typeof locations].districts
+      .map(district => ({
         value: district,
         label: district,
-      })).sort((a, b) => a.label.localeCompare(b.label, 'bn'))
-    : [];
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'bn'));
+  }, [selectedDivision]);
+
+  const upazilaOptions = React.useMemo(() => {
+    if (!selectedDistrict || !upazilas[selectedDistrict as keyof typeof upazilas]) {
+      return [];
+    }
+    return upazilas[selectedDistrict as keyof typeof upazilas]
+      .map(upazila => ({
+        value: upazila,
+        label: upazila,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'bn'));
+  }, [selectedDistrict]);
+
 
   useEffect(() => {
     if (!loading && !user) {
@@ -276,7 +294,7 @@ export default function ProfilePage() {
                   <Select onValueChange={field.onChange} value={field.value} disabled={!selectedDistrict}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Select upazila" /></SelectTrigger></FormControl>
                     <SelectContent>
-                      {selectedDistrict && upazilas[selectedDistrict as keyof typeof upazilas]?.map(up => <SelectItem key={up} value={up}>{up}</SelectItem>)}
+                      {upazilaOptions.map(up => <SelectItem key={up.value} value={up.value}>{up.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   <FormMessage />
