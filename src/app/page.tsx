@@ -271,9 +271,9 @@ export default async function Home() {
             </div>
             <div>
               <img
-                src="https://i.ibb.co/L68dD98/map-bengali.png"
-                alt="Map of Bangladesh with Bengali text for location based search"
-                data-ai-hint="map Bangladesh"
+                src="/files/blood_donation_info.png"
+                alt="Blood donation information infographic"
+                data-ai-hint="infographic blood donation"
                 className="rounded-lg object-cover w-full h-full shadow-xl"
               />
             </div>
