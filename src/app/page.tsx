@@ -76,17 +76,17 @@ export default async function Home() {
         <div className="container mx-auto px-4 text-center">
           <div>
             <h1 className="text-4xl font-bold tracking-tighter text-primary md:text-6xl font-headline">
-              রক্ত দিন, জীবন বাঁচান — এখন আরও সহজে!
+              আপনার এক ব্যাগ রক্ত, কারও শেষ আশার আলো।
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-lg text-foreground/80 md:text-xl">
-              দ্রুত রক্ত খুঁজুন অথবা স্বেচ্ছাসেবী হোন
+              এগিয়ে আসুন, হোন একজন জীবনদাতা।
             </p>
             <div className="mt-8 flex flex-col justify-center gap-4 sm:flex-row">
               <Button asChild size="lg" variant="outline" className="bg-background hover:bg-muted">
-                <Link href="/search-donors"><Search className="mr-2 h-5 w-5" />রক্ত খুঁজুন</Link>
+                <Link href="/search-donors"><Search className="mr-2 h-5 w-5" />রক্ত খুঁজছি</Link>
               </Button>
               <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                <Link href="/signup"><Heart className="mr-2 h-5 w-5" />ডোনার হোন</Link>
+                <Link href="/signup"><Heart className="mr-2 h-5 w-5" />রক্ত দিতে চাই</Link>
               </Button>
             </div>
           </div>
@@ -389,3 +389,6 @@ export default async function Home() {
 
     
 
+
+
+    
