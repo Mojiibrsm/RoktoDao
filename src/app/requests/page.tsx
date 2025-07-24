@@ -1,6 +1,7 @@
+
 "use client";
 
-import { collection, getDocs, orderBy, query } from 'firebase/firestore';
+import { collection, getDocs, orderBy, query, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { BloodRequest } from '@/lib/types';
 import { useEffect, useState } from 'react';
@@ -11,10 +12,15 @@ async function getAllRequests(): Promise<BloodRequest[]> {
     const requestsRef = collection(db, 'requests');
     const q = query(requestsRef, orderBy('neededDate', 'asc'));
     const querySnapshot = await getDocs(q);
-    const requests = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as BloodRequest[];
+    const requests = querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        createdAt: data.createdAt?.toDate().toISOString() || new Date().toISOString(),
+        neededDate: data.neededDate instanceof Timestamp ? data.neededDate.toDate().toISOString() : data.neededDate,
+      } as BloodRequest;
+    });
     return requests;
   } catch (error) {
     console.error("Error fetching all requests:", error);

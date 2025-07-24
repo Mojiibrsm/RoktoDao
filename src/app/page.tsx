@@ -18,15 +18,20 @@ import Image from 'next/image';
 import DonorCard from '@/components/donor-card';
 import RequestCard from '@/components/request-card';
 
-async function getUrgentRequests() {
+async function getUrgentRequests(): Promise<BloodRequest[]> {
   try {
     const requestsRef = collection(db, 'requests');
     const q = query(requestsRef, orderBy('neededDate', 'asc'), limit(6));
     const querySnapshot = await getDocs(q);
-    const requests = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as BloodRequest[];
+    const requests = querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        createdAt: data.createdAt?.toDate().toISOString() || new Date().toISOString(),
+        neededDate: data.neededDate instanceof Timestamp ? data.neededDate.toDate().toISOString() : data.neededDate,
+      } as BloodRequest;
+    });
     return requests;
   } catch (error) {
     console.error("Error fetching urgent requests:", error);
@@ -34,15 +39,21 @@ async function getUrgentRequests() {
   }
 }
 
-async function getTopDonors() {
+async function getTopDonors(): Promise<Donor[]> {
   try {
     const donorsRef = collection(db, 'donors');
     const q = query(donorsRef, where('isAvailable', '==', true), limit(6));
     const querySnapshot = await getDocs(q);
-    const donors = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as Donor[];
+    const donors = querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        lastDonationDate: data.lastDonationDate instanceof Timestamp ? data.lastDonationDate.toDate().toISOString() : data.lastDonationDate,
+        dateOfBirth: data.dateOfBirth instanceof Timestamp ? data.dateOfBirth.toDate().toISOString() : data.dateOfBirth,
+        createdAt: data.createdAt?.toDate().toISOString() || new Date().toISOString(),
+      } as Donor;
+    });
     return donors;
   } catch (error) {
     console.error("Error fetching top donors:", error);
@@ -430,5 +441,3 @@ export default async function Home() {
     </div>
   );
 }
-
-    
