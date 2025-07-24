@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -52,15 +53,15 @@ export default function RequestBloodPage() {
     try {
       await addDoc(collection(db, 'requests'), requestData);
       toast({
-        title: 'Request Submitted',
-        description: 'Your blood request has been posted. We hope you find a donor soon.',
+        title: 'অনুরোধ জমা দেওয়া হয়েছে',
+        description: 'আপনার রক্তের অনুরোধ পোস্ট করা হয়েছে। আমরা আশা করি আপনি দ্রুত একজন দাতা খুঁজে পাবেন।',
       });
       router.push('/thank-you');
     } catch (error) {
        toast({
         variant: 'destructive',
-        title: 'Submission Failed',
-        description: 'Something went wrong. Please try again.',
+        title: 'জমা দিতে ব্যর্থ হয়েছে',
+        description: 'কিছু একটা ভুল হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।',
       });
     } finally {
         setIsSubmitting(false);
@@ -71,9 +72,9 @@ export default function RequestBloodPage() {
     <div className="container mx-auto max-w-2xl py-12 px-4">
       <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle className="text-3xl font-headline text-primary">Request Blood</CardTitle>
+          <CardTitle className="text-3xl font-headline text-primary">রক্তের জন্য অনুরোধ</CardTitle>
           <CardDescription>
-            Fill out the form below to post an urgent blood request. Your request will be visible to potential donors.
+            জরুরী রক্তের অনুরোধ পোস্ট করতে নীচের ফর্মটি পূরণ করুন। আপনার অনুরোধ সম্ভাব্য দাতাদের কাছে দৃশ্যমান হবে।
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -81,8 +82,8 @@ export default function RequestBloodPage() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField control={form.control} name="patientName" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Patient Full Name</FormLabel>
-                  <FormControl><Input placeholder="Patient Name" {...field} /></FormControl>
+                  <FormLabel>রোগীর পুরো নাম</FormLabel>
+                  <FormControl><Input placeholder="রোগীর নাম" {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
@@ -90,9 +91,9 @@ export default function RequestBloodPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField control={form.control} name="bloodGroup" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Blood Group</FormLabel>
+                    <FormLabel>রক্তের গ্রুপ</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Select blood group" /></SelectTrigger></FormControl>
+                      <FormControl><SelectTrigger><SelectValue placeholder="রক্তের গ্রুপ নির্বাচন করুন" /></SelectTrigger></FormControl>
                       <SelectContent>{bloodGroups.map(group => <SelectItem key={group} value={group}>{group}</SelectItem>)}</SelectContent>
                     </Select>
                     <FormMessage />
@@ -100,8 +101,8 @@ export default function RequestBloodPage() {
                 )} />
                  <FormField control={form.control} name="numberOfBags" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Number of Bags</FormLabel>
-                    <FormControl><Input type="number" min="1" placeholder="e.g., 2" {...field} /></FormControl>
+                    <FormLabel>ব্যাগের সংখ্যা</FormLabel>
+                    <FormControl><Input type="number" min="1" placeholder="যেমন, ২" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
@@ -109,12 +110,12 @@ export default function RequestBloodPage() {
 
                <FormField control={form.control} name="neededDate" render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>Date Needed</FormLabel>
+                  <FormLabel>প্রয়োজনের তারিখ</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                          {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                          {field.value ? format(field.value, "PPP") : <span>একটি তারিখ নির্বাচন করুন</span>}
                           <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                         </Button>
                       </FormControl>
@@ -129,15 +130,15 @@ export default function RequestBloodPage() {
               
               <FormField control={form.control} name="hospitalLocation" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Hospital Name & Location</FormLabel>
-                  <FormControl><Input placeholder="e.g., Dhaka Medical College Hospital" {...field} /></FormControl>
+                  <FormLabel>হাসপাতালের নাম ও ঠিকানা</FormLabel>
+                  <FormControl><Input placeholder="যেমন, ঢাকা মেডিকেল কলেজ হাসপাতাল" {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
 
               <FormField control={form.control} name="contactPhone" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Contact Phone Number</FormLabel>
+                  <FormLabel>যোগাযোগের ফোন নম্বর</FormLabel>
                   <FormControl><Input placeholder="01XXXXXXXXX" {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
@@ -145,7 +146,7 @@ export default function RequestBloodPage() {
 
               <div className="text-right">
                 <Button type="submit" size="lg" disabled={isSubmitting}>
-                    {isSubmitting ? 'Submitting...' : 'Post Request'}
+                    {isSubmitting ? 'জমা দেওয়া হচ্ছে...' : 'অনুরোধ পোস্ট করুন'}
                 </Button>
               </div>
             </form>
