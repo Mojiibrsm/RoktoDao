@@ -408,18 +408,24 @@ export default async function Home() {
         </div>
       </section>
 
+      <section className="w-full py-16 md:py-24 bg-background border-t">
+        <div className="container mx-auto px-4 text-center">
+            <h2 className="text-3xl font-bold text-primary md:text-4xl font-headline">
+            জীবন বাঁচানোর সম্প্রদায়ে যোগ দিন
+            </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-lg text-foreground/80">
+            আজই একজন দাতা হিসাবে নিবন্ধন করুন এবং কারো গল্পের নায়ক হয়ে উঠুন। এটি সহজ, নিরাপদ এবং গভীরভাবে প্রভাবশালী।
+            </p>
+            <div className="mt-8">
+            <Button asChild size="lg">
+                <Link href="/signup">
+                দান করতে নিবন্ধন করুন <Heart className="ml-2 h-5 w-5" />
+                </Link>
+            </Button>
+            </div>
+        </div>
+      </section>
+
     </div>
   );
 }
-
-    
-
-    
-
-    
-
-
-
-    
-
-    
