@@ -20,7 +20,8 @@ import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { bloodGroups, locations, upazilas } from '@/lib/location-data';
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db, storage } from '@/lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { Donor } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -101,6 +102,10 @@ function ProfilePageComponent() {
       .sort((a, b) => a.label.localeCompare(b.label, 'bn'));
   }, [selectedDistrict]);
 
+  const targetUid = useMemo(() => {
+    return userIdToEdit && isAdmin ? userIdToEdit : user?.uid;
+  }, [userIdToEdit, isAdmin, user]);
+
   useEffect(() => {
     const loadProfile = async () => {
       if (loading) return;
@@ -110,91 +115,77 @@ function ProfilePageComponent() {
       }
 
       setPageLoading(true);
-
-      let targetProfile: Donor | null = null;
-      let targetUid: string | null = null;
-
-      if (userIdToEdit && isAdmin) {
-        targetUid = userIdToEdit;
-      } else {
-        targetUid = user?.uid;
-      }
       
       if(targetUid) {
          try {
           const donorRef = doc(db, 'donors', targetUid);
           const docSnap = await getDoc(donorRef);
           if (docSnap.exists()) {
-            targetProfile = { id: docSnap.id, ...docSnap.data() } as Donor;
+            const targetProfile = { id: docSnap.id, ...docSnap.data() } as Donor;
+            setProfileToEdit(targetProfile);
+            form.reset({
+                fullName: targetProfile.fullName || '',
+                phoneNumber: targetProfile.phoneNumber || '',
+                bloodGroup: targetProfile.bloodGroup || '',
+                division: targetProfile.address?.division || '',
+                district: targetProfile.address?.district || '',
+                upazila: targetProfile.address?.upazila || '',
+                lastDonationDate: targetProfile.lastDonationDate ? new Date(targetProfile.lastDonationDate) : undefined,
+                isAvailable: targetProfile.isAvailable,
+                dateOfBirth: targetProfile.dateOfBirth ? new Date(targetProfile.dateOfBirth) : undefined,
+                gender: targetProfile.gender || undefined,
+                donationCount: targetProfile.donationCount || 0,
+                profilePictureUrl: targetProfile.profilePictureUrl || '',
+            });
+            setProfileImageUrl(targetProfile.profilePictureUrl || '');
           } else if(userIdToEdit) {
             toast({ variant: 'destructive', title: 'Error', description: 'Donor profile not found.' });
             router.push('/admin/donors');
-            return;
           }
         } catch (e) {
           toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch donor profile.' });
           if(userIdToEdit) router.push('/admin/donors');
-          return;
         }
       }
 
-      setProfileToEdit(targetProfile);
-      
-      if (targetProfile) {
-        form.reset({
-            fullName: targetProfile.fullName || '',
-            phoneNumber: targetProfile.phoneNumber || '',
-            bloodGroup: targetProfile.bloodGroup || '',
-            division: targetProfile.address?.division || '',
-            district: targetProfile.address?.district || '',
-            upazila: targetProfile.address?.upazila || '',
-            lastDonationDate: targetProfile.lastDonationDate ? new Date(targetProfile.lastDonationDate) : undefined,
-            isAvailable: targetProfile.isAvailable,
-            dateOfBirth: targetProfile.dateOfBirth ? new Date(targetProfile.dateOfBirth) : undefined,
-            gender: targetProfile.gender || undefined,
-            donationCount: targetProfile.donationCount || 0,
-            profilePictureUrl: targetProfile.profilePictureUrl || '',
-        });
-        setProfileImageUrl(targetProfile.profilePictureUrl || '');
-      }
       setPageLoading(false);
     };
 
     loadProfile();
-  }, [user, loading, router, form, userIdToEdit, isAdmin, toast]);
+  }, [user, loading, router, form, userIdToEdit, isAdmin, toast, targetUid]);
   
-  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
+  const handleFileSelect = async (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0] && targetUid) {
       const file = e.target.files[0];
       setUploading(true);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        setProfileImageUrl(base64String);
-        form.setValue('profilePictureUrl', base64String);
+
+      const storageRef = ref(storage, `profile_pictures/${targetUid}/${file.name}`);
+      
+      try {
+        const snapshot = await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(snapshot.ref);
+        
+        setProfileImageUrl(downloadURL);
+        form.setValue('profilePictureUrl', downloadURL);
+
+        toast({ title: 'Success', description: 'Image uploaded. Save profile to apply changes.' });
+      } catch (error) {
+         toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload image.' });
+         console.error("Upload error", error);
+      } finally {
         setUploading(false);
-        toast({ title: 'Success', description: 'Image ready to be saved.' });
-      };
-      reader.readAsDataURL(file);
+      }
     }
   };
 
   const onSubmit = async (values: z.infer<typeof profileSchema>) => {
-    let uidToUpdate: string | null | undefined;
-
-    if (userIdToEdit && isAdmin) {
-      uidToUpdate = userIdToEdit;
-    } else if (user) {
-      uidToUpdate = user.uid;
-    }
-
-    if (!uidToUpdate) {
+    if (!targetUid) {
         toast({ variant: 'destructive', title: 'Authentication Error', description: 'Could not determine user to update.' });
         return;
     }
     setIsSubmitting(true);
     
-    const donorDataToSave = {
+    const donorDataToSave: Partial<Donor> = {
       fullName: values.fullName,
       bloodGroup: values.bloodGroup,
       phoneNumber: values.phoneNumber,
@@ -203,29 +194,29 @@ function ProfilePageComponent() {
         district: values.district,
         upazila: values.upazila,
       },
-      lastDonationDate: values.lastDonationDate?.toISOString(),
       isAvailable: values.isAvailable,
+      profilePictureUrl: values.profilePictureUrl,
+      lastDonationDate: values.lastDonationDate?.toISOString(),
       dateOfBirth: values.dateOfBirth?.toISOString(),
       gender: values.gender,
       donationCount: values.donationCount,
-      profilePictureUrl: values.profilePictureUrl,
     };
 
     try {
-      const donorRef = doc(db, 'donors', uidToUpdate);
+      const donorRef = doc(db, 'donors', targetUid);
       if (profileToEdit) {
         // Update existing profile
         await updateDoc(donorRef, donorDataToSave);
       } else {
-        // Create new profile
+        // Create new profile, merging with essential fields
         const newDonorData: Omit<Donor, 'id'> = {
+            uid: targetUid,
             ...donorDataToSave,
-            uid: uidToUpdate,
-            createdAt: serverTimestamp(),
             isVerified: false, 
             isAdmin: false,
-        };
-        await setDoc(donorRef, newDonorData);
+            createdAt: serverTimestamp(),
+        } as Omit<Donor, 'id'>;
+        await setDoc(donorRef, newDonorData, { merge: true });
       }
 
       toast({
