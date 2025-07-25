@@ -20,8 +20,7 @@ import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { bloodGroups, locations, upazilas } from '@/lib/location-data';
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { db, storage } from '@/lib/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db } from '@/lib/firebase';
 import type { Donor } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -122,7 +121,14 @@ function ProfilePageComponent() {
           if (docSnap.exists()) {
             const targetProfile = { id: docSnap.id, ...docSnap.data() } as Donor;
             setProfileToEdit(targetProfile);
-            setProfileImageUrl(targetProfile.profilePictureUrl || '');
+            
+            // Load image from local storage
+            const storedImage = localStorage.getItem(`profilePic_${targetUid}`);
+            if (storedImage) {
+              setProfileImageUrl(storedImage);
+            } else {
+              setProfileImageUrl(targetProfile.profilePictureUrl || '');
+            }
 
             form.reset({
                 fullName: targetProfile.fullName || '',
@@ -153,28 +159,25 @@ function ProfilePageComponent() {
     loadProfile();
   }, [user, loading, router, form, userIdToEdit, isAdmin, toast, targetUid]);
   
-  const handleFileSelect = async (e: ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0] && targetUid) {
       const file = e.target.files[0];
       setUploading(true);
-      
-      try {
-        const storageRef = ref(storage, `profile-pictures/${targetUid}`);
-        await uploadBytes(storageRef, file);
-        const downloadURL = await getDownloadURL(storageRef);
-        
-        setProfileImageUrl(downloadURL);
-        
-        const donorRef = doc(db, 'donors', targetUid);
-        await updateDoc(donorRef, { profilePictureUrl: downloadURL });
-        
-        toast({ title: 'Success', description: 'Profile picture updated successfully!' });
-      } catch (error) {
-        console.error("Image upload failed:", error);
-        toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload image. Please try again.' });
-      } finally {
-        setUploading(false);
-      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        try {
+            localStorage.setItem(`profilePic_${targetUid}`, base64String);
+            setProfileImageUrl(base64String);
+            toast({ title: 'Success', description: 'Profile picture updated in local storage!' });
+        } catch (error) {
+             toast({ variant: 'destructive', title: 'Storage Failed', description: 'Could not save image. Browser storage might be full.' });
+        } finally {
+            setUploading(false);
+        }
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -190,7 +193,8 @@ function ProfilePageComponent() {
       const donorRef = doc(db, 'donors', targetUid);
       const docSnap = await getDoc(donorRef);
 
-      const donorDataToSave: Partial<Omit<Donor, 'uid'>> = {
+      // We are NOT saving the profile picture URL to Firestore anymore to avoid the size error.
+      const donorDataToSave: Partial<Omit<Donor, 'uid' | 'profilePictureUrl'>> = {
         fullName: values.fullName,
         bloodGroup: values.bloodGroup,
         phoneNumber: values.phoneNumber,
@@ -204,7 +208,6 @@ function ProfilePageComponent() {
         dateOfBirth: values.dateOfBirth?.toISOString(),
         gender: values.gender,
         donationCount: values.donationCount,
-        profilePictureUrl: profileImageUrl
       };
 
       if (docSnap.exists()) {
