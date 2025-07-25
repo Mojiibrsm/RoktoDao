@@ -20,8 +20,7 @@ import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { bloodGroups, locations, upazilas } from '@/lib/location-data';
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
-import { db, storage } from '@/lib/firebase';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { db } from '@/lib/firebase';
 import type { Donor } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -39,7 +38,7 @@ const profileSchema = z.object({
   dateOfBirth: z.date().optional(),
   gender: z.enum(['Male', 'Female', 'Other']).optional(),
   donationCount: z.coerce.number().optional(),
-  profilePictureUrl: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
+  profilePictureUrl: z.string().optional().or(z.literal('')),
 });
 
 function ProfilePageComponent() {
@@ -166,48 +165,18 @@ function ProfilePageComponent() {
   
   const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      handleImageUpload(e.target.files[0]);
-    }
-  };
-
-  const handleImageUpload = (file: File) => {
-    let uidToUpdate: string | null | undefined;
-
-    if (userIdToEdit && isAdmin) {
-      uidToUpdate = userIdToEdit;
-    } else if (user) {
-      uidToUpdate = user.uid;
-    }
-
-    if (!uidToUpdate) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Cannot upload image without user identification.' });
-        return;
-    }
-
-    setUploading(true);
-    const storageRef = ref(storage, `profile-pictures/${uidToUpdate}`);
-    const uploadTask = uploadBytesResumable(storageRef, file);
-
-    uploadTask.on(
-      'state_changed',
-      (snapshot) => {
-        // Optional: handle progress
-      },
-      (error) => {
+      const file = e.target.files[0];
+      setUploading(true);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setProfileImageUrl(base64String);
+        form.setValue('profilePictureUrl', base64String);
         setUploading(false);
-        toast({ variant: 'destructive', title: 'Upload Failed', description: error.message });
-      },
-      () => {
-        getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
-          setProfileImageUrl(downloadURL);
-          form.setValue('profilePictureUrl', downloadURL);
-          const donorRef = doc(db, 'donors', uidToUpdate!);
-          await updateDoc(donorRef, { profilePictureUrl: downloadURL });
-          setUploading(false);
-          toast({ title: 'Success', description: 'Profile picture updated!' });
-        });
-      }
-    );
+        toast({ title: 'Success', description: 'Image ready to be saved.' });
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const onSubmit = async (values: z.infer<typeof profileSchema>) => {
@@ -248,7 +217,8 @@ function ProfilePageComponent() {
         description: 'Your information has been saved successfully.',
       });
       if (isAdmin && userIdToEdit) {
-        router.push('/admin/donors');
+        // Optional: you might want to refresh or redirect
+        // router.push('/admin/donors');
       }
     } catch (error) {
        toast({
