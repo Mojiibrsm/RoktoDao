@@ -1,8 +1,7 @@
-
 "use client";
 
-import { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useMemo, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -15,16 +14,14 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, Settings } from 'lucide-react';
+import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { bloodGroups, locations, upazilas } from '@/lib/location-data';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Donor } from '@/lib/types';
-import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
-
 
 const profileSchema = z.object({
   fullName: z.string().min(3, { message: 'Full name is required.' }),
@@ -40,13 +37,17 @@ const profileSchema = z.object({
   donationCount: z.coerce.number().optional(),
 });
 
-export default function ProfilePage() {
-  const { user, donorProfile, loading } = useAuth();
+function ProfilePageComponent() {
+  const { user, donorProfile: loggedInUserDonorProfile, loading, isAdmin } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [profileToEdit, setProfileToEdit] = useState<Donor | null>(null);
+  const [pageLoading, setPageLoading] = useState(true);
 
-  
+  const userIdToEdit = searchParams.get('userId');
+
   const form = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -63,7 +64,7 @@ export default function ProfilePage() {
       donationCount: 0,
     },
   });
-  
+
   const selectedDivision = form.watch('division');
   const selectedDistrict = form.watch('district');
 
@@ -91,44 +92,81 @@ export default function ProfilePage() {
       .sort((a, b) => a.label.localeCompare(b.label, 'bn'));
   }, [selectedDistrict]);
 
-
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
-    }
-    if (donorProfile) {
-        form.reset({
-            fullName: donorProfile.fullName || '',
-            phoneNumber: donorProfile.phoneNumber || '',
-            bloodGroup: donorProfile.bloodGroup || '',
-            division: donorProfile.address?.division || '',
-            district: donorProfile.address?.district || '',
-            upazila: donorProfile.address?.upazila || '',
-            lastDonationDate: donorProfile.lastDonationDate ? new Date(donorProfile.lastDonationDate) : undefined,
-            isAvailable: donorProfile.isAvailable,
-            dateOfBirth: donorProfile.dateOfBirth ? new Date(donorProfile.dateOfBirth) : undefined,
-            gender: donorProfile.gender || undefined,
-            donationCount: donorProfile.donationCount || 0,
-        });
-    }
-  }, [user, donorProfile, loading, router, form]);
-  
-  if (loading || !user) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      </div>
-    );
-  }
+    const loadProfile = async () => {
+      if (loading) return;
+      if (!user) {
+        router.push('/login');
+        return;
+      }
 
+      setPageLoading(true);
+
+      let targetProfile: Donor | null = null;
+      let targetUid: string | null = null;
+
+      if (userIdToEdit && isAdmin) {
+        // Admin is editing another user
+        try {
+          const donorRef = doc(db, 'donors', userIdToEdit);
+          const docSnap = await getDoc(donorRef);
+          if (docSnap.exists()) {
+            targetProfile = { id: docSnap.id, ...docSnap.data() } as Donor;
+            targetUid = userIdToEdit;
+          } else {
+            toast({ variant: 'destructive', title: 'Error', description: 'Donor profile not found.' });
+            router.push('/admin/donors');
+            return;
+          }
+        } catch (e) {
+          toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch donor profile.' });
+          router.push('/admin/donors');
+          return;
+        }
+      } else {
+        // Regular user editing their own profile
+        targetProfile = loggedInUserDonorProfile;
+        targetUid = user.uid;
+      }
+
+      setProfileToEdit(targetProfile);
+      
+      if (targetProfile) {
+        form.reset({
+            fullName: targetProfile.fullName || '',
+            phoneNumber: targetProfile.phoneNumber || '',
+            bloodGroup: targetProfile.bloodGroup || '',
+            division: targetProfile.address?.division || '',
+            district: targetProfile.address?.district || '',
+            upazila: targetProfile.address?.upazila || '',
+            lastDonationDate: targetProfile.lastDonationDate ? new Date(targetProfile.lastDonationDate) : undefined,
+            isAvailable: targetProfile.isAvailable,
+            dateOfBirth: targetProfile.dateOfBirth ? new Date(targetProfile.dateOfBirth) : undefined,
+            gender: targetProfile.gender || undefined,
+            donationCount: targetProfile.donationCount || 0,
+        });
+      }
+      setPageLoading(false);
+    };
+
+    loadProfile();
+  }, [user, loggedInUserDonorProfile, loading, router, form, userIdToEdit, isAdmin, toast]);
+  
   const onSubmit = async (values: z.infer<typeof profileSchema>) => {
-    if (!user) {
-        toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be logged in to update your profile.' });
+    let uidToUpdate: string | undefined;
+
+    if (userIdToEdit && isAdmin) {
+      uidToUpdate = userIdToEdit;
+    } else if (user) {
+      uidToUpdate = user.uid;
+    }
+
+    if (!uidToUpdate) {
+        toast({ variant: 'destructive', title: 'Authentication Error', description: 'Could not determine user to update.' });
         return;
     }
     setIsSubmitting(true);
-    const donorData: Omit<Donor, 'id'> = {
-      uid: user.uid,
+    const donorData: Partial<Donor> = {
       fullName: values.fullName,
       bloodGroup: values.bloodGroup,
       phoneNumber: values.phoneNumber,
@@ -142,16 +180,17 @@ export default function ProfilePage() {
       dateOfBirth: values.dateOfBirth?.toISOString(),
       gender: values.gender,
       donationCount: values.donationCount,
-      isVerified: donorProfile?.isVerified ?? false, // Preserve verification status
-      isAdmin: donorProfile?.isAdmin ?? false, // Preserve admin status
     };
 
     try {
-      await setDoc(doc(db, 'donors', user.uid), donorData, { merge: true });
+      await setDoc(doc(db, 'donors', uidToUpdate), donorData, { merge: true });
       toast({
         title: 'Profile Updated',
         description: 'Your information has been saved successfully.',
       });
+      if (isAdmin && userIdToEdit) {
+        router.push('/admin/donors');
+      }
     } catch (error) {
        toast({
         variant: 'destructive',
@@ -162,6 +201,14 @@ export default function ProfilePage() {
         setIsSubmitting(false);
     }
   };
+  
+  if (loading || pageLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto max-w-4xl py-12 px-4">
@@ -170,10 +217,10 @@ export default function ProfilePage() {
           <div className="flex justify-between items-start">
             <div>
               <CardTitle className="text-3xl font-headline text-primary">
-                {donorProfile ? 'Update Your Profile' : 'Become a Donor'}
+                {profileToEdit ? 'Update Profile' : 'Become a Donor'}
               </CardTitle>
               <CardDescription>
-                {donorProfile ? 'Keep your information up to date.' : 'Fill out the form to become a lifesaver.'}
+                {profileToEdit ? 'Keep your information up to date.' : 'Fill out the form to become a lifesaver.'}
               </CardDescription>
             </div>
           </div>
@@ -322,4 +369,13 @@ export default function ProfilePage() {
       </Card>
     </div>
   );
+}
+
+
+export default function ProfilePage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <ProfilePageComponent />
+        </Suspense>
+    )
 }

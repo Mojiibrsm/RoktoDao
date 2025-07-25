@@ -142,7 +142,7 @@ export default function AdminDonorsPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuItem asChild>
-                            <Link href={`/profile/settings?userId=${donor.id}`}><Edit className="mr-2 h-4 w-4" />Edit</Link>
+                            <Link href={`/profile?userId=${donor.id}`}><Edit className="mr-2 h-4 w-4" />Edit</Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleVerifyDonor(donor.id)}>
                             <CheckCircle className="mr-2 h-4 w-4" />
