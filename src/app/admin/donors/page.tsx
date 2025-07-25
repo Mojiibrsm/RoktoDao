@@ -145,14 +145,6 @@ export default function AdminDonorsPage() {
             donorsToImport.forEach((row) => {
                 const newDonorRef = doc(collection(db, 'donors'));
                 
-                let lastDonationDate = undefined;
-                if (row['Last Donation Date']) {
-                    const parsedDate = new Date(row['Last Donation Date']);
-                    if (!isNaN(parsedDate.getTime())) {
-                        lastDonationDate = parsedDate.toISOString();
-                    }
-                }
-                
                 const newDonor: Partial<DonorType> = {
                     uid: newDonorRef.id,
                     fullName: row['Donor Name'] || "N/A",
@@ -163,12 +155,18 @@ export default function AdminDonorsPage() {
                         district: "N/A",
                         upazila: "N/A",
                     },
-                    lastDonationDate: lastDonationDate,
                     isAvailable: true,
                     isVerified: false,
                     isAdmin: false,
                     createdAt: new Date().toISOString(),
                 };
+
+                if (row['Last Donation Date']) {
+                    const parsedDate = new Date(row['Last Donation Date']);
+                    if (!isNaN(parsedDate.getTime())) {
+                        newDonor.lastDonationDate = parsedDate.toISOString();
+                    }
+                }
                 
                 batch.set(newDonorRef, newDonor);
                 importedCount++;
@@ -410,3 +408,5 @@ export default function AdminDonorsPage() {
     </div>
   );
 }
+
+    
