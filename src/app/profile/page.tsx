@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useMemo, Suspense } from 'react';
@@ -14,7 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { bloodGroups, locations, upazilas } from '@/lib/location-data';
@@ -22,6 +23,7 @@ import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Donor } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const profileSchema = z.object({
   fullName: z.string().min(3, { message: 'Full name is required.' }),
@@ -35,6 +37,7 @@ const profileSchema = z.object({
   dateOfBirth: z.date().optional(),
   gender: z.enum(['Male', 'Female', 'Other']).optional(),
   donationCount: z.coerce.number().optional(),
+  profilePictureUrl: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
 });
 
 function ProfilePageComponent() {
@@ -62,6 +65,7 @@ function ProfilePageComponent() {
       dateOfBirth: undefined,
       gender: undefined,
       donationCount: 0,
+      profilePictureUrl: '',
     },
   });
 
@@ -103,7 +107,6 @@ function ProfilePageComponent() {
       setPageLoading(true);
 
       let targetProfile: Donor | null = null;
-      let targetUid: string | null = null;
 
       if (userIdToEdit && isAdmin) {
         // Admin is editing another user
@@ -112,7 +115,6 @@ function ProfilePageComponent() {
           const docSnap = await getDoc(donorRef);
           if (docSnap.exists()) {
             targetProfile = { id: docSnap.id, ...docSnap.data() } as Donor;
-            targetUid = userIdToEdit;
           } else {
             toast({ variant: 'destructive', title: 'Error', description: 'Donor profile not found.' });
             router.push('/admin/donors');
@@ -126,7 +128,6 @@ function ProfilePageComponent() {
       } else {
         // Regular user editing their own profile
         targetProfile = loggedInUserDonorProfile;
-        targetUid = user.uid;
       }
 
       setProfileToEdit(targetProfile);
@@ -144,6 +145,7 @@ function ProfilePageComponent() {
             dateOfBirth: targetProfile.dateOfBirth ? new Date(targetProfile.dateOfBirth) : undefined,
             gender: targetProfile.gender || undefined,
             donationCount: targetProfile.donationCount || 0,
+            profilePictureUrl: targetProfile.profilePictureUrl || '',
         });
       }
       setPageLoading(false);
@@ -153,7 +155,7 @@ function ProfilePageComponent() {
   }, [user, loggedInUserDonorProfile, loading, router, form, userIdToEdit, isAdmin, toast]);
   
   const onSubmit = async (values: z.infer<typeof profileSchema>) => {
-    let uidToUpdate: string | undefined;
+    let uidToUpdate: string | null | undefined;
 
     if (userIdToEdit && isAdmin) {
       uidToUpdate = userIdToEdit;
@@ -180,6 +182,7 @@ function ProfilePageComponent() {
       dateOfBirth: values.dateOfBirth?.toISOString(),
       gender: values.gender,
       donationCount: values.donationCount,
+      profilePictureUrl: values.profilePictureUrl,
     };
 
     try {
@@ -223,132 +226,149 @@ function ProfilePageComponent() {
                 {profileToEdit ? 'Keep your information up to date.' : 'Fill out the form to become a lifesaver.'}
               </CardDescription>
             </div>
+            <Avatar className="h-20 w-20">
+              <AvatarImage src={form.watch('profilePictureUrl') || undefined} alt={form.watch('fullName')} />
+              <AvatarFallback>
+                <User className="h-10 w-10 text-muted-foreground" />
+              </AvatarFallback>
+            </Avatar>
           </div>
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField control={form.control} name="fullName" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Full Name</FormLabel>
-                  <FormControl><Input placeholder="John Doe" {...field} value={field.value ?? ''} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="phoneNumber" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Phone Number</FormLabel>
-                  <FormControl><Input placeholder="01XXXXXXXXX" {...field} value={field.value ?? ''} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={form.control} name="bloodGroup" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Blood Group</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl><SelectTrigger><SelectValue placeholder="Select blood group" /></SelectTrigger></FormControl>
-                    <SelectContent>{bloodGroups.map(group => <SelectItem key={group} value={group}>{group}</SelectItem>)}</SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )} />
-                <FormField control={form.control} name="dateOfBirth" render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                    <FormLabel>Date of Birth</FormLabel>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                        <FormControl>
-                            <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                        </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={1950} toYear={new Date().getFullYear()} disabled={(date) => date > new Date() || date.getFullYear() < 1920} initialFocus />
-                        </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                    </FormItem>
-                )} />
-
-              <FormField control={form.control} name="lastDonationDate" render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Last Donation Date</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                          {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar mode="single" selected={field.value} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={1950} toYear={new Date().getFullYear()} disabled={(date) => date > new Date()} initialFocus />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )} />
-             
-             <FormField control={form.control} name="gender" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Gender</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl><SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger></FormControl>
-                    <SelectContent>{['Male', 'Female', 'Other'].map(gender => <SelectItem key={gender} value={gender}>{gender}</SelectItem>)}</SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )} />
-               <FormField control={form.control} name="division" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Division</FormLabel>
-                  <Select onValueChange={(value) => { field.onChange(value); form.setValue('district', ''); form.setValue('upazila', ''); }} value={field.value}>
-                    <FormControl><SelectTrigger><SelectValue placeholder="Select division" /></SelectTrigger></FormControl>
-                    <SelectContent>{Object.keys(locations).map(div => <SelectItem key={div} value={div}>{div}</SelectItem>)}</SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField
-                control={form.control}
-                name="district"
-                render={({ field }) => (
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <FormField control={form.control} name="fullName" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>District</FormLabel>
-                    <Select onValueChange={(value) => { field.onChange(value); form.setValue('upazila', ''); }} value={field.value} disabled={!selectedDivision}>
-                        <FormControl><SelectTrigger><SelectValue placeholder="Select district" /></SelectTrigger></FormControl>
-                        <SelectContent>
-                            {districtOptions.map(district => (
-                                <SelectItem key={district.value} value={district.value}>{district.label}</SelectItem>
-                            ))}
-                        </SelectContent>
+                    <FormLabel>Full Name</FormLabel>
+                    <FormControl><Input placeholder="John Doe" {...field} value={field.value ?? ''} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="phoneNumber" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone Number</FormLabel>
+                    <FormControl><Input placeholder="01XXXXXXXXX" {...field} value={field.value ?? ''} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="bloodGroup" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Blood Group</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl><SelectTrigger><SelectValue placeholder="Select blood group" /></SelectTrigger></FormControl>
+                      <SelectContent>{bloodGroups.map(group => <SelectItem key={group} value={group}>{group}</SelectItem>)}</SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
-                )}
-              />
-              <FormField control={form.control} name="upazila" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Upazila / Area</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value} disabled={!selectedDistrict}>
-                    <FormControl><SelectTrigger><SelectValue placeholder="Select upazila" /></SelectTrigger></FormControl>
-                    <SelectContent>
-                      {upazilaOptions.map(up => <SelectItem key={up.value} value={up.value}>{up.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )} />
-                 <FormField control={form.control} name="donationCount" render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Previous Donation Count</FormLabel>
-                    <FormControl><Input type="number" min="0" placeholder="e.g., 5" {...field} value={field.value ?? ''} /></FormControl>
-                    <FormMessage />
-                    </FormItem>
                 )} />
+                  <FormField control={form.control} name="dateOfBirth" render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                      <FormLabel>Date of Birth</FormLabel>
+                      <Popover>
+                          <PopoverTrigger asChild>
+                          <FormControl>
+                              <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                              {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                          </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar mode="single" selected={field.value} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={1950} toYear={new Date().getFullYear()} disabled={(date) => date > new Date() || date.getFullYear() < 1920} initialFocus />
+                          </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                      </FormItem>
+                  )} />
+
+                <FormField control={form.control} name="lastDonationDate" render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Last Donation Date</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={1950} toYear={new Date().getFullYear()} disabled={(date) => date > new Date()} initialFocus />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              
+              <FormField control={form.control} name="gender" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Gender</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl><SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger></FormControl>
+                      <SelectContent>{['Male', 'Female', 'Other'].map(gender => <SelectItem key={gender} value={gender}>{gender}</SelectItem>)}</SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="division" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Division</FormLabel>
+                    <Select onValueChange={(value) => { field.onChange(value); form.setValue('district', ''); form.setValue('upazila', ''); }} value={field.value}>
+                      <FormControl><SelectTrigger><SelectValue placeholder="Select division" /></SelectTrigger></FormControl>
+                      <SelectContent>{Object.keys(locations).map(div => <SelectItem key={div} value={div}>{div}</SelectItem>)}</SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField
+                  control={form.control}
+                  name="district"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>District</FormLabel>
+                      <Select onValueChange={(value) => { field.onChange(value); form.setValue('upazila', ''); }} value={field.value} disabled={!selectedDivision}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Select district" /></SelectTrigger></FormControl>
+                          <SelectContent>
+                              {districtOptions.map(district => (
+                                  <SelectItem key={district.value} value={district.value}>{district.label}</SelectItem>
+                              ))}
+                          </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField control={form.control} name="upazila" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Upazila / Area</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={!selectedDistrict}>
+                      <FormControl><SelectTrigger><SelectValue placeholder="Select upazila" /></SelectTrigger></FormControl>
+                      <SelectContent>
+                        {upazilaOptions.map(up => <SelectItem key={up.value} value={up.value}>{up.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                  <FormField control={form.control} name="donationCount" render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>Previous Donation Count</FormLabel>
+                      <FormControl><Input type="number" min="0" placeholder="e.g., 5" {...field} value={field.value ?? ''} /></FormControl>
+                      <FormMessage />
+                      </FormItem>
+                  )} />
+              </div>
+
+               <FormField control={form.control} name="profilePictureUrl" render={({ field }) => (
+                  <FormItem className="md:col-span-2">
+                    <FormLabel>Profile Picture URL</FormLabel>
+                    <FormControl><Input placeholder="https://example.com/image.png" {...field} value={field.value ?? ''} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
               <FormField control={form.control} name="isAvailable" render={({ field }) => (
                   <FormItem className="md:col-span-2 flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
                       <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
@@ -374,7 +394,7 @@ function ProfilePageComponent() {
 
 export default function ProfilePage() {
     return (
-        <Suspense fallback={<div>Loading...</div>}>
+        <Suspense fallback={<div className="flex h-screen items-center justify-center"><div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>}>
             <ProfilePageComponent />
         </Suspense>
     )
