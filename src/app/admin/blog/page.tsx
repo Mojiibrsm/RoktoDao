@@ -70,13 +70,13 @@ const BlogPostForm = ({ form, onSubmit, isSubmitting, submitText }: { form: UseF
                 <FormField control={form.control} name="excerpt" render={({ field }) => (
                     <FormItem><FormLabel>Excerpt</FormLabel><FormControl><Textarea placeholder="A short summary of the post..." {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
-                 <FormField control={form.control} name="content" render={={({ field }) => (
+                 <FormField control={form.control} name="content" render={({ field }) => (
                     <FormItem><FormLabel>Content (HTML)</FormLabel><FormControl><Textarea placeholder="<h2>Title</h2><p>Paragraph...</p>" rows={8} {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
                  <FormField control={form.control} name="image" render={({ field }) => (
                     <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input placeholder="https://placehold.co/600x400.png" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
-                <FormField control={form.control} name="hint" render={={({ field }) => (
+                <FormField control={form.control} name="hint" render={({ field }) => (
                     <FormItem><FormLabel>Image AI Hint (Optional)</FormLabel><FormControl><Input placeholder="e.g., medical checkup" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
                 <DialogFooter>
@@ -296,4 +296,3 @@ export default function BlogManagementPage() {
         </div>
     );
 }
-
