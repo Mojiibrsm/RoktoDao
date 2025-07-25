@@ -1,19 +1,18 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { db } from '@/lib/firebase';
 import type { BloodRequest, Donor } from '@/lib/types';
 import { collection, getDocs, limit, orderBy, query, where,getCountFromServer, Timestamp } from 'firebase/firestore';
-import { Droplet, MapPin, Calendar, Syringe, Search, Heart, Phone, LifeBuoy, HeartPulse, ShieldCheck, Stethoscope, LocateFixed, MessageCircle, Newspaper, Github, Linkedin, Twitter, Users, Globe, HandHeart, ListChecks, AlertTriangle } from 'lucide-react';
+import { Droplet, MapPin, Calendar, Syringe, Search, Heart, Phone, LifeBuoy, HeartPulse, ShieldCheck, Stethoscope, LocateFixed, MessageCircle, Newspaper, Github, Linkedin, Twitter, Users, Globe, HandHeart, ListChecks, AlertTriangle, ArrowRight } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { getBlogPosts } from '@/lib/blog-data';
 import Image from 'next/image';
 import DonorCard from '@/components/donor-card';
 import RequestCard from '@/components/request-card';
@@ -107,7 +106,6 @@ const faqs = [
 export default async function Home() {
   const urgentRequests = await getUrgentRequests();
   const topDonors = await getTopDonors();
-  const latestPosts = getBlogPosts().slice(0, 3);
   const stats = await getStats();
 
   return (
@@ -333,24 +331,76 @@ export default async function Home() {
             <p className="mt-2 text-lg text-muted-foreground">Stay informed with our latest articles</p>
           </div>
           <Separator className="my-8" />
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {latestPosts.map((post) => (
-                <Card key={post.slug} className="flex flex-col justify-between shadow-lg hover:shadow-xl transition-shadow duration-300 hover:-translate-y-1 border-primary/20">
-                  <CardHeader>
-                    <CardTitle>
-                      <Link href={`/blog/${post.slug}`} className="hover:text-primary transition-colors">
-                        {post.title}
-                      </Link>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground line-clamp-3">{post.excerpt}</p>
-                  </CardContent>
-                  <CardContent>
-                     <p className="text-sm text-muted-foreground">{post.date} by {post.author}</p>
-                  </CardContent>
-                </Card>
-              ))}
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+              <Card className="flex flex-col overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <Image
+                    src="https://placehold.co/600x400.png"
+                    alt="রক্তদানের যোগ্যতা"
+                    width={600}
+                    height={400}
+                    className="w-full h-48 object-cover"
+                    data-ai-hint="medical checkup"
+                  />
+                <CardHeader>
+                  <CardTitle>রক্তদানের যোগ্যতা</CardTitle>
+                </CardHeader>
+                <CardContent className="flex-grow">
+                  <p className="text-muted-foreground">রক্তদানের আগে আপনার কী কী যোগ্যতা থাকা প্রয়োজন তা জানুন।</p>
+                </CardContent>
+                <CardFooter>
+                  <Button asChild variant="link" className="pl-0">
+                    <Link href="/why-donate-blood">
+                      বিস্তারিত পড়ুন <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </CardFooter>
+              </Card>
+              <Card className="flex flex-col overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <Image
+                    src="https://placehold.co/600x400.png"
+                    alt="রক্তদানের উপকারিতা"
+                    width={600}
+                    height={400}
+                    className="w-full h-48 object-cover"
+                    data-ai-hint="health benefits"
+                  />
+                <CardHeader>
+                  <CardTitle>রক্তদানের উপকারিতা</CardTitle>
+                </CardHeader>
+                <CardContent className="flex-grow">
+                  <p className="text-muted-foreground">রক্তদান শুধু অন্যের জীবন বাঁচায় না, আপনার নিজের স্বাস্থ্যের জন্যও উপকারী।</p>
+                </CardContent>
+                <CardFooter>
+                  <Button asChild variant="link" className="pl-0">
+                     <Link href="/why-donate-blood">
+                      বিস্তারিত পড়ুন <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </CardFooter>
+              </Card>
+              <Card className="flex flex-col overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+                 <Image
+                    src="https://placehold.co/600x400.png"
+                    alt="আমাদের টিম"
+                    width={600}
+                    height={400}
+                    className="w-full h-48 object-cover"
+                    data-ai-hint="team photo"
+                  />
+                <CardHeader>
+                  <CardTitle>আমাদের টিম</CardTitle>
+                </CardHeader>
+                <CardContent className="flex-grow">
+                  <p className="text-muted-foreground">আমাদের নিবেদিতপ্রাণ টিমের সাথে পরিচিত হন যারা এই উদ্যোগের পিছনে কাজ করছেন।</p>
+                </CardContent>
+                <CardFooter>
+                  <Button asChild variant="link" className="pl-0">
+                    <Link href="/team">
+                      টিম দেখুন <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </CardFooter>
+              </Card>
           </div>
            <div className="mt-12 text-center">
             <Button asChild>
@@ -366,7 +416,7 @@ export default async function Home() {
                 <div className="grid md:grid-cols-3 gap-8 items-center">
                     <div className="md:col-span-1 flex justify-center">
                         <Image
-                            src="https://placehold.co/200x200.png"
+                            src="/mojibrsm.png"
                             alt="mojibrsm"
                             width={200}
                             height={200}
