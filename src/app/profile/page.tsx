@@ -176,11 +176,6 @@ export default function ProfilePage() {
                 {donorProfile ? 'Keep your information up to date.' : 'Fill out the form to become a lifesaver.'}
               </CardDescription>
             </div>
-            <Button asChild variant="outline" size="icon">
-              <Link href="/profile/settings">
-                <Settings className="h-4 w-4" />
-              </Link>
-            </Button>
           </div>
         </CardHeader>
         <CardContent>
