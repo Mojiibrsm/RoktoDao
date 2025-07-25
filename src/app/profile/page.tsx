@@ -19,7 +19,7 @@ import { CalendarIcon, User, Upload, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { bloodGroups, locations, upazilas } from '@/lib/location-data';
-import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Donor } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
@@ -194,6 +194,8 @@ function ProfilePageComponent() {
     }
     setIsSubmitting(true);
     const donorData: Partial<Donor> = {
+      uid: uidToUpdate,
+      createdAt: profileToEdit?.createdAt || serverTimestamp(),
       fullName: values.fullName,
       bloodGroup: values.bloodGroup,
       phoneNumber: values.phoneNumber,
@@ -428,3 +430,6 @@ export default function ProfilePage() {
         </Suspense>
     )
 }
+
+
+    
