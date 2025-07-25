@@ -1,6 +1,7 @@
 
 
 export type BloodRequest = {
+  id: string;
   patientName: string;
   bloodGroup: string;
   neededDate: string;
@@ -43,3 +44,16 @@ export type Donor = {
   isVerified?: boolean;
   createdAt?: any;
 };
+
+export interface BlogPost {
+  id: string;
+  slug: string;
+  title: string;
+  date: string;
+  author: string;
+  excerpt: string;
+  content: string;
+  image: string;
+  hint: string;
+  createdAt: any;
+}

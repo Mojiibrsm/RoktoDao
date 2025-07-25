@@ -1,12 +1,33 @@
 
-import { getBlogPostBySlug } from '@/lib/blog-data';
-import { notFound } from 'next/navigation';
+
 import { Separator } from '@/components/ui/separator';
 import { Calendar, User } from 'lucide-react';
 import Image from 'next/image';
+import { db } from '@/lib/firebase';
+import { collection, query, where, getDocs, limit } from 'firebase/firestore';
+import type { BlogPost } from '@/lib/types';
+import { notFound } from 'next/navigation';
 
-export default function BlogPostPage({ params }: { params: { slug: string } }) {
-  const post = getBlogPostBySlug(params.slug);
+async function getBlogPostBySlug(slug: string): Promise<BlogPost | null> {
+    const blogsRef = collection(db, 'blogs');
+    const q = query(blogsRef, where("slug", "==", slug), limit(1));
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+        return null;
+    }
+    
+    const doc = querySnapshot.docs[0];
+    const data = doc.data();
+
+    return {
+        id: doc.id,
+        ...data
+    } as BlogPost;
+}
+
+export default async function BlogPostPage({ params }: { params: { slug: string } }) {
+  const post = await getBlogPostBySlug(params.slug);
 
   if (!post) {
     notFound();
@@ -31,7 +52,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
           <div className="flex items-center gap-6 text-muted-foreground mb-6">
               <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
-                  <span>{post.date}</span>
+                  <span>{new Date(post.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
               </div>
               <div className="flex items-center gap-2">
                   <User className="h-4 w-4" />
@@ -46,44 +67,4 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
       </article>
     </div>
   );
-}
-
-// Basic prose styling for blog content
-const proseStyles = `
-  .prose h2 {
-    font-size: 1.875rem;
-    margin-top: 2.5em;
-    margin-bottom: 1em;
-    font-weight: 600;
-  }
-  .prose p {
-    margin-bottom: 1.25em;
-  }
-  .prose ul {
-    list-style-type: disc;
-    padding-left: 1.5em;
-    margin-bottom: 1.25em;
-  }
-  .prose li {
-    margin-bottom: 0.5em;
-  }
-  .prose a {
-    color: hsl(var(--primary));
-    text-decoration: none;
-  }
-  .prose a:hover {
-    text-decoration: underline;
-  }
-`;
-
-export function generateStaticParams() {
-  // You might want to fetch this from a real data source
-  const posts = [
-    { slug: 'the-importance-of-regular-donation' },
-    { slug: 'myths-about-blood-donation' },
-    { slug: 'how-your-donation-saves-lives' },
-  ];
-  return posts.map((post) => ({
-    slug: post.slug,
-  }));
 }
