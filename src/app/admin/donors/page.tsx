@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
-import { collection, getDocs, doc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, deleteDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Donor as DonorType } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
@@ -9,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { MoreHorizontal, Edit, CheckCircle, Trash2, Copy } from 'lucide-react';
+import { MoreHorizontal, Edit, CheckCircle, Trash2, Copy, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -21,9 +22,19 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { Input } from '@/components/ui/input';
 import Link from 'next/link';
+import Papa from 'papaparse';
 
 type Donor = DonorType & { id: string };
 
@@ -31,6 +42,9 @@ export default function AdminDonorsPage() {
   const [donors, setDonors] = useState<Donor[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const [isImporting, setIsImporting] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [fileToImport, setFileToImport] = useState<File | null>(null);
 
   const fetchDonors = async () => {
     setLoading(true);
@@ -71,14 +85,122 @@ export default function AdminDonorsPage() {
     toast({ title: "Number copied!" });
   };
 
+  const handleImportDonors = async () => {
+    if (!fileToImport) {
+        toast({ variant: "destructive", title: "No file selected", description: "Please select a CSV file to import." });
+        return;
+    }
+
+    setIsImporting(true);
+    Papa.parse(fileToImport, {
+        header: true,
+        skipEmptyLines: true,
+        complete: async (results) => {
+            const donorsToImport = results.data as any[];
+            if (donorsToImport.length === 0) {
+                toast({ variant: 'destructive', title: 'Empty File', description: 'The selected CSV file is empty or invalid.' });
+                setIsImporting(false);
+                return;
+            }
+
+            const batch = writeBatch(db);
+            let importedCount = 0;
+
+            donorsToImport.forEach((row) => {
+                // Generate a new document reference with a unique ID
+                const newDonorRef = doc(collection(db, 'donors'));
+                
+                const newDonor: Partial<DonorType> = {
+                    uid: newDonorRef.id, // Use the generated ID as the UID
+                    fullName: row.fullName || "N/A",
+                    phoneNumber: row.phoneNumber || "N/A",
+                    bloodGroup: row.bloodGroup || "N/A",
+                    address: {
+                        division: row.division || "N/A",
+                        district: row.district || "N/A",
+                        upazila: row.upazila || "N/A",
+                    },
+                    isAvailable: true,
+                    isVerified: false,
+                    isAdmin: false,
+                    createdAt: new Date().toISOString(),
+                };
+                
+                batch.set(newDonorRef, newDonor);
+                importedCount++;
+            });
+
+            try {
+                await batch.commit();
+                toast({
+                    title: "Import Successful",
+                    description: `${importedCount} donors have been imported.`,
+                });
+                fetchDonors(); // Refresh the donor list
+            } catch (error) {
+                console.error("Error importing donors:", error);
+                toast({
+                    variant: "destructive",
+                    title: "Import Failed",
+                    description: "An error occurred while importing donors.",
+                });
+            } finally {
+                setIsImporting(false);
+                setIsImportDialogOpen(false);
+                setFileToImport(null);
+            }
+        },
+        error: (error) => {
+            toast({
+                variant: "destructive",
+                title: "Parsing Error",
+                description: `Could not parse CSV file: ${error.message}`,
+            });
+            setIsImporting(false);
+        }
+    });
+};
+
 
   return (
     <div>
-      <header className="py-4">
-        <h1 className="text-2xl font-bold tracking-tight text-primary md:text-3xl font-headline">
-          Donors Management
-        </h1>
-        <p className="text-muted-foreground">View, Edit, Delete, and Verify Donors.</p>
+      <header className="py-4 flex items-center justify-between">
+        <div>
+            <h1 className="text-2xl font-bold tracking-tight text-primary md:text-3xl font-headline">
+            Donors Management
+            </h1>
+            <p className="text-muted-foreground">View, Edit, Delete, and Verify Donors.</p>
+        </div>
+        <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline"><Upload className="mr-2 h-4 w-4" /> Import Donors</Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Import Donors via CSV</DialogTitle>
+                    <DialogDescription>
+                        Select a CSV file to import new donors. The file should have columns: 
+                        `fullName`, `phoneNumber`, `bloodGroup`, `division`, `district`, `upazila`.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                    <Input 
+                        type="file" 
+                        accept=".csv"
+                        onChange={(e) => setFileToImport(e.target.files ? e.target.files[0] : null)}
+                    />
+                     <p className="text-xs text-muted-foreground mt-2">
+                        Note: Missing fields are allowed and will be marked as N/A.
+                     </p>
+                </div>
+                <DialogFooter>
+                    <Button variant="secondary" onClick={() => setIsImportDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={handleImportDonors} disabled={isImporting || !fileToImport}>
+                        {isImporting ? 'Importing...' : 'Start Import'}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
       </header>
       <Card>
         <CardHeader>
