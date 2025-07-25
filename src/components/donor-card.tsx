@@ -10,7 +10,7 @@ import { format, differenceInDays, addDays } from 'date-fns';
 import { Phone, MapPin, Calendar, UserCheck, Droplet, Copy } from 'lucide-react';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 
 type DonorCardProps = {
@@ -20,20 +20,6 @@ type DonorCardProps = {
 export default function DonorCard({ donor }: DonorCardProps) {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
-  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (donor && donor.uid) {
-      try {
-        const localImage = localStorage.getItem(`profilePic_${donor.uid}`);
-        if (localImage) {
-          setProfileImageUrl(localImage);
-        }
-      } catch (error) {
-        console.error("Could not access local storage:", error);
-      }
-    }
-  }, [donor]);
   
   const isAvailable = donor.isAvailable;
   
@@ -66,7 +52,7 @@ export default function DonorCard({ donor }: DonorCardProps) {
         <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-4">
                  <Avatar className="h-12 w-12">
-                    <AvatarImage src={profileImageUrl || donor.profilePictureUrl || undefined} alt={donor.fullName} />
+                    <AvatarImage src={donor.profilePictureUrl || undefined} alt={donor.fullName} />
                     <AvatarFallback>{donor.fullName?.[0].toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div>
@@ -124,3 +110,5 @@ export default function DonorCard({ donor }: DonorCardProps) {
     </Card>
   );
 }
+
+    

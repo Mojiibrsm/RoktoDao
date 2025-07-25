@@ -20,7 +20,8 @@ import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { bloodGroups, locations, upazilas } from '@/lib/location-data';
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db, storage } from '@/lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { Donor } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -121,12 +122,7 @@ function ProfilePageComponent() {
           if (docSnap.exists()) {
             const targetProfile = { id: docSnap.id, ...docSnap.data() } as Donor;
             setProfileToEdit(targetProfile);
-            
-            // Load image from local storage
-            const localImage = localStorage.getItem(`profilePic_${targetUid}`);
-            if (localImage) {
-                setProfileImageUrl(localImage);
-            }
+            setProfileImageUrl(targetProfile.profilePictureUrl || '');
 
             form.reset({
                 fullName: targetProfile.fullName || '',
@@ -157,25 +153,28 @@ function ProfilePageComponent() {
     loadProfile();
   }, [user, loading, router, form, userIdToEdit, isAdmin, toast, targetUid]);
   
-  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0] && targetUid) {
       const file = e.target.files[0];
-      
       setUploading(true);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        try {
-            localStorage.setItem(`profilePic_${targetUid}`, base64String);
-            setProfileImageUrl(base64String);
-            toast({ title: 'Success', description: 'Image preview updated. It is saved in your browser.' });
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Storage Failed', description: 'Could not save image to local storage. It might be full.' });
-        } finally {
-            setUploading(false);
-        }
-      };
-      reader.readAsDataURL(file);
+      
+      try {
+        const storageRef = ref(storage, `profile-pictures/${targetUid}`);
+        await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(storageRef);
+        
+        setProfileImageUrl(downloadURL);
+        
+        const donorRef = doc(db, 'donors', targetUid);
+        await updateDoc(donorRef, { profilePictureUrl: downloadURL });
+        
+        toast({ title: 'Success', description: 'Profile picture updated successfully!' });
+      } catch (error) {
+        console.error("Image upload failed:", error);
+        toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload image. Please try again.' });
+      } finally {
+        setUploading(false);
+      }
     }
   };
 
@@ -191,7 +190,7 @@ function ProfilePageComponent() {
       const donorRef = doc(db, 'donors', targetUid);
       const docSnap = await getDoc(donorRef);
 
-      const donorDataToSave: Partial<Omit<Donor, 'uid' | 'profilePictureUrl'>> = {
+      const donorDataToSave: Partial<Omit<Donor, 'uid'>> = {
         fullName: values.fullName,
         bloodGroup: values.bloodGroup,
         phoneNumber: values.phoneNumber,
@@ -205,6 +204,7 @@ function ProfilePageComponent() {
         dateOfBirth: values.dateOfBirth?.toISOString(),
         gender: values.gender,
         donationCount: values.donationCount,
+        profilePictureUrl: profileImageUrl
       };
 
       if (docSnap.exists()) {
@@ -212,13 +212,13 @@ function ProfilePageComponent() {
             ...donorDataToSave
         });
       } else {
-         const newDonorData: Omit<Donor, 'id' | 'profilePictureUrl'> = {
+         const newDonorData: Omit<Donor, 'id'> = {
             uid: targetUid,
             ...donorDataToSave,
             isVerified: false, 
             isAdmin: false,
             createdAt: serverTimestamp(),
-        } as Omit<Donor, 'id' | 'profilePictureUrl'>;
+        } as Omit<Donor, 'id'>;
         await setDoc(donorRef, newDonorData);
       }
 
@@ -436,3 +436,5 @@ export default function ProfilePage() {
         </Suspense>
     )
 }
+
+    
