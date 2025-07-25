@@ -42,7 +42,7 @@ const profileSchema = z.object({
 });
 
 function ProfilePageComponent() {
-  const { user, donorProfile: loggedInUserDonorProfile, loading, isAdmin } = useAuth();
+  const { user, loading, isAdmin } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -193,9 +193,8 @@ function ProfilePageComponent() {
         return;
     }
     setIsSubmitting(true);
-    const donorData: Partial<Donor> = {
-      uid: uidToUpdate,
-      createdAt: profileToEdit?.createdAt || serverTimestamp(),
+    
+    const donorDataToSave = {
       fullName: values.fullName,
       bloodGroup: values.bloodGroup,
       phoneNumber: values.phoneNumber,
@@ -213,16 +212,31 @@ function ProfilePageComponent() {
     };
 
     try {
-      await setDoc(doc(db, 'donors', uidToUpdate), donorData, { merge: true });
+      const donorRef = doc(db, 'donors', uidToUpdate);
+      if (profileToEdit) {
+        // Update existing profile
+        await updateDoc(donorRef, donorDataToSave);
+      } else {
+        // Create new profile
+        const newDonorData: Omit<Donor, 'id'> = {
+            ...donorDataToSave,
+            uid: uidToUpdate,
+            createdAt: serverTimestamp(),
+            isVerified: false, 
+            isAdmin: false,
+        };
+        await setDoc(donorRef, newDonorData);
+      }
+
       toast({
         title: 'Profile Updated',
         description: 'Your information has been saved successfully.',
       });
       if (isAdmin && userIdToEdit) {
-        // Optional: you might want to refresh or redirect
-        // router.push('/admin/donors');
+         router.push('/admin/donors');
       }
     } catch (error) {
+       console.error("Update failed:", error);
        toast({
         variant: 'destructive',
         title: 'Update Failed',
@@ -430,6 +444,3 @@ export default function ProfilePage() {
         </Suspense>
     )
 }
-
-
-    
