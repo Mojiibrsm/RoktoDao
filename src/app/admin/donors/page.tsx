@@ -8,9 +8,9 @@ import type { Donor as DonorType } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { MoreHorizontal, Edit, CheckCircle, Trash2, Copy, Upload } from 'lucide-react';
+import { MoreHorizontal, Edit, CheckCircle, Trash2, Copy, Upload, ChevronDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -36,6 +36,7 @@ import {
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import Papa from 'papaparse';
+import { Checkbox } from '@/components/ui/checkbox';
 
 type Donor = DonorType & { id: string };
 
@@ -46,6 +47,9 @@ export default function AdminDonorsPage() {
   const [isImporting, setIsImporting] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [fileToImport, setFileToImport] = useState<File | null>(null);
+  const [selectedDonors, setSelectedDonors] = useState<string[]>([]);
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
+
 
   const fetchDonors = async () => {
     setLoading(true);
@@ -54,6 +58,7 @@ export default function AdminDonorsPage() {
     const donorsList = donorsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Donor));
     setDonors(donorsList);
     setLoading(false);
+    setSelectedDonors([]);
   };
 
   useEffect(() => {
@@ -85,6 +90,36 @@ export default function AdminDonorsPage() {
     navigator.clipboard.writeText(number);
     toast({ title: "Number copied!" });
   };
+  
+  const handleBulkAction = async (action: 'verify' | 'delete') => {
+    const batch = writeBatch(db);
+    selectedDonors.forEach(id => {
+        const donorRef = doc(db, 'donors', id);
+        if (action === 'delete') {
+            batch.delete(donorRef);
+        } else if (action === 'verify') {
+            batch.update(donorRef, { isVerified: true });
+        }
+    });
+
+    try {
+        await batch.commit();
+        toast({
+            title: 'Success',
+            description: `${selectedDonors.length} donors have been ${action === 'delete' ? 'deleted' : 'verified'}.`
+        });
+        fetchDonors();
+    } catch (error) {
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: `Could not perform bulk ${action}.`
+        });
+    } finally {
+       if (action === 'delete') setIsBulkDeleteOpen(false);
+    }
+};
+
 
   const handleImportDonors = async () => {
     if (!fileToImport) {
@@ -108,11 +143,10 @@ export default function AdminDonorsPage() {
             let importedCount = 0;
 
             donorsToImport.forEach((row) => {
-                // Generate a new document reference with a unique ID
                 const newDonorRef = doc(collection(db, 'donors'));
                 
                 const newDonor: Partial<DonorType> = {
-                    uid: newDonorRef.id, // Use the generated ID as the UID
+                    uid: newDonorRef.id,
                     fullName: row.fullName || "N/A",
                     phoneNumber: row.phoneNumber || "N/A",
                     bloodGroup: row.bloodGroup || "N/A",
@@ -137,7 +171,7 @@ export default function AdminDonorsPage() {
                     title: "Import Successful",
                     description: `${importedCount} donors have been imported.`,
                 });
-                fetchDonors(); // Refresh the donor list
+                fetchDonors();
             } catch (error) {
                 console.error("Error importing donors:", error);
                 toast({
@@ -161,7 +195,6 @@ export default function AdminDonorsPage() {
         }
     });
 };
-
 
   return (
     <div>
@@ -205,13 +238,68 @@ export default function AdminDonorsPage() {
       </header>
       <Card>
         <CardHeader>
-          <CardTitle>All Donors</CardTitle>
-          <CardDescription>A list of all registered donors in the system.</CardDescription>
+          <div className="flex justify-between items-center">
+             <div>
+                <CardTitle>All Donors</CardTitle>
+                <CardDescription>A list of all registered donors in the system.</CardDescription>
+             </div>
+             {selectedDonors.length > 0 && (
+                <AlertDialog open={isBulkDeleteOpen} onOpenChange={setIsBulkDeleteOpen}>
+                    <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="outline">
+                        Actions ({selectedDonors.length})
+                        <ChevronDown className="ml-2 h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem onSelect={() => handleBulkAction('verify')}>
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Verify Selected
+                        </DropdownMenuItem>
+                        <AlertDialogTrigger asChild>
+                             <DropdownMenuItem className="text-destructive focus:text-destructive">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete Selected
+                            </DropdownMenuItem>
+                        </AlertDialogTrigger>
+                    </DropdownMenuContent>
+                    </DropdownMenu>
+                    <AlertDialogContent>
+                         <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This will permanently delete the selected {selectedDonors.length} donors. This action cannot be undone.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleBulkAction('delete')} className="bg-destructive hover:bg-destructive/90">
+                                Delete
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+             )}
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead padding="checkbox">
+                  <Checkbox
+                    checked={selectedDonors.length === donors.length && donors.length > 0}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setSelectedDonors(donors.map(d => d.id));
+                      } else {
+                        setSelectedDonors([]);
+                      }
+                    }}
+                    aria-label="Select all"
+                  />
+                </TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Blood Group</TableHead>
                 <TableHead>Location</TableHead>
@@ -226,10 +314,21 @@ export default function AdminDonorsPage() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center">Loading donors...</TableCell>
+                  <TableCell colSpan={8} className="text-center">Loading donors...</TableCell>
                 </TableRow>
               ) : donors.map((donor) => (
-                <TableRow key={donor.id}>
+                <TableRow key={donor.id} data-state={selectedDonors.includes(donor.id) && "selected"}>
+                  <TableCell padding="checkbox">
+                    <Checkbox
+                      checked={selectedDonors.includes(donor.id)}
+                      onCheckedChange={(checked) => {
+                        setSelectedDonors(prev => 
+                          checked ? [...prev, donor.id] : prev.filter(id => id !== donor.id)
+                        );
+                      }}
+                      aria-label="Select row"
+                    />
+                  </TableCell>
                   <TableCell className="font-medium">{donor.fullName}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="text-primary border-primary">

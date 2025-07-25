@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { collection, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Donor as DonorType } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { MoreHorizontal, UserX, Trash2, Edit } from 'lucide-react';
+import { MoreHorizontal, UserX, Trash2, Edit, ChevronDown, CheckCircle, Ban, UserCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -24,6 +24,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import Link from 'next/link';
+import { Checkbox } from '@/components/ui/checkbox';
 
 type Donor = DonorType & { id: string };
 
@@ -31,6 +32,8 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<Donor[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -39,6 +42,7 @@ export default function AdminUsersPage() {
     const usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Donor));
     setUsers(usersList);
     setLoading(false);
+    setSelectedUsers([]);
   };
 
   useEffect(() => {
@@ -59,12 +63,41 @@ export default function AdminUsersPage() {
   const handleDeleteUser = async (userId: string) => {
     try {
       await deleteDoc(doc(db, 'donors', userId));
-      // Note: This does not delete the user from Firebase Auth.
-      // That requires a backend function for security reasons.
       toast({ title: "User Deleted", description: "The user's Firestore record has been deleted." });
-      fetchUsers(); // Refresh list
+      fetchUsers();
     } catch (error) {
        toast({ variant: "destructive", title: "Error", description: "Could not delete the user." });
+    }
+  };
+
+  const handleBulkAction = async (action: 'delete' | 'block' | 'unblock') => {
+    const batch = writeBatch(db);
+    selectedUsers.forEach(id => {
+      const userRef = doc(db, 'donors', id);
+      if (action === 'delete') {
+        batch.delete(userRef);
+      } else if (action === 'block') {
+        batch.update(userRef, { isAvailable: false });
+      } else if (action === 'unblock') {
+        batch.update(userRef, { isAvailable: true });
+      }
+    });
+
+    try {
+      await batch.commit();
+      toast({
+        title: 'Success',
+        description: `${selectedUsers.length} users have been updated.`
+      });
+      fetchUsers();
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: `Could not perform bulk action.`
+      });
+    } finally {
+        if(action === 'delete') setIsBulkDeleteOpen(false);
     }
   };
 
@@ -78,13 +111,72 @@ export default function AdminUsersPage() {
       </header>
       <Card>
         <CardHeader>
-          <CardTitle>All Users</CardTitle>
-          <CardDescription>A list of all registered users (donors).</CardDescription>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>All Users</CardTitle>
+              <CardDescription>A list of all registered users (donors).</CardDescription>
+            </div>
+            {selectedUsers.length > 0 && (
+              <AlertDialog open={isBulkDeleteOpen} onOpenChange={setIsBulkDeleteOpen}>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline">
+                      Actions ({selectedUsers.length})
+                      <ChevronDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onSelect={() => handleBulkAction('block')}>
+                      <Ban className="mr-2 h-4 w-4" />
+                      Block Selected
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => handleBulkAction('unblock')}>
+                      <UserCheck className="mr-2 h-4 w-4" />
+                      Unblock Selected
+                    </DropdownMenuItem>
+                    <AlertDialogTrigger asChild>
+                        <DropdownMenuItem className="text-destructive focus:text-destructive">
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete Selected
+                        </DropdownMenuItem>
+                    </AlertDialogTrigger>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This will permanently delete the selected {selectedUsers.length} users. This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleBulkAction('delete')} className="bg-destructive hover:bg-destructive/90">
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
+                 <TableHead padding="checkbox">
+                  <Checkbox
+                    checked={selectedUsers.length === users.length && users.length > 0}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setSelectedUsers(users.map(u => u.id));
+                      } else {
+                        setSelectedUsers([]);
+                      }
+                    }}
+                    aria-label="Select all"
+                  />
+                </TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Blood Group</TableHead>
                 <TableHead>Location</TableHead>
@@ -98,10 +190,21 @@ export default function AdminUsersPage() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                    <TableCell colSpan={6} className="text-center">Loading users...</TableCell>
+                    <TableCell colSpan={7} className="text-center">Loading users...</TableCell>
                 </TableRow>
               ) : users.map((user) => (
-                <TableRow key={user.id}>
+                <TableRow key={user.id} data-state={selectedUsers.includes(user.id) && "selected"}>
+                  <TableCell padding="checkbox">
+                    <Checkbox
+                      checked={selectedUsers.includes(user.id)}
+                      onCheckedChange={(checked) => {
+                        setSelectedUsers(prev => 
+                          checked ? [...prev, user.id] : prev.filter(id => id !== user.id)
+                        );
+                      }}
+                      aria-label="Select row"
+                    />
+                  </TableCell>
                   <TableCell className="font-medium">{user.fullName}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="text-primary border-primary">
