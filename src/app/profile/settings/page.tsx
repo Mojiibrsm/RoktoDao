@@ -15,7 +15,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -114,7 +113,7 @@ export default function SettingsPage() {
     formData.append('image', selectedFile);
 
     try {
-      const apiKey = "6a420b435223f273b4830154e1952210";
+      const apiKey = process.env.NEXT_PUBLIC_IMGBB_API_KEY;
       if (!apiKey) {
         throw new Error("IMGBB API key is not configured.");
       }
@@ -147,7 +146,6 @@ export default function SettingsPage() {
       setIsUploading(false);
     }
   };
-
 
   const onSubmit = (values: z.infer<typeof settingsSchema>) => {
     console.log(values);
