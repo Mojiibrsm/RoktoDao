@@ -160,16 +160,6 @@ function ProfilePageComponent() {
   const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0] && targetUid) {
       const file = e.target.files[0];
-      const MAX_SIZE = 1 * 1024 * 1024; // 1MB limit for local storage as a precaution
-
-      if (file.size > MAX_SIZE) {
-        toast({
-          variant: 'destructive',
-          title: 'Image Too Large',
-          description: 'Please upload an image smaller than 1MB to save it in the browser.',
-        });
-        return;
-      }
       
       setUploading(true);
       const reader = new FileReader();
@@ -201,7 +191,6 @@ function ProfilePageComponent() {
       const donorRef = doc(db, 'donors', targetUid);
       const docSnap = await getDoc(donorRef);
 
-      // We do not save profilePictureUrl to Firestore anymore.
       const donorDataToSave: Partial<Omit<Donor, 'uid' | 'profilePictureUrl'>> = {
         fullName: values.fullName,
         bloodGroup: values.bloodGroup,
@@ -219,27 +208,17 @@ function ProfilePageComponent() {
       };
 
       if (docSnap.exists()) {
-        await updateDoc(donorRef, donorDataToSave);
+        await updateDoc(donorRef, {
+            ...donorDataToSave
+        });
       } else {
          const newDonorData: Omit<Donor, 'id' | 'profilePictureUrl'> = {
             uid: targetUid,
-            fullName: values.fullName,
-            bloodGroup: values.bloodGroup,
-            phoneNumber: values.phoneNumber,
-            address: {
-                division: values.division,
-                district: values.district,
-                upazila: values.upazila,
-            },
-            isAvailable: values.isAvailable,
-            lastDonationDate: values.lastDonationDate?.toISOString(),
-            dateOfBirth: values.dateOfBirth?.toISOString(),
-            gender: values.gender,
-            donationCount: values.donationCount,
+            ...donorDataToSave,
             isVerified: false, 
             isAdmin: false,
             createdAt: serverTimestamp(),
-        };
+        } as Omit<Donor, 'id' | 'profilePictureUrl'>;
         await setDoc(donorRef, newDonorData);
       }
 
