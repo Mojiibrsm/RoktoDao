@@ -38,6 +38,7 @@ const profileSchema = z.object({
   dateOfBirth: z.date().optional(),
   gender: z.enum(['Male', 'Female', 'Other']).optional(),
   donationCount: z.coerce.number().optional(),
+  profilePictureUrl: z.string().optional(),
 });
 
 function ProfilePageComponent() {
@@ -69,6 +70,7 @@ function ProfilePageComponent() {
       dateOfBirth: undefined,
       gender: undefined,
       donationCount: 0,
+      profilePictureUrl: '',
     },
   });
 
@@ -121,14 +123,7 @@ function ProfilePageComponent() {
           if (docSnap.exists()) {
             const targetProfile = { id: docSnap.id, ...docSnap.data() } as Donor;
             setProfileToEdit(targetProfile);
-            
-            // Load image from local storage
-            const storedImage = localStorage.getItem(`profilePic_${targetUid}`);
-            if (storedImage) {
-              setProfileImageUrl(storedImage);
-            } else {
-              setProfileImageUrl(targetProfile.profilePictureUrl || '');
-            }
+            setProfileImageUrl(targetProfile.profilePictureUrl || '');
 
             form.reset({
                 fullName: targetProfile.fullName || '',
@@ -142,6 +137,7 @@ function ProfilePageComponent() {
                 dateOfBirth: targetProfile.dateOfBirth ? new Date(targetProfile.dateOfBirth) : undefined,
                 gender: targetProfile.gender || undefined,
                 donationCount: targetProfile.donationCount || 0,
+                profilePictureUrl: targetProfile.profilePictureUrl || '',
             });
           } else if(userIdToEdit) {
             toast({ variant: 'destructive', title: 'Error', description: 'Donor profile not found.' });
@@ -159,25 +155,37 @@ function ProfilePageComponent() {
     loadProfile();
   }, [user, loading, router, form, userIdToEdit, isAdmin, toast, targetUid]);
   
-  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0] && targetUid) {
-      const file = e.target.files[0];
-      setUploading(true);
+  const handleFileSelect = async (e: ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) {
+      return;
+    }
+    const file = e.target.files[0];
+    if (!targetUid) return;
 
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        try {
-            localStorage.setItem(`profilePic_${targetUid}`, base64String);
-            setProfileImageUrl(base64String);
-            toast({ title: 'Success', description: 'Profile picture updated in local storage!' });
-        } catch (error) {
-             toast({ variant: 'destructive', title: 'Storage Failed', description: 'Could not save image. Browser storage might be full.' });
-        } finally {
-            setUploading(false);
-        }
-      };
-      reader.readAsDataURL(file);
+    setUploading(true);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setProfileImageUrl(data.path);
+        form.setValue('profilePictureUrl', data.path);
+        toast({ title: 'Success', description: 'Profile picture uploaded!' });
+      } else {
+        throw new Error(data.error || 'Upload failed');
+      }
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Upload Failed', description: error.message });
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -193,8 +201,7 @@ function ProfilePageComponent() {
       const donorRef = doc(db, 'donors', targetUid);
       const docSnap = await getDoc(donorRef);
 
-      // We are NOT saving the profile picture URL to Firestore anymore to avoid the size error.
-      const donorDataToSave: Partial<Omit<Donor, 'uid' | 'profilePictureUrl'>> = {
+      const donorDataToSave: Partial<Donor> = {
         fullName: values.fullName,
         bloodGroup: values.bloodGroup,
         phoneNumber: values.phoneNumber,
@@ -208,6 +215,7 @@ function ProfilePageComponent() {
         dateOfBirth: values.dateOfBirth?.toISOString(),
         gender: values.gender,
         donationCount: values.donationCount,
+        profilePictureUrl: values.profilePictureUrl,
       };
 
       if (docSnap.exists()) {
@@ -439,5 +447,3 @@ export default function ProfilePage() {
         </Suspense>
     )
 }
-
-    
