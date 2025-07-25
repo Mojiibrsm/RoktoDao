@@ -11,6 +11,7 @@ import { Phone, MapPin, Calendar, UserCheck, Droplet, Copy } from 'lucide-react'
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
+import Image from 'next/image';
 
 type DonorCardProps = {
   donor: Donor;
@@ -51,7 +52,7 @@ export default function DonorCard({ donor }: DonorCardProps) {
         <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-4">
                  <Avatar className="h-12 w-12">
-                    <AvatarImage src={donor.profilePictureUrl || ''} alt={donor.fullName} data-ai-hint="placeholder person" />
+                    {donor.profilePictureUrl && <AvatarImage src={donor.profilePictureUrl} alt={donor.fullName} />}
                     <AvatarFallback>{donor.fullName?.[0].toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div>
@@ -109,5 +110,3 @@ export default function DonorCard({ donor }: DonorCardProps) {
     </Card>
   );
 }
-
-    
