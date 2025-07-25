@@ -157,7 +157,7 @@ export default function SettingsPage() {
     });
     // Add Firebase sendPasswordResetEmail logic here
   };
-  
+
   if (authLoading || !user) {
     return (
       <div className="flex h-screen items-center justify-center">
