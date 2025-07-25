@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { MoreHorizontal, UserX, Trash2 } from 'lucide-react';
+import { MoreHorizontal, UserX, Trash2, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -23,6 +23,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import Link from 'next/link';
 
 type Donor = DonorType & { id: string };
 
@@ -125,6 +126,9 @@ export default function AdminUsersPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                           <DropdownMenuItem asChild>
+                            <Link href={`/profile?userId=${user.id}`}><Edit className="mr-2 h-4 w-4" />Edit</Link>
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleBlockUser(user.id)}>
                             <UserX className="mr-2 h-4 w-4" />
                             Block
