@@ -62,11 +62,11 @@ export default function SettingsPage() {
   const form = useForm<z.infer<typeof settingsSchema>>({
     resolver: zodResolver(settingsSchema),
     defaultValues: {
-      fullName: donorProfile?.fullName || '',
+      fullName: '',
       getBloodRequests: false,
       getEmailNotifications: true,
       getSmsAlerts: false,
-      isAvailable: donorProfile?.isAvailable || true,
+      isAvailable: true,
       contactVisibility: 'verified',
       profileVisibility: 'public',
     },
@@ -84,11 +84,6 @@ export default function SettingsPage() {
       });
     }
   }, [authLoading, user, donorProfile, router, form]);
-
-
-  if (!authLoading && !user) {
-    return null;
-  }
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -146,7 +141,7 @@ export default function SettingsPage() {
       setIsUploading(false);
     }
   };
-
+  
   const onSubmit = (values: z.infer<typeof settingsSchema>) => {
     console.log(values);
     toast({
@@ -162,7 +157,15 @@ export default function SettingsPage() {
     });
     // Add Firebase sendPasswordResetEmail logic here
   };
-  
+
+  if (authLoading || !user) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto max-w-4xl py-12 px-4 space-y-8">
       <header>
