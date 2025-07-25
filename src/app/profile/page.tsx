@@ -20,7 +20,8 @@ import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { bloodGroups, locations, upazilas } from '@/lib/location-data';
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db, storage } from '@/lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type { Donor } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -120,14 +121,11 @@ function ProfilePageComponent() {
           const donorRef = doc(db, 'donors', targetUid);
           const docSnap = await getDoc(donorRef);
           
-          // Try loading from local storage first
-          const localImage = localStorage.getItem(`profile_picture_${targetUid}`);
-
           if (docSnap.exists()) {
             const targetProfile = { id: docSnap.id, ...docSnap.data() } as Donor;
             setProfileToEdit(targetProfile);
             
-            const imageUrl = localImage || targetProfile.profilePictureUrl || '';
+            const imageUrl = targetProfile.profilePictureUrl || '';
 
             form.reset({
                 fullName: targetProfile.fullName || '',
@@ -147,10 +145,6 @@ function ProfilePageComponent() {
           } else if(userIdToEdit) {
             toast({ variant: 'destructive', title: 'Error', description: 'Donor profile not found.' });
             router.push('/admin/donors');
-          } else if (localImage) {
-            // New user, but has a local image
-            setProfileImageUrl(localImage);
-            form.setValue('profilePictureUrl', localImage);
           }
         } catch (e) {
           toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch donor profile.' });
@@ -169,26 +163,20 @@ function ProfilePageComponent() {
       const file = e.target.files[0];
       setUploading(true);
 
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => {
-        const base64Image = reader.result as string;
-        try {
-          localStorage.setItem(`profile_picture_${targetUid}`, base64Image);
-          setProfileImageUrl(base64Image);
-          form.setValue('profilePictureUrl', base64Image);
-          toast({ title: 'Success', description: 'Image preview updated. Save profile to apply changes.' });
-        } catch (error) {
-           toast({ variant: 'destructive', title: 'Storage Failed', description: 'Could not save image to local storage. It might be full.' });
-           console.error("Local storage error", error);
-        } finally {
-            setUploading(false);
-        }
-      };
-      reader.onerror = (error) => {
-        toast({ variant: 'destructive', title: 'File Read Failed', description: 'Could not read the selected file.' });
-        console.error("File reader error", error);
-        setUploading(false);
+      const storageRef = ref(storage, `profile_pictures/${targetUid}/${file.name}`);
+
+      try {
+        await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(storageRef);
+
+        setProfileImageUrl(downloadURL);
+        form.setValue('profilePictureUrl', downloadURL);
+        toast({ title: 'Success', description: 'Image uploaded. Save profile to apply changes.' });
+      } catch (error) {
+         toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload image to Firebase Storage.' });
+         console.error("Firebase Storage upload error", error);
+      } finally {
+          setUploading(false);
       }
     }
   };
@@ -200,31 +188,31 @@ function ProfilePageComponent() {
     }
     setIsSubmitting(true);
     
-    const donorDataToSave: Partial<Donor> = {
-      fullName: values.fullName,
-      bloodGroup: values.bloodGroup,
-      phoneNumber: values.phoneNumber,
-      address: {
-        division: values.division,
-        district: values.district,
-        upazila: values.upazila,
-      },
-      isAvailable: values.isAvailable,
-      profilePictureUrl: values.profilePictureUrl,
-      lastDonationDate: values.lastDonationDate?.toISOString(),
-      dateOfBirth: values.dateOfBirth?.toISOString(),
-      gender: values.gender,
-      donationCount: values.donationCount,
-    };
-
     try {
       const donorRef = doc(db, 'donors', targetUid);
-      if (profileToEdit) {
-        await updateDoc(donorRef, {
-            ...donorDataToSave
-        });
+      const docSnap = await getDoc(donorRef);
+
+      const donorDataToSave: Partial<Omit<Donor, 'uid' | 'createdAt'>> = {
+        fullName: values.fullName,
+        bloodGroup: values.bloodGroup,
+        phoneNumber: values.phoneNumber,
+        address: {
+          division: values.division,
+          district: values.district,
+          upazila: values.upazila,
+        },
+        isAvailable: values.isAvailable,
+        profilePictureUrl: values.profilePictureUrl,
+        lastDonationDate: values.lastDonationDate?.toISOString(),
+        dateOfBirth: values.dateOfBirth?.toISOString(),
+        gender: values.gender,
+        donationCount: values.donationCount,
+      };
+
+      if (docSnap.exists()) {
+        await updateDoc(donorRef, donorDataToSave);
       } else {
-        const newDonorData: Omit<Donor, 'id'> = {
+         const newDonorData: Omit<Donor, 'id'> = {
             uid: targetUid,
             fullName: values.fullName,
             bloodGroup: values.bloodGroup,
@@ -244,7 +232,7 @@ function ProfilePageComponent() {
             isAdmin: false,
             createdAt: serverTimestamp(),
         };
-        await setDoc(donorRef, newDonorData, { merge: true });
+        await setDoc(donorRef, newDonorData);
       }
 
       toast({
@@ -256,14 +244,10 @@ function ProfilePageComponent() {
       }
     } catch (error: any) {
        console.error("Update failed:", error);
-       let description = 'Something went wrong. Please try again.';
-       if (error.code === 'invalid-argument') {
-        description = 'The image is too large to save to the database. Please use a smaller image.';
-       }
        toast({
         variant: 'destructive',
         title: 'Update Failed',
-        description: description,
+        description: 'Something went wrong. Please try again.',
       });
     } finally {
         setIsSubmitting(false);
@@ -467,5 +451,7 @@ export default function ProfilePage() {
         </Suspense>
     )
 }
+
+    
 
     
