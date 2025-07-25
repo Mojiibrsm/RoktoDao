@@ -34,18 +34,11 @@ import { db } from '@/lib/firebase';
 
 
 const settingsSchema = z.object({
-  // Profile Settings
   fullName: z.string().min(3, "Full name is required."),
-  
-  // Notification Settings
   getBloodRequests: z.boolean().default(false),
   getEmailNotifications: z.boolean().default(true),
   getSmsAlerts: z.boolean().default(false),
-
-  // Availability Settings
   isAvailable: z.boolean().default(true),
-
-  // Privacy Settings
   contactVisibility: z.enum(['everyone', 'verified', 'hidden']).default('verified'),
   profileVisibility: z.enum(['public', 'admin', 'hidden']).default('public'),
 });
@@ -80,7 +73,6 @@ export default function SettingsPage() {
       form.reset({
         fullName: donorProfile.fullName,
         isAvailable: donorProfile.isAvailable,
-        // Reset other form values based on donorProfile if they exist
       });
     }
   }, [authLoading, user, donorProfile, router, form]);
@@ -155,7 +147,6 @@ export default function SettingsPage() {
       title: "Password Reset Email Sent",
       description: "Check your inbox for instructions to reset your password.",
     });
-    // Add Firebase sendPasswordResetEmail logic here
   };
 
   if (authLoading || !user) {
@@ -369,3 +360,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
