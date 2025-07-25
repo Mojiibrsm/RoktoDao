@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, useMemo, Suspense } from 'react';
+import { useEffect, useState, useMemo, Suspense, useRef, ChangeEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,15 +15,17 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, User } from 'lucide-react';
+import { CalendarIcon, User, Upload, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { bloodGroups, locations, upazilas } from '@/lib/location-data';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { db, storage } from '@/lib/firebase';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import type { Donor } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import Image from 'next/image';
 
 const profileSchema = z.object({
   fullName: z.string().min(3, { message: 'Full name is required.' }),
@@ -48,6 +50,10 @@ function ProfilePageComponent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [profileToEdit, setProfileToEdit] = useState<Donor | null>(null);
   const [pageLoading, setPageLoading] = useState(true);
+  
+  const [uploading, setUploading] = useState(false);
+  const [profileImageUrl, setProfileImageUrl] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const userIdToEdit = searchParams.get('userId');
 
@@ -107,27 +113,30 @@ function ProfilePageComponent() {
       setPageLoading(true);
 
       let targetProfile: Donor | null = null;
+      let targetUid: string | null = null;
 
       if (userIdToEdit && isAdmin) {
-        // Admin is editing another user
-        try {
-          const donorRef = doc(db, 'donors', userIdToEdit);
+        targetUid = userIdToEdit;
+      } else {
+        targetUid = user?.uid;
+      }
+      
+      if(targetUid) {
+         try {
+          const donorRef = doc(db, 'donors', targetUid);
           const docSnap = await getDoc(donorRef);
           if (docSnap.exists()) {
             targetProfile = { id: docSnap.id, ...docSnap.data() } as Donor;
-          } else {
+          } else if(userIdToEdit) {
             toast({ variant: 'destructive', title: 'Error', description: 'Donor profile not found.' });
             router.push('/admin/donors');
             return;
           }
         } catch (e) {
           toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch donor profile.' });
-          router.push('/admin/donors');
+          if(userIdToEdit) router.push('/admin/donors');
           return;
         }
-      } else {
-        // Regular user editing their own profile
-        targetProfile = loggedInUserDonorProfile;
       }
 
       setProfileToEdit(targetProfile);
@@ -147,13 +156,60 @@ function ProfilePageComponent() {
             donationCount: targetProfile.donationCount || 0,
             profilePictureUrl: targetProfile.profilePictureUrl || '',
         });
+        setProfileImageUrl(targetProfile.profilePictureUrl || '');
       }
       setPageLoading(false);
     };
 
     loadProfile();
-  }, [user, loggedInUserDonorProfile, loading, router, form, userIdToEdit, isAdmin, toast]);
+  }, [user, loading, router, form, userIdToEdit, isAdmin, toast]);
   
+  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      handleImageUpload(e.target.files[0]);
+    }
+  };
+
+  const handleImageUpload = (file: File) => {
+    let uidToUpdate: string | null | undefined;
+
+    if (userIdToEdit && isAdmin) {
+      uidToUpdate = userIdToEdit;
+    } else if (user) {
+      uidToUpdate = user.uid;
+    }
+
+    if (!uidToUpdate) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Cannot upload image without user identification.' });
+        return;
+    }
+
+    setUploading(true);
+    const storageRef = ref(storage, `profile-pictures/${uidToUpdate}`);
+    const uploadTask = uploadBytesResumable(storageRef, file);
+
+    uploadTask.on(
+      'state_changed',
+      (snapshot) => {
+        // Optional: handle progress
+      },
+      (error) => {
+        setUploading(false);
+        toast({ variant: 'destructive', title: 'Upload Failed', description: error.message });
+      },
+      () => {
+        getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
+          setProfileImageUrl(downloadURL);
+          form.setValue('profilePictureUrl', downloadURL);
+          const donorRef = doc(db, 'donors', uidToUpdate!);
+          await updateDoc(donorRef, { profilePictureUrl: downloadURL });
+          setUploading(false);
+          toast({ title: 'Success', description: 'Profile picture updated!' });
+        });
+      }
+    );
+  };
+
   const onSubmit = async (values: z.infer<typeof profileSchema>) => {
     let uidToUpdate: string | null | undefined;
 
@@ -217,21 +273,32 @@ function ProfilePageComponent() {
     <div className="container mx-auto max-w-4xl py-12 px-4">
       <Card className="shadow-lg">
         <CardHeader>
-          <div className="flex justify-between items-start">
+          <div className="flex flex-col md:flex-row items-center gap-6">
+            <div className="relative">
+                <Avatar className="h-32 w-32 border-4 border-muted">
+                    <AvatarImage src={profileImageUrl || undefined} alt={form.watch('fullName')} asChild>
+                      <Image src={profileImageUrl} alt={form.watch('fullName')} width={128} height={128} />
+                    </AvatarImage>
+                    <AvatarFallback>
+                        <User className="h-16 w-16 text-muted-foreground" />
+                    </AvatarFallback>
+                </Avatar>
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute inset-0 bg-black/50 flex items-center justify-center text-white rounded-full opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
+                >
+                  {uploading ? <Loader2 className="h-8 w-8 animate-spin" /> : <Upload className="h-8 w-8" />}
+                </div>
+                <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" className="hidden" />
+            </div>
             <div>
               <CardTitle className="text-3xl font-headline text-primary">
-                {profileToEdit ? 'Update Profile' : 'Become a Donor'}
+                {userIdToEdit && isAdmin ? `Editing ${profileToEdit?.fullName || 'Donor'}` : 'Update Profile'}
               </CardTitle>
               <CardDescription>
-                {profileToEdit ? 'Keep your information up to date.' : 'Fill out the form to become a lifesaver.'}
+                {userIdToEdit && isAdmin ? 'Update donor information below.' : 'Keep your information up to date.'}
               </CardDescription>
             </div>
-            <Avatar className="h-20 w-20">
-              <AvatarImage src={form.watch('profilePictureUrl') || undefined} alt={form.watch('fullName')} />
-              <AvatarFallback>
-                <User className="h-10 w-10 text-muted-foreground" />
-              </AvatarFallback>
-            </Avatar>
           </div>
         </CardHeader>
         <CardContent>
@@ -361,15 +428,7 @@ function ProfilePageComponent() {
                   )} />
               </div>
 
-               <FormField control={form.control} name="profilePictureUrl" render={({ field }) => (
-                  <FormItem className="md:col-span-2">
-                    <FormLabel>Profile Picture URL</FormLabel>
-                    <FormControl><Input placeholder="https://example.com/image.png" {...field} value={field.value ?? ''} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-
-              <FormField control={form.control} name="isAvailable" render={({ field }) => (
+               <FormField control={form.control} name="isAvailable" render={({ field }) => (
                   <FormItem className="md:col-span-2 flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
                       <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                       <div className="space-y-1 leading-none">
