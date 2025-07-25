@@ -112,7 +112,7 @@ export default async function Home() {
 
   return (
     <div className="flex flex-col items-center">
-      <section className="w-full bg-primary/10 py-20 md:py-32">
+      <section className="w-full bg-primary/10 py-20 md:py-24">
         <div className="container mx-auto px-4 text-center">
           <div>
             <h1 className="text-4xl font-bold tracking-tighter text-primary md:text-6xl font-headline">
@@ -133,7 +133,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="bg-background w-full py-16 md:py-24">
+      <section className="bg-background w-full py-12 md:py-16">
         <div className="container mx-auto px-4">
             <h2 className="text-center text-3xl font-bold text-primary md:text-4xl font-headline">
                 কেন রক্তদান করবেন?
@@ -167,7 +167,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="w-full py-16 md:py-24 bg-background">
+      <section className="w-full py-12 md:py-16 bg-background">
         <div className="container mx-auto px-4">
           <div className="text-center">
             <h2 className="text-3xl font-bold text-primary md:text-4xl font-headline">
@@ -193,7 +193,7 @@ export default async function Home() {
         </div>
       </section>
       
-      <section className="w-full bg-primary/5 py-16 md:py-24">
+      <section className="w-full bg-primary/5 py-12 md:py-16">
         <div className="container mx-auto px-4">
           <div className="text-center">
             <h2 className="text-3xl font-bold text-primary md:text-4xl font-headline">
@@ -219,7 +219,7 @@ export default async function Home() {
         </div>
       </section>
 
-       <section className="w-full bg-primary/5 py-16 md:py-24">
+       <section className="w-full bg-primary/5 py-12 md:py-16">
         <div className="container mx-auto px-4 text-center">
             <h2 className="text-3xl font-bold text-primary md:text-4xl font-headline">
                 আমাদের পরিসংখ্যান
@@ -248,7 +248,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="w-full py-16 md:py-24 bg-background">
+      <section className="w-full py-12 md:py-16 bg-background">
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
@@ -281,7 +281,7 @@ export default async function Home() {
         </div>
       </section>
       
-       <section className="w-full py-16 md:py-24 bg-primary/5">
+       <section className="w-full py-12 md:py-16 bg-primary/5">
         <div className="container mx-auto px-4">
            <h2 className="text-center text-3xl font-bold text-primary md:text-4xl font-headline">
             কেন রক্তবন্ধু ব্যবহার করবেন?
@@ -316,7 +316,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="w-full py-16 md:py-24 bg-primary/5">
+      <section className="w-full py-12 md:py-16 bg-primary/5">
         <div className="container mx-auto px-4 text-center">
             <div className="mx-auto max-w-2xl h-40 flex items-center justify-center rounded-lg bg-muted/50 border-2 border-dashed">
                 <p className="text-muted-foreground">Advertisement Placeholder</p>
@@ -324,7 +324,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="w-full py-16 md:py-24 bg-background">
+      <section className="w-full py-12 md:py-16 bg-background">
         <div className="container mx-auto px-4">
           <div className="text-center">
             <h2 className="text-3xl font-bold text-primary md:text-4xl font-headline">
@@ -360,7 +360,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="w-full py-16 md:py-24 bg-primary/5">
+      <section className="w-full py-12 md:py-16 bg-primary/5">
         <div className="container mx-auto px-4">
             <Card className="bg-background/80 p-8 rounded-lg shadow-lg">
                 <div className="grid md:grid-cols-3 gap-8 items-center">
@@ -396,7 +396,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="container mx-auto py-16 md:py-24 px-4 max-w-4xl">
+      <section className="container mx-auto py-12 md:py-16 px-4 max-w-4xl">
         <h2 className="text-center text-3xl font-bold text-primary md:text-4xl font-headline">
             সাধারণ জিজ্ঞাসা
         </h2>
@@ -420,7 +420,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="w-full py-16 md:py-24 bg-background border-t">
+      <section className="w-full py-12 md:py-16 bg-background border-t">
         <div className="container mx-auto px-4 text-center">
             <h2 className="text-3xl font-bold text-primary md:text-4xl font-headline">
             জীবন বাঁচানোর সম্প্রদায়ে যোগ দিন
