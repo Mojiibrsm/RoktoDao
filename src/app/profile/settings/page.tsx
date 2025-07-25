@@ -32,7 +32,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
-
 const settingsSchema = z.object({
   fullName: z.string().min(3, "Full name is required."),
   getBloodRequests: z.boolean().default(false),
@@ -73,6 +72,7 @@ export default function SettingsPage() {
       form.reset({
         fullName: donorProfile.fullName,
         isAvailable: donorProfile.isAvailable,
+        // you might want to load other settings from donorProfile here if they exist
       });
     }
   }, [authLoading, user, donorProfile, router, form]);
@@ -192,7 +192,7 @@ export default function SettingsPage() {
                <FormField control={form.control} name="fullName" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Full Name</FormLabel>
-                  <FormControl><Input {...field} defaultValue={donorProfile?.fullName} /></FormControl>
+                  <FormControl><Input {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
@@ -360,3 +360,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
