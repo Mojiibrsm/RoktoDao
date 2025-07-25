@@ -1,13 +1,28 @@
 
 "use client";
 
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Crown, Shield, Mail, Phone, MapPin, User, Copy } from 'lucide-react';
+import { Crown, Shield, Mail, Phone, MapPin, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+
+interface Member {
+  id: string;
+  name: string;
+  role: string;
+  bloodGroup: string;
+  phone: string;
+  email: string;
+  location: string;
+  avatar: string;
+  avatarHint?: string;
+}
 
 const administrators = [
   {
@@ -17,65 +32,12 @@ const administrators = [
     phone: "01601519007",
     email: "mojibrsm@example.com",
     location: "Ramu, Cox's Bazar",
-    avatar: "https://placehold.co/100x100.png",
+    avatar: "https://i.ibb.co/3k5fVb3/mojibrsm.png",
     avatarHint: "man portrait"
   }
 ];
 
-const moderators = [
-  {
-    name: "Abdullah Al Jahir",
-    role: "Moderator",
-    bloodGroup: "O+",
-    phone: "01749395673",
-    email: "abdullahaljahir017@gmail.com",
-    location: "Barisal Sadar, Barishal, Barishal",
-    avatar: "https://placehold.co/100x100.png",
-    avatarHint: "man smiling"
-  },
-  {
-    name: "Nasim-Ul-Goni",
-    role: "Moderator",
-    bloodGroup: "A+",
-    phone: "01957379804",
-    email: "experimentmr2@gmail.com",
-    location: "Melandaha, Jamalpur, Mymensingh",
-    avatar: "https://placehold.co/100x100.png",
-    avatarHint: "man professional"
-  },
-  {
-    name: "John Doe",
-    role: "Moderator",
-    bloodGroup: "AB+",
-    phone: "01234567890",
-    email: "johndoe@example.com",
-    location: "Dhaka, Bangladesh",
-    avatar: "https://placehold.co/100x100.png",
-    avatarHint: "person smiling"
-  },
-  {
-    name: "Jane Smith",
-    role: "Moderator",
-    bloodGroup: "A-",
-    phone: "01987654321",
-    email: "janesmith@example.com",
-    location: "Chittagong, Bangladesh",
-    avatar: "https://placehold.co/100x100.png",
-    avatarHint: "woman professional"
-  },
-   {
-    name: "Alex Johnson",
-    role: "Moderator",
-    bloodGroup: "O-",
-    phone: "01555555555",
-    email: "alexj@example.com",
-    location: "Sylhet, Bangladesh",
-    avatar: "https://placehold.co/100x100.png",
-    avatarHint: "person portrait"
-  }
-];
-
-const TeamMemberCard = ({ member }: { member: typeof moderators[0] }) => {
+const TeamMemberCard = ({ member }: { member: Member }) => {
     const { toast } = useToast();
     const handleCopy = (number: string) => {
         navigator.clipboard.writeText(number);
@@ -175,6 +137,28 @@ const DirectorCard = ({ member }: { member: typeof administrators[0] }) => {
 
 
 export default function TeamPage() {
+  const [moderators, setModerators] = useState<Member[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchModerators = async () => {
+        setLoading(true);
+        try {
+            const modsCollection = collection(db, 'moderators');
+            const q = query(modsCollection, orderBy('createdAt', 'desc'));
+            const modsSnapshot = await getDocs(q);
+            const modsList = modsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
+            setModerators(modsList);
+        } catch (error) {
+            console.error("Failed to fetch moderators:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    fetchModerators();
+  }, []);
+
   return (
     <div className="bg-background">
       <section className="w-full bg-primary/10 py-20 md:py-24">
@@ -209,11 +193,17 @@ export default function TeamPage() {
             <h2 className="text-3xl font-bold font-headline text-primary">Moderators</h2>
             <Badge variant="default" className="text-lg">{moderators.length}</Badge>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {moderators.map((member) => (
-              <TeamMemberCard key={member.email} member={member} />
-            ))}
-          </div>
+          {loading ? (
+             <div className="text-center py-16">
+                <p className="text-muted-foreground">Loading moderators...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {moderators.map((member) => (
+                <TeamMemberCard key={member.id} member={member} />
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </div>
