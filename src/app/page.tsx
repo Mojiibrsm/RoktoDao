@@ -116,10 +116,10 @@ export default async function Home() {
         <div className="container mx-auto px-4 text-center">
           <div>
             <h1 className="text-4xl font-bold tracking-tighter text-primary md:text-6xl font-headline">
-              আপনার এক ব্যাগ রক্ত, কারও শেষ আশার আলো।
+              🩸 “আপনার রক্তে বাঁচবে অন্যের স্বপ্ন!”
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-lg text-foreground/80 md:text-xl">
-              এগিয়ে আসুন, হোন একজন জীবনদাতা।
+              🔥 “আমরা আছি, আপনি পাশে থাকুন!”
             </p>
             <div className="mt-8 flex flex-row justify-center gap-4">
               <Button asChild size="lg" variant="outline" className="bg-background hover:bg-muted">
