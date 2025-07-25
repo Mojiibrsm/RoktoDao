@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { collection, getDocs, doc, deleteDoc, updateDoc, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, doc, deleteDoc, updateDoc, writeBatch, addDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Donor as DonorType } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { MoreHorizontal, Edit, CheckCircle, Trash2, Copy, Upload, ChevronDown } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -145,16 +145,25 @@ export default function AdminDonorsPage() {
             donorsToImport.forEach((row) => {
                 const newDonorRef = doc(collection(db, 'donors'));
                 
+                let lastDonationDate = undefined;
+                if (row['Last Donation Date']) {
+                    const parsedDate = new Date(row['Last Donation Date']);
+                    if (!isNaN(parsedDate.getTime())) {
+                        lastDonationDate = parsedDate.toISOString();
+                    }
+                }
+                
                 const newDonor: Partial<DonorType> = {
                     uid: newDonorRef.id,
-                    fullName: row.fullName || "N/A",
-                    phoneNumber: row.phoneNumber || "N/A",
-                    bloodGroup: row.bloodGroup || "N/A",
+                    fullName: row['Donor Name'] || "N/A",
+                    phoneNumber: row['Mobile'] || "N/A",
+                    bloodGroup: row['Blood Group'] || "N/A",
                     address: {
-                        division: row.division || "N/A",
-                        district: row.district || "N/A",
-                        upazila: row.upazila || "N/A",
+                        division: row['Address'] || "N/A",
+                        district: "N/A",
+                        upazila: "N/A",
                     },
+                    lastDonationDate: lastDonationDate,
                     isAvailable: true,
                     isVerified: false,
                     isAdmin: false,
@@ -214,7 +223,7 @@ export default function AdminDonorsPage() {
                     <DialogTitle>Import Donors via CSV</DialogTitle>
                     <DialogDescription>
                         Select a CSV file to import new donors. The file should have columns: 
-                        `fullName`, `phoneNumber`, `bloodGroup`, `division`, `district`, `upazila`.
+                        `Donor Name`, `Blood Group`, `Mobile`, `Address`, `Last Donation Date`.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="py-4">
@@ -224,7 +233,7 @@ export default function AdminDonorsPage() {
                         onChange={(e) => setFileToImport(e.target.files ? e.target.files[0] : null)}
                     />
                      <p className="text-xs text-muted-foreground mt-2">
-                        Note: Missing fields are allowed and will be marked as N/A.
+                        Note: Missing fields are allowed and will be marked as N/A. `Last Donation Date` should be in a recognizable format (e.g., YYYY-MM-DD).
                      </p>
                 </div>
                 <DialogFooter>
