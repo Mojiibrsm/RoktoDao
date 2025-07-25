@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { collection, getDocs, doc, updateDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, deleteDoc, writeBatch, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Donor as DonorType } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { MoreHorizontal, UserX, Trash2, Edit, ChevronDown, CheckCircle, Ban, UserCheck } from 'lucide-react';
+import { MoreHorizontal, UserX, Trash2, Edit, ChevronDown, Ban, UserCheck, PlusCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -22,11 +22,95 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 import Link from 'next/link';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useForm, UseFormReturn } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { bloodGroups } from '@/lib/location-data';
+
 
 type Donor = DonorType & { id: string };
+
+const userSchema = z.object({
+  fullName: z.string().min(3, { message: 'Full name is required.' }),
+  bloodGroup: z.string({ required_error: 'Blood group is required.' }).min(1, 'Blood group is required.'),
+  phoneNumber: z.string().min(11, { message: 'A valid phone number is required.' }),
+  email: z.string().email({ message: 'A valid email is required.' }),
+});
+
+type UserFormValues = z.infer<typeof userSchema>;
+
+interface UserFormProps {
+  form: UseFormReturn<UserFormValues>;
+  onSubmit: (values: UserFormValues) => void;
+  isSubmitting: boolean;
+  submitText: string;
+}
+
+const UserForm = ({ form, onSubmit, isSubmitting, submitText }: UserFormProps) => {
+    return (
+       <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-6">
+            <FormField control={form.control} name="fullName" render={({ field }) => (
+                <FormItem>
+                <FormLabel>Full Name</FormLabel>
+                <FormControl><Input placeholder="User's Full Name" {...field} /></FormControl>
+                <FormMessage />
+                </FormItem>
+            )} />
+             <FormField control={form.control} name="email" render={({ field }) => (
+                <FormItem>
+                <FormLabel>Email</FormLabel>
+                <FormControl><Input type="email" placeholder="user@example.com" {...field} /></FormControl>
+                <FormMessage />
+                </FormItem>
+            )} />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField control={form.control} name="bloodGroup" render={({ field }) => (
+              <FormItem>
+                  <FormLabel>Blood Group</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl><SelectTrigger><SelectValue placeholder="Select group" /></SelectTrigger></FormControl>
+                  <SelectContent>{bloodGroups.map(group => <SelectItem key={group} value={group}>{group}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <FormMessage />
+              </FormItem>
+              )} />
+              <FormField control={form.control} name="phoneNumber" render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Phone Number</FormLabel>
+                    <FormControl><Input placeholder="01XXXXXXXXX" {...field} /></FormControl>
+                    <FormMessage />
+                </FormItem>
+              )} />
+            </div>
+            <DialogFooter>
+                <DialogClose asChild>
+                    <Button type="button" variant="secondary">Cancel</Button>
+                </DialogClose>
+                <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? 'Saving...' : submitText}
+                </Button>
+            </DialogFooter>
+        </form>
+      </Form>
+    );
+};
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<Donor[]>([]);
@@ -34,6 +118,18 @@ export default function AdminUsersPage() {
   const { toast } = useToast();
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
+  const [isAddUserOpen, setIsAddUserOpen] = useState(false);
+
+  const form = useForm<UserFormValues>({
+    resolver: zodResolver(userSchema),
+    defaultValues: {
+      fullName: '',
+      bloodGroup: '',
+      phoneNumber: '',
+      email: '',
+    }
+  });
+
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -101,13 +197,69 @@ export default function AdminUsersPage() {
     }
   };
 
+  const handleAddUser = async (values: UserFormValues) => {
+    const newDonorRef = doc(collection(db, 'donors'));
+    const donorData: Omit<DonorType, 'id'> = {
+        uid: newDonorRef.id,
+        fullName: values.fullName,
+        bloodGroup: values.bloodGroup,
+        phoneNumber: values.phoneNumber,
+        address: {
+            division: 'N/A',
+            district: 'N/A',
+            upazila: 'N/A',
+        },
+        isAvailable: true,
+        isVerified: true,
+        isAdmin: false,
+        createdAt: serverTimestamp(),
+    };
+
+    try {
+        await addDoc(collection(db, 'donors'), donorData);
+        toast({
+            title: 'User Added',
+            description: 'The new user has been successfully created.',
+        });
+        fetchUsers();
+        setIsAddUserOpen(false);
+        form.reset();
+    } catch (error) {
+        toast({
+            variant: 'destructive',
+            title: 'Failed to Add',
+            description: 'Something went wrong. Please try again.',
+        });
+    }
+  };
+
+
   return (
     <div>
-      <header className="py-4">
-        <h1 className="text-2xl font-bold tracking-tight text-primary md:text-3xl font-headline">
-          User Management
-        </h1>
-        <p className="text-muted-foreground">View, block, or remove users from the system.</p>
+      <header className="py-4 flex justify-between items-center">
+        <div>
+            <h1 className="text-2xl font-bold tracking-tight text-primary md:text-3xl font-headline">
+            User Management
+            </h1>
+            <p className="text-muted-foreground">View, block, or remove users from the system.</p>
+        </div>
+        <Dialog open={isAddUserOpen} onOpenChange={(isOpen) => {
+            setIsAddUserOpen(isOpen);
+            if (!isOpen) form.reset();
+        }}>
+            <DialogTrigger asChild>
+                <Button><PlusCircle className="mr-2 h-4 w-4" /> Add User</Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Add New User</DialogTitle>
+                    <DialogDescription>
+                        Fill in the details below to add a new user to the system.
+                    </DialogDescription>
+                </DialogHeader>
+                <UserForm form={form} onSubmit={handleAddUser} isSubmitting={form.formState.isSubmitting} submitText="Add User" />
+            </DialogContent>
+        </Dialog>
       </header>
       <Card>
         <CardHeader>
@@ -270,3 +422,5 @@ export default function AdminUsersPage() {
     </div>
   );
 }
+
+    
