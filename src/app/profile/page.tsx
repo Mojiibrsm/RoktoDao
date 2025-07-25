@@ -20,8 +20,7 @@ import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { bloodGroups, locations, upazilas } from '@/lib/location-data';
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { db, storage } from '@/lib/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db } from '@/lib/firebase';
 import type { Donor } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -125,7 +124,16 @@ function ProfilePageComponent() {
             const targetProfile = { id: docSnap.id, ...docSnap.data() } as Donor;
             setProfileToEdit(targetProfile);
             
-            const imageUrl = targetProfile.profilePictureUrl || '';
+            let imageUrl = targetProfile.profilePictureUrl || '';
+
+            // Try to load from local storage if not in firestore or if it's a base64
+            if (!imageUrl || imageUrl.startsWith('data:image')) {
+                const localImage = localStorage.getItem(`profilePic_${targetUid}`);
+                if (localImage) {
+                    imageUrl = localImage;
+                }
+            }
+
 
             form.reset({
                 fullName: targetProfile.fullName || '',
@@ -158,28 +166,39 @@ function ProfilePageComponent() {
     loadProfile();
   }, [user, loading, router, form, userIdToEdit, isAdmin, toast, targetUid]);
   
-  const handleFileSelect = async (e: ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0] && targetUid) {
       const file = e.target.files[0];
-      setUploading(true);
+      const MAX_SIZE = 1 * 1024 * 1024; // 1MB
 
-      const storageRef = ref(storage, `profile_pictures/${targetUid}/${file.name}`);
-
-      try {
-        await uploadBytes(storageRef, file);
-        const downloadURL = await getDownloadURL(storageRef);
-
-        setProfileImageUrl(downloadURL);
-        form.setValue('profilePictureUrl', downloadURL);
-        toast({ title: 'Success', description: 'Image uploaded. Save profile to apply changes.' });
-      } catch (error) {
-         toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload image to Firebase Storage.' });
-         console.error("Firebase Storage upload error", error);
-      } finally {
-          setUploading(false);
+      if (file.size > MAX_SIZE) {
+        toast({
+          variant: 'destructive',
+          title: 'Image Too Large',
+          description: 'Please upload an image smaller than 1MB.',
+        });
+        return;
       }
+      
+      setUploading(true);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        try {
+            localStorage.setItem(`profilePic_${targetUid}`, base64String);
+            setProfileImageUrl(base64String);
+            form.setValue('profilePictureUrl', base64String);
+            toast({ title: 'Success', description: 'Image preview updated. Save profile to apply changes.' });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Storage Failed', description: 'Could not save image to local storage. It might be full.' });
+        } finally {
+            setUploading(false);
+        }
+      };
+      reader.readAsDataURL(file);
     }
   };
+
 
   const onSubmit = async (values: z.infer<typeof profileSchema>) => {
     if (!targetUid) {
@@ -192,7 +211,7 @@ function ProfilePageComponent() {
       const donorRef = doc(db, 'donors', targetUid);
       const docSnap = await getDoc(donorRef);
 
-      const donorDataToSave: Partial<Omit<Donor, 'uid' | 'createdAt'>> = {
+      const donorDataToSave: Partial<Omit<Donor, 'uid'>> = {
         fullName: values.fullName,
         bloodGroup: values.bloodGroup,
         phoneNumber: values.phoneNumber,
@@ -269,9 +288,7 @@ function ProfilePageComponent() {
           <div className="flex flex-col md:flex-row items-center gap-6">
             <div className="relative">
                 <Avatar className="h-32 w-32 border-4 border-muted">
-                    <AvatarImage src={profileImageUrl || undefined} alt={form.watch('fullName')} asChild>
-                      <Image src={profileImageUrl} alt={form.watch('fullName')} width={128} height={128} />
-                    </AvatarImage>
+                    <AvatarImage src={profileImageUrl || undefined} alt={form.watch('fullName')} />
                     <AvatarFallback>
                         <User className="h-16 w-16 text-muted-foreground" />
                     </AvatarFallback>
@@ -451,7 +468,5 @@ export default function ProfilePage() {
         </Suspense>
     )
 }
-
-    
 
     
