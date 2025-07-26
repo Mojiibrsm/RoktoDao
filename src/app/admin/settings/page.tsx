@@ -8,46 +8,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Separator } from '@/components/ui/separator';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Trash2, Bell, Wrench } from 'lucide-react';
+import { Bell, Wrench } from 'lucide-react';
 
 export default function AdminSettingsPage() {
     const { toast } = useToast();
     const [siteName, setSiteName] = useState("RoktoDao");
     const [tagline, setTagline] = useState("রক্ত দিন, জীবন বাঁচান — এখন আরও সহজে!");
-    const [adminEmail, setAdminEmail] = useState("admin@roktodao.com");
+    const [adminEmail, setAdminEmail] = useState("mojibrsm@gmail.com");
 
     const handleSaveChanges = () => {
+        // In a real app, you would save these to Firestore or a config file
+        console.log("Saving settings:", { siteName, tagline, adminEmail });
         toast({
             title: "Settings Saved",
             description: "Your changes have been successfully saved.",
-        });
-    };
-
-    const handleClearRequests = () => {
-        toast({
-            variant: "destructive",
-            title: "Action Triggered",
-            description: "All blood requests would be cleared (logic not implemented).",
-        });
-    };
-    
-     const handleClearDonors = () => {
-        toast({
-            variant: "destructive",
-            title: "Action Triggered",
-            description: "Old donor records would be cleared (logic not implemented).",
         });
     };
 
@@ -87,7 +61,7 @@ export default function AdminSettingsPage() {
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><Bell /> Notification Settings</CardTitle>
-                    <CardDescription>Configure notifications for admin users.</CardDescription>
+                    <CardDescription>Configure notifications for admin users. (Note: Backend for email sending is required for this to work).</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="flex items-center justify-between rounded-lg border p-4">
@@ -103,66 +77,6 @@ export default function AdminSettingsPage() {
                             <p className="text-sm text-muted-foreground">Send an email to admin when a new blood request is submitted.</p>
                         </div>
                         <Switch />
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* Danger Zone */}
-            <Card className="border-destructive">
-                <CardHeader>
-                    <CardTitle className="text-destructive">Danger Zone</CardTitle>
-                    <CardDescription>These actions are permanent and cannot be undone.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between rounded-lg border p-4">
-                        <div>
-                            <h3 className="font-medium">Clear All Blood Requests</h3>
-                            <p className="text-sm text-muted-foreground">This will permanently delete all pending and fulfilled requests.</p>
-                        </div>
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="destructive">Clear Requests</Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    This action cannot be undone. This will permanently delete all blood requests from the database.
-                                </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleClearRequests} className="bg-destructive hover:bg-destructive/90">
-                                    Yes, clear all requests
-                                </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    </div>
-                    <div className="flex items-center justify-between rounded-lg border p-4">
-                        <div>
-                            <h3 className="font-medium">Clear Old Donor Records</h3>
-                            <p className="text-sm text-muted-foreground">Delete donor accounts that have been inactive for more than 2 years.</p>
-                        </div>
-                         <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="destructive" >Clear Donors</Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                   This action cannot be undone. This will permanently delete old and inactive donor profiles.
-                                </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleClearDonors} className="bg-destructive hover:bg-destructive/90">
-                                    Yes, clear old records
-                                </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
                     </div>
                 </CardContent>
             </Card>
