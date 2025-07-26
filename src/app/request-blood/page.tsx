@@ -137,6 +137,29 @@ export default function RequestBloodPage() {
 
     try {
       await addDoc(collection(db, 'requests'), requestData);
+
+      // Send email notification
+      try {
+        await fetch('/api/send-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            type: 'new_request',
+            data: {
+              patientName: values.patientName,
+              bloodGroup: values.bloodGroup,
+              numberOfBags: values.numberOfBags,
+              hospitalLocation: finalHospitalName,
+              contactPhone: values.contactPhone,
+            },
+          }),
+        });
+      } catch (emailError) {
+        console.error("Could not send notification email:", emailError);
+      }
+
       toast({
         title: 'ধন্যবাদ!',
         description: 'আপনার রক্তের অনুরোধ সফলভাবে জমা দেওয়া হয়েছে।',
@@ -343,5 +366,3 @@ export default function RequestBloodPage() {
     </div>
   );
 }
-
-    

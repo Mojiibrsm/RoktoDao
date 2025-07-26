@@ -116,6 +116,31 @@ export default function SignupPage() {
 
       await setDoc(doc(db, 'donors', user.uid), donorData);
 
+      // 3. Send email notification
+      try {
+        await fetch('/api/send-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            type: 'new_donor',
+            data: {
+              fullName: values.fullName,
+              bloodGroup: values.bloodGroup,
+              phoneNumber: values.phoneNumber,
+              division: values.division,
+              district: values.district,
+              upazila: values.upazila,
+            },
+          }),
+        });
+      } catch (emailError) {
+        console.error("Could not send notification email:", emailError);
+        // Don't block user flow if email fails
+      }
+
+
       toast({
         title: 'Account Created Successfully!',
         description: "Welcome to RoktoDao. Your donor profile is active.",
