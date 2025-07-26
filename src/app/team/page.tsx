@@ -9,7 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Crown, Shield, Mail, Phone, MapPin, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 interface Member {
@@ -23,19 +23,6 @@ interface Member {
   avatar: string;
   avatarHint?: string;
 }
-
-const administrators = [
-  {
-    name: "Mojib Rsm",
-    role: "প্রধান পরিচালক",
-    bloodGroup: "AB+",
-    phone: "01601519007",
-    email: "mojibrsm@example.com",
-    location: "Ramu, Cox's Bazar",
-    avatar: "/mojibrsm.png",
-    avatarHint: "man portrait"
-  }
-];
 
 const TeamMemberCard = ({ member }: { member: Member }) => {
     const { toast } = useToast();
@@ -85,7 +72,7 @@ const TeamMemberCard = ({ member }: { member: Member }) => {
     );
 };
 
-const DirectorCard = ({ member }: { member: typeof administrators[0] }) => {
+const DirectorCard = ({ member }: { member: Member }) => {
     const { toast } = useToast();
     const handleCopy = (number: string) => {
         navigator.clipboard.writeText(number);
@@ -137,26 +124,33 @@ const DirectorCard = ({ member }: { member: typeof administrators[0] }) => {
 
 
 export default function TeamPage() {
+  const [director, setDirector] = useState<Member | null>(null);
   const [moderators, setModerators] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchModerators = async () => {
+    const fetchTeam = async () => {
         setLoading(true);
         try {
             const modsCollection = collection(db, 'moderators');
             const q = query(modsCollection, orderBy('createdAt', 'desc'));
             const modsSnapshot = await getDocs(q);
-            const modsList = modsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
-            setModerators(modsList);
+            const allMembers = modsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
+            
+            const directorMember = allMembers.find(m => m.role === 'প্রধান পরিচালক');
+            const moderatorMembers = allMembers.filter(m => m.role !== 'প্রধান পরিচালক');
+
+            setDirector(directorMember || null);
+            setModerators(moderatorMembers);
+
         } catch (error) {
-            console.error("Failed to fetch moderators:", error);
+            console.error("Failed to fetch team members:", error);
         } finally {
             setLoading(false);
         }
     };
 
-    fetchModerators();
+    fetchTeam();
   }, []);
 
   return (
@@ -164,47 +158,55 @@ export default function TeamPage() {
       <section className="w-full bg-primary/10 py-20 md:py-24">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl font-bold tracking-tighter text-primary md:text-6xl font-headline">
-            আমাদের নিবেদিত টিম
+            আমাদের নিবেদিতপ্রাণ টিম
           </h1>
           <p className="mx-auto mt-4 max-w-3xl text-lg text-foreground/80 md:text-xl">
-            আমরা একটি উৎসাহী দল, যারা রক্তদানের মাধ্যমে জীবন বাঁচাতে এবং সম্প্রদায় গড়তে প্রতিশ্রুতিবদ্ধ।
+            আমরা একটি উৎসাহী দল, যারা রক্তদানের মাধ্যমে জীবন বাঁচাতে এবং একটি শক্তিশালী সম্প্রদায় গড়তে প্রতিশ্রুতিবদ্ধ।
           </p>
         </div>
       </section>
 
       <section className="container mx-auto py-16 md:py-24 px-4 space-y-12">
-        <div>
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <Crown className="h-8 w-8 text-amber-500" />
-            <h2 className="text-3xl font-bold font-headline text-primary">প্রধান পরিচালক</h2>
-          </div>
-          <div className="flex justify-center">
-            {administrators.map((member) => (
-                <DirectorCard key={member.email} member={member} />
-            ))}
-          </div>
-        </div>
-        
-        <Separator />
+        {loading ? (
+            <div className="text-center py-16"><p className="text-muted-foreground">Loading team...</p></div>
+        ) : (
+            <>
+                {director && (
+                    <div>
+                        <div className="flex items-center justify-center gap-3 mb-6">
+                            <Crown className="h-8 w-8 text-amber-500" />
+                            <h2 className="text-3xl font-bold font-headline text-primary">প্রধান পরিচালক</h2>
+                        </div>
+                        <div className="flex justify-center">
+                            <DirectorCard member={director} />
+                        </div>
+                    </div>
+                )}
+                
+                {director && moderators.length > 0 && <Separator />}
 
-        <div>
-           <div className="flex items-center justify-start gap-3 mb-6">
-            <Shield className="h-8 w-8 text-blue-500" />
-            <h2 className="text-3xl font-bold font-headline text-primary">Moderators</h2>
-            <Badge variant="default" className="text-lg">{moderators.length}</Badge>
-          </div>
-          {loading ? (
-             <div className="text-center py-16">
-                <p className="text-muted-foreground">Loading moderators...</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {moderators.map((member) => (
-                <TeamMemberCard key={member.id} member={member} />
-              ))}
-            </div>
-          )}
-        </div>
+                {moderators.length > 0 && (
+                    <div>
+                        <div className="flex items-center justify-start gap-3 mb-6">
+                            <Shield className="h-8 w-8 text-blue-500" />
+                            <h2 className="text-3xl font-bold font-headline text-primary">Moderators</h2>
+                            <Badge variant="default" className="text-lg">{moderators.length}</Badge>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            {moderators.map((member) => (
+                                <TeamMemberCard key={member.id} member={member} />
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {!director && moderators.length === 0 && (
+                    <div className="text-center py-16">
+                        <p className="text-muted-foreground">No team members found.</p>
+                    </div>
+                )}
+            </>
+        )}
       </section>
     </div>
   );
