@@ -2,13 +2,30 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { collection, getDocs, query, where, Timestamp, getCountFromServer } from 'firebase/firestore';
+import { collection, getDocs, query, where, Timestamp, getCountFromServer, startOfMonth, endOfMonth } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { LineChart, PieChart } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
+import { Bar, BarChart, CartesianGrid, XAxis, Pie, PieChart, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import { ChartContainer, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart';
+import { bloodGroups } from '@/lib/location-data';
+
+// Define the shape of your chart data
+interface MonthlyRequestData {
+  month: string;
+  total: number;
+}
+
+interface BloodGroupData {
+  name: string;
+  value: number;
+  fill: string;
+}
+
+const CHART_COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#FF4560'];
+
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -18,16 +35,20 @@ export default function AdminDashboard() {
     requestsFulfilled: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [monthlyData, setMonthlyData] = useState<MonthlyRequestData[]>([]);
+  const [bloodGroupData, setBloodGroupData] = useState<BloodGroupData[]>([]);
+  
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchAllData = async () => {
+      setLoading(true);
       try {
         const donorsCollection = collection(db, 'donors');
         const requestsCollection = collection(db, 'requests');
-
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         
+        // Fetch stats
         const donorsSnapshot = await getCountFromServer(donorsCollection);
         const activeRequestsSnapshot = await getCountFromServer(query(requestsCollection, where('status', 'in', ['Pending', 'Approved'])));
         const fulfilledRequestsSnapshot = await getCountFromServer(query(requestsCollection, where('status', '==', 'Fulfilled')));
@@ -39,14 +60,60 @@ export default function AdminDashboard() {
           requestsFulfilled: fulfilledRequestsSnapshot.data().count,
           newSignups: newSignupsSnapshot.data().count,
         });
+
+        // Fetch data for charts
+        const donorsDocs = await getDocs(donorsCollection);
+        const requestsDocs = await getDocs(requestsCollection);
+
+        // Process blood group distribution
+        const groupCounts: { [key: string]: number } = {};
+        donorsDocs.forEach(doc => {
+            const group = doc.data().bloodGroup;
+            if (group) {
+                groupCounts[group] = (groupCounts[group] || 0) + 1;
+            }
+        });
+
+        const pieData: BloodGroupData[] = bloodGroups.map((group, index) => ({
+            name: group,
+            value: groupCounts[group] || 0,
+            fill: CHART_COLORS[index % CHART_COLORS.length],
+        })).filter(item => item.value > 0);
+        setBloodGroupData(pieData);
+
+
+        // Process monthly donation requests for the last 6 months
+        const monthlyCounts: { [key: string]: number } = {};
+        const today = new Date();
+        for (let i = 5; i >= 0; i--) {
+            const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
+            const monthKey = date.toLocaleString('default', { month: 'short', year: '2-digit' });
+            monthlyCounts[monthKey] = 0;
+        }
+
+        requestsDocs.forEach(doc => {
+            const requestDate = (doc.data().neededDate as any)?.toDate ? (doc.data().neededDate as any).toDate() : new Date(doc.data().neededDate);
+            const monthKey = requestDate.toLocaleString('default', { month: 'short', year: '2-digit' });
+             if (monthlyCounts.hasOwnProperty(monthKey)) {
+                monthlyCounts[monthKey]++;
+            }
+        });
+        
+        const barData = Object.keys(monthlyCounts).map(month => ({
+            month,
+            total: monthlyCounts[month],
+        }));
+        setMonthlyData(barData);
+
+
       } catch (error) {
-        console.error("Error fetching admin stats:", error);
+        console.error("Error fetching admin data:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchStats();
+    fetchAllData();
   }, []);
 
   return (
@@ -116,10 +183,17 @@ export default function AdminDashboard() {
             <CardDescription>Monthly donation and request trends.</CardDescription>
           </CardHeader>
           <CardContent className="pl-2">
-            <div className="w-full h-72 bg-muted flex items-center justify-center rounded-lg">
-              <LineChart className="h-16 w-16 text-muted-foreground/50" />
-              <p className="text-muted-foreground ml-4">Line Chart Placeholder</p>
-            </div>
+             {loading ? <Skeleton className="w-full h-72" /> : (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={monthlyData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="total" fill="hsl(var(--primary))" name="Requests" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
         <Card className="lg:col-span-3">
@@ -128,10 +202,19 @@ export default function AdminDashboard() {
             <CardDescription>Distribution of blood groups among donors.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="w-full h-72 bg-muted flex items-center justify-center rounded-lg">
-              <PieChart className="h-16 w-16 text-muted-foreground/50" />
-              <p className="text-muted-foreground ml-4">Pie Chart Placeholder</p>
-            </div>
+            {loading ? <Skeleton className="w-full h-72" /> : (
+               <ResponsiveContainer width="100%" height={300}>
+                 <PieChart>
+                    <Pie data={bloodGroupData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
+                        {bloodGroupData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                 </PieChart>
+               </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
       </div>
