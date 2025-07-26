@@ -111,15 +111,15 @@ export default async function Home() {
   return (
     <div className="flex flex-col items-center">
       <section className="w-full bg-background">
-        <div className="container mx-auto grid md:grid-cols-2 gap-8 items-center py-20 md:py-32 px-4">
-            <div className="space-y-6">
+        <div className="container mx-auto flex flex-col items-center text-center py-20 md:py-32 px-4">
+            <div className="space-y-6 max-w-2xl">
               <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-primary font-headline">
                 এক বিন্দু রক্ত, এক নতুন জীবন।
               </h1>
-              <p className="text-lg text-muted-foreground max-w-lg">
+              <p className="text-lg text-muted-foreground">
                 জরুরী মুহূর্তে রক্ত খুঁজে পেতে বা রক্তদানের মাধ্যমে জীবন বাঁচাতে আমাদের প্ল্যাটফর্মে যোগ দিন। আপনার সামান্য ত্যাগই পারে অন্যের জীবনে বিশাল পরিবর্তন আনতে।
               </p>
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground">
                       <Link href="/signup"><Heart className="mr-2" /> রক্ত দিতে চাই</Link>
                   </Button>
@@ -127,26 +127,16 @@ export default async function Home() {
                       <Link href="/search-donors"><Search className="mr-2" /> রক্ত খুঁজছি</Link>
                   </Button>
               </div>
-              <div className="flex items-center gap-6 pt-4">
-                <div className="text-center">
-                  <p className="text-2xl font-bold">{stats.totalDonors.toLocaleString()}+</p>
-                  <p className="text-sm text-muted-foreground">নিবন্ধিত ডোনার</p>
-                </div>
-                 <div className="text-center">
-                  <p className="text-2xl font-bold">{stats.donationsFulfilled.toLocaleString()}+</p>
-                  <p className="text-sm text-muted-foreground">সফল ডোনেশন</p>
-                </div>
-              </div>
             </div>
-            <div className="hidden md:block">
-               <Image
-                  src="https://placehold.co/600x400.png"
-                  alt="A collage of happy people, symbolizing community and help from blood donation"
-                  width={600}
-                  height={400}
-                  className="rounded-xl shadow-2xl"
-                  data-ai-hint="happy people community"
-                />
+            <div className="flex items-center gap-8 pt-12">
+              <div className="text-center">
+                <p className="text-3xl font-bold">{stats.totalDonors.toLocaleString()}+</p>
+                <p className="text-sm text-muted-foreground">নিবন্ধিত ডোনার</p>
+              </div>
+                <div className="text-center">
+                <p className="text-3xl font-bold">{stats.donationsFulfilled.toLocaleString()}+</p>
+                <p className="text-sm text-muted-foreground">সফল ডোনেশন</p>
+              </div>
             </div>
         </div>
       </section>
