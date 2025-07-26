@@ -113,13 +113,13 @@ export default async function Home() {
       <section className="w-full bg-background">
         <div className="container mx-auto flex flex-col items-center text-center py-20 md:py-32 px-4">
             <div className="space-y-6 max-w-2xl">
-              <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-primary font-headline">
+              <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-primary font-headline animate-fade-in-up">
                 এক বিন্দু রক্ত, এক নতুন জীবন।
               </h1>
-              <p className="text-lg text-muted-foreground">
+              <p className="text-lg text-muted-foreground animate-fade-in-up [animation-delay:200ms]">
                 জরুরী মুহূর্তে রক্ত খুঁজে পেতে বা রক্তদানের মাধ্যমে জীবন বাঁচাতে আমাদের প্ল্যাটফর্মে যোগ দিন। আপনার সামান্য ত্যাগই পারে অন্যের জীবনে বিশাল পরিবর্তন আনতে।
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up [animation-delay:400ms]">
                   <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground">
                       <Link href="/signup"><Heart className="mr-2" /> রক্ত দিতে চাই</Link>
                   </Button>
@@ -128,7 +128,7 @@ export default async function Home() {
                   </Button>
               </div>
             </div>
-            <div className="flex items-center gap-8 pt-12">
+            <div className="flex items-center gap-8 pt-12 animate-fade-in-up [animation-delay:600ms]">
               <div className="text-center">
                 <p className="text-3xl font-bold">{stats.totalDonors.toLocaleString()}+</p>
                 <p className="text-sm text-muted-foreground">নিবন্ধিত ডোনার</p>
@@ -143,10 +143,10 @@ export default async function Home() {
 
       <section className="bg-primary/5 w-full py-12 md:py-16">
         <div className="container mx-auto px-4">
-            <h2 className="text-center text-3xl font-bold text-primary md:text-4xl font-headline">
+            <h2 className="text-center text-3xl font-bold text-primary md:text-4xl font-headline animate-fade-in-up">
                 কেন রক্তদান করবেন?
             </h2>
-            <p className="mx-auto mt-4 max-w-3xl text-center text-lg text-foreground/80">
+            <p className="mx-auto mt-4 max-w-3xl text-center text-lg text-foreground/80 animate-fade-in-up [animation-delay:200ms]">
               রক্তদান শুধুমাত্র অন্যের জীবন বাঁচায় না, আপনার স্বাস্থ্যের জন্যও এটি উপকারী।
             </p>
             <Separator className="my-8" />
