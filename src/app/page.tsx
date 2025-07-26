@@ -114,10 +114,10 @@ export default async function Home() {
         <div className="container mx-auto flex flex-col items-center text-center py-20 md:py-32 px-4">
             <div className="space-y-6 max-w-2xl">
               <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-primary font-headline animate-fade-in-up">
-                এক বিন্দু রক্ত, এক নতুন জীবন।
+                🩸 “আপনার রক্তে বাঁচবে অন্যের স্বপ্ন!”
               </h1>
               <p className="text-lg text-muted-foreground animate-fade-in-up [animation-delay:200ms]">
-                জরুরী মুহূর্তে রক্ত খুঁজে পেতে বা রক্তদানের মাধ্যমে জীবন বাঁচাতে আমাদের প্ল্যাটফর্মে যোগ দিন। আপনার সামান্য ত্যাগই পারে অন্যের জীবনে বিশাল পরিবর্তন আনতে।
+                🔥 “আমরা আছি, আপনি পাশে থাকুন!”
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up [animation-delay:400ms]">
                   <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground">
