@@ -32,7 +32,7 @@ const administrators = [
     phone: "01601519007",
     email: "mojibrsm@example.com",
     location: "Ramu, Cox's Bazar",
-    avatar: "https://placehold.co/200x200.png",
+    avatar: "/mojibrsm.png",
     avatarHint: "man portrait"
   }
 ];
