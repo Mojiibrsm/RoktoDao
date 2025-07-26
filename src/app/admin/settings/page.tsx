@@ -1,29 +1,90 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Bell, Wrench } from 'lucide-react';
+import { Bell, Wrench, Loader2, Save } from 'lucide-react';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 export default function AdminSettingsPage() {
     const { toast } = useToast();
+    const [loading, setLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
+    
     const [siteName, setSiteName] = useState("RoktoDao");
     const [tagline, setTagline] = useState("রক্ত দিন, জীবন বাঁচান — এখন আরও সহজে!");
     const [adminEmail, setAdminEmail] = useState("mojibrsm@gmail.com");
+    const [notifyNewDonor, setNotifyNewDonor] = useState(true);
+    const [notifyNewRequest, setNotifyNewRequest] = useState(false);
 
-    const handleSaveChanges = () => {
-        // In a real app, you would save these to Firestore or a config file
-        console.log("Saving settings:", { siteName, tagline, adminEmail });
-        toast({
-            title: "Settings Saved",
-            description: "Your changes have been successfully saved.",
-        });
+    useEffect(() => {
+        const fetchSettings = async () => {
+            setLoading(true);
+            try {
+                const settingsRef = doc(db, 'settings', 'global');
+                const docSnap = await getDoc(settingsRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    setSiteName(data.siteName || "RoktoDao");
+                    setTagline(data.tagline || "রক্ত দিন, জীবন বাঁচান — এখন আরও সহজে!");
+                    setAdminEmail(data.adminEmail || "mojibrsm@gmail.com");
+                    setNotifyNewDonor(data.notifyNewDonor !== false); // default to true
+                    setNotifyNewRequest(data.notifyNewRequest === true); // default to false
+                }
+            } catch (error) {
+                console.error("Error fetching settings:", error);
+                toast({
+                    variant: 'destructive',
+                    title: "Error",
+                    description: "Could not fetch settings.",
+                });
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchSettings();
+    }, [toast]);
+
+    const handleSaveChanges = async () => {
+        setIsSaving(true);
+        try {
+            const settingsRef = doc(db, 'settings', 'global');
+            await setDoc(settingsRef, {
+                siteName,
+                tagline,
+                adminEmail,
+                notifyNewDonor,
+                notifyNewRequest
+            });
+            toast({
+                title: "Settings Saved",
+                description: "Your changes have been successfully saved.",
+            });
+        } catch (error) {
+             console.error("Error saving settings:", error);
+            toast({
+                variant: 'destructive',
+                title: "Error",
+                description: "Could not save settings. Check Firestore permissions.",
+            });
+        } finally {
+            setIsSaving(false);
+        }
     };
+
+    if (loading) {
+        return (
+             <div className="flex h-screen items-center justify-center">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+             </div>
+        );
+    }
 
     return (
         <div className="space-y-8">
@@ -69,20 +130,23 @@ export default function AdminSettingsPage() {
                             <h3 className="font-medium">New Donor Registration</h3>
                             <p className="text-sm text-muted-foreground">Send an email to admin when a new donor signs up.</p>
                         </div>
-                        <Switch defaultChecked />
+                        <Switch checked={notifyNewDonor} onCheckedChange={setNotifyNewDonor} />
                     </div>
                     <div className="flex items-center justify-between rounded-lg border p-4">
                         <div>
                             <h3 className="font-medium">New Blood Request</h3>
                             <p className="text-sm text-muted-foreground">Send an email to admin when a new blood request is submitted.</p>
                         </div>
-                        <Switch />
+                        <Switch checked={notifyNewRequest} onCheckedChange={setNotifyNewRequest} />
                     </div>
                 </CardContent>
             </Card>
 
             <div className="flex justify-end">
-                <Button onClick={handleSaveChanges} size="lg">Save Changes</Button>
+                <Button onClick={handleSaveChanges} size="lg" disabled={isSaving}>
+                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    {isSaving ? 'Saving...' : 'Save Changes'}
+                </Button>
             </div>
         </div>
     );
