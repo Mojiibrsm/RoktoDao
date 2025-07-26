@@ -348,14 +348,6 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="w-full py-12 md:py-16 bg-background">
-        <div className="container mx-auto px-4 text-center">
-            <div className="mx-auto max-w-2xl h-40 flex items-center justify-center rounded-lg bg-muted/50 border-2 border-dashed">
-                <p className="text-muted-foreground">Advertisement Placeholder</p>
-            </div>
-        </div>
-      </section>
-
       <section className="w-full py-12 md:py-16 bg-primary/5">
         <div className="container mx-auto px-4">
           <div className="text-center">
