@@ -42,6 +42,7 @@ export type Donor = {
     profileVisibility: 'public' | 'admin' | 'hidden';
   };
   isVerified?: boolean;
+  isPinned?: boolean;
   createdAt?: any;
 };
 

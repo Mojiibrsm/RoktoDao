@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { cn } from '@/lib/utils';
 import { format, differenceInDays, addDays } from 'date-fns';
-import { Phone, MapPin, Calendar, UserCheck, Droplet, Copy } from 'lucide-react';
+import { Phone, MapPin, Calendar, UserCheck, Droplet, Copy, Pin } from 'lucide-react';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
@@ -47,7 +47,12 @@ export default function DonorCard({ donor }: DonorCardProps) {
   };
 
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-primary/20">
+    <Card className="shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-primary/20 relative">
+       {donor.isPinned && (
+        <div className="absolute top-2 right-2 flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-full text-xs font-bold">
+          <Pin className="h-3 w-3" /> Pinned
+        </div>
+      )}
       <CardContent className="p-6">
         <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-4">
@@ -63,7 +68,7 @@ export default function DonorCard({ donor }: DonorCardProps) {
                     </p>
                 </div>
             </div>
-            <Badge variant={isAvailable && eligibilityStatus.canDonate ? 'default' : 'destructive'} className={isAvailable && eligibilityStatus.canDonate ? 'bg-green-600 text-white' : 'bg-destructive text-destructive-foreground'}>
+            <Badge variant={isAvailable && eligibilityStatus.canDonate ? 'default' : 'destructive'} className={cn('mt-1', isAvailable && eligibilityStatus.canDonate ? 'bg-green-600 text-white' : 'bg-destructive text-destructive-foreground')}>
               {(isAvailable && eligibilityStatus.canDonate) ? 'উপলব্ধ' : 'অনুপলব্ধ'}
             </Badge>
         </div>

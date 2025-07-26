@@ -1,4 +1,5 @@
 
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -48,7 +49,7 @@ async function getHomepageDonors(): Promise<{pinnedDonors: Donor[], otherDonors:
     const pinnedDonors = pinnedSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Donor[];
 
     // Get other available donors, excluding pinned ones
-    const otherQuery = query(donorsRef, where('isAvailable', '==', true), where('isPinned', '!=', true), limit(6));
+    const otherQuery = query(donorsRef, where('isAvailable', '==', true), limit(6));
     const otherSnapshot = await getDocs(otherQuery);
     const otherDonors = otherSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Donor[];
 
@@ -109,7 +110,7 @@ export default async function Home() {
 
   return (
     <div className="flex flex-col items-center">
-      <section className="w-full bg-primary/5">
+       <section className="w-full bg-primary/5">
         <div className="container mx-auto flex flex-col items-center text-center py-20 md:py-32 px-4">
             <div className="space-y-6 max-w-2xl">
               <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-primary font-headline animate-fade-in-up">

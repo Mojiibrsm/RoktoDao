@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { MoreHorizontal, Edit, CheckCircle, Trash2, Copy, Upload, ChevronDown, PlusCircle } from 'lucide-react';
+import { MoreHorizontal, Edit, CheckCircle, Trash2, Copy, Upload, ChevronDown, PlusCircle, Pin, PinOff } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -418,6 +418,24 @@ const handleAddDonor = async (values: DonorFormValues) => {
       }
 };
 
+ const handlePinDonor = async (donorId: string, isPinned: boolean) => {
+    const donorRef = doc(db, 'donors', donorId);
+    try {
+      await updateDoc(donorRef, { isPinned: !isPinned });
+      toast({
+        title: 'Success',
+        description: `Donor has been ${!isPinned ? 'pinned' : 'unpinned'}.`,
+      });
+      fetchDonors();
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Could not update donor pin status.',
+      });
+    }
+  };
+
   return (
     <div>
       <header className="py-4 flex items-center justify-between">
@@ -571,7 +589,10 @@ const handleAddDonor = async (values: DonorFormValues) => {
                       aria-label="Select row"
                     />
                   </TableCell>
-                  <TableCell className="font-medium">{donor.fullName}</TableCell>
+                  <TableCell className="font-medium flex items-center gap-2">
+                    {donor.isPinned && <Pin className="h-4 w-4 text-primary" />}
+                    {donor.fullName}
+                    </TableCell>
                   <TableCell>
                     <Badge variant="outline" className="text-primary border-primary">
                       {donor.bloodGroup}
@@ -612,6 +633,11 @@ const handleAddDonor = async (values: DonorFormValues) => {
                             <CheckCircle className="mr-2 h-4 w-4" />
                             Verify
                           </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handlePinDonor(donor.id, !!donor.isPinned)}>
+                                {donor.isPinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
+                                {donor.isPinned ? 'Unpin from Homepage' : 'Pin to Homepage'}
+                            </DropdownMenuItem>
+                           <DropdownMenuSeparator />
                           <AlertDialogTrigger asChild>
                             <DropdownMenuItem className="text-destructive focus:text-destructive">
                                 <Trash2 className="mr-2 h-4 w-4" />
@@ -643,5 +669,3 @@ const handleAddDonor = async (values: DonorFormValues) => {
     </div>
   );
 }
-
-    
