@@ -110,28 +110,48 @@ export default async function Home() {
 
   return (
     <div className="flex flex-col items-center">
-      <section className="w-full bg-primary/10 py-20 md:py-24">
-        <div className="container mx-auto px-4 text-center">
-          <div>
-            <h1 className="text-4xl font-bold tracking-tighter text-primary md:text-6xl font-headline">
-              🩸 “আপনার রক্তে বাঁচবে অন্যের স্বপ্ন!”
-            </h1>
-            <p className="mx-auto mt-4 max-w-xl text-lg text-foreground/80 md:text-xl">
-              🔥 “আমরা আছি, আপনি পাশে থাকুন!”
-            </p>
-            <div className="mt-8 flex flex-row justify-center gap-4">
-              <Button asChild size="lg" variant="outline" className="bg-background hover:bg-muted">
-                <Link href="/search-donors"><Search className="mr-2 h-5 w-5" />রক্ত খুঁজছি</Link>
-              </Button>
-              <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                <Link href="/signup"><Heart className="mr-2 h-5 w-5" />রক্ত দিতে চাই</Link>
-              </Button>
+      <section className="w-full bg-background">
+        <div className="container mx-auto grid md:grid-cols-2 gap-8 items-center py-20 md:py-32 px-4">
+            <div className="space-y-6">
+              <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-primary font-headline">
+                এক বিন্দু রক্ত, এক নতুন জীবন।
+              </h1>
+              <p className="text-lg text-muted-foreground max-w-lg">
+                জরুরী মুহূর্তে রক্ত খুঁজে পেতে বা রক্তদানের মাধ্যমে জীবন বাঁচাতে আমাদের প্ল্যাটফর্মে যোগ দিন। আপনার সামান্য ত্যাগই পারে অন্যের জীবনে বিশাল পরিবর্তন আনতে।
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4">
+                  <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                      <Link href="/signup"><Heart className="mr-2" /> রক্ত দিতে চাই</Link>
+                  </Button>
+                  <Button asChild size="lg" variant="outline">
+                      <Link href="/search-donors"><Search className="mr-2" /> রক্ত খুঁজছি</Link>
+                  </Button>
+              </div>
+              <div className="flex items-center gap-6 pt-4">
+                <div className="text-center">
+                  <p className="text-2xl font-bold">{stats.totalDonors.toLocaleString()}+</p>
+                  <p className="text-sm text-muted-foreground">নিবন্ধিত ডোনার</p>
+                </div>
+                 <div className="text-center">
+                  <p className="text-2xl font-bold">{stats.donationsFulfilled.toLocaleString()}+</p>
+                  <p className="text-sm text-muted-foreground">সফল ডোনেশন</p>
+                </div>
+              </div>
             </div>
-          </div>
+            <div className="hidden md:block">
+               <Image
+                  src="https://placehold.co/600x400.png"
+                  alt="A collage of happy people, symbolizing community and help from blood donation"
+                  width={600}
+                  height={400}
+                  className="rounded-xl shadow-2xl"
+                  data-ai-hint="community health"
+                />
+            </div>
         </div>
       </section>
 
-      <section className="bg-background w-full py-12 md:py-16">
+      <section className="bg-primary/5 w-full py-12 md:py-16">
         <div className="container mx-auto px-4">
             <h2 className="text-center text-3xl font-bold text-primary md:text-4xl font-headline">
                 কেন রক্তদান করবেন?
@@ -217,7 +237,7 @@ export default async function Home() {
         </div>
       </section>
 
-       <section className="w-full bg-primary/5 py-12 md:py-16">
+       <section className="w-full bg-background py-12 md:py-16">
         <div className="container mx-auto px-4 text-center">
             <h2 className="text-3xl font-bold text-primary md:text-4xl font-headline">
                 আমাদের পরিসংখ্যান
@@ -246,7 +266,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="w-full py-12 md:py-16 bg-background">
+      <section className="w-full py-12 md:py-16 bg-primary/5">
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
@@ -279,7 +299,7 @@ export default async function Home() {
         </div>
       </section>
       
-       <section className="w-full py-12 md:py-16 bg-primary/5">
+       <section className="w-full py-12 md:py-16 bg-background">
         <div className="container mx-auto px-4">
            <h2 className="text-center text-3xl font-bold text-primary md:text-4xl font-headline">
             কেন রক্তবন্ধু ব্যবহার করবেন?
