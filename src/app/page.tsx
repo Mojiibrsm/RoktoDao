@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { db } from '@/lib/firebase';
 import type { BloodRequest, Donor, BlogPost } from '@/lib/types';
 import { collection, getDocs, limit, orderBy, query, where,getCountFromServer, Timestamp } from 'firebase/firestore';
-import { Droplet, MapPin, Calendar, Syringe, Search, Heart, Phone, LifeBuoy, HeartPulse, ShieldCheck, Stethoscope, LocateFixed, MessageCircle, Newspaper, Github, Linkedin, Twitter, Users, Globe, HandHeart, ListChecks, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Droplet, MapPin, Calendar, Syringe, Search, Heart, Phone, LifeBuoy, HeartPulse, ShieldCheck, Stethoscope, LocateFixed, MessageCircle, Newspaper, Github, Linkedin, Twitter, Users, Globe, HandHeart, ListChecks, AlertTriangle, ArrowRight, Pin } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
@@ -38,25 +38,24 @@ async function getUrgentRequests(): Promise<BloodRequest[]> {
   }
 }
 
-async function getTopDonors(): Promise<Donor[]> {
+async function getHomepageDonors(): Promise<{pinnedDonors: Donor[], otherDonors: Donor[]}> {
   try {
     const donorsRef = collection(db, 'donors');
-    const q = query(donorsRef, where('isAvailable', '==', true), limit(6));
-    const querySnapshot = await getDocs(q);
-    const donors = querySnapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        ...data,
-        lastDonationDate: data.lastDonationDate instanceof Timestamp ? data.lastDonationDate.toDate().toISOString() : data.lastDonationDate,
-        dateOfBirth: data.dateOfBirth instanceof Timestamp ? data.dateOfBirth.toDate().toISOString() : data.dateOfBirth,
-        createdAt: data.createdAt?.toDate().toISOString() || new Date().toISOString(),
-      } as Donor;
-    });
-    return donors;
+    
+    // Get pinned donors
+    const pinnedQuery = query(donorsRef, where('isPinned', '==', true), where('isAvailable', '==', true));
+    const pinnedSnapshot = await getDocs(pinnedQuery);
+    const pinnedDonors = pinnedSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Donor[];
+
+    // Get other available donors, excluding pinned ones
+    const otherQuery = query(donorsRef, where('isAvailable', '==', true), where('isPinned', '!=', true), limit(6));
+    const otherSnapshot = await getDocs(otherQuery);
+    const otherDonors = otherSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Donor[];
+
+    return { pinnedDonors, otherDonors };
   } catch (error) {
-    console.error("Error fetching top donors:", error);
-    return [];
+    console.error("Error fetching homepage donors:", error);
+    return { pinnedDonors: [], otherDonors: [] };
   }
 }
 
@@ -68,7 +67,6 @@ async function getStats() {
         const donorSnapshot = await getCountFromServer(donorsCol);
         const requestSnapshot = await getCountFromServer(requestsCol);
 
-        // This is a placeholder. A real implementation would require a 'status' field in requests.
         const fulfilledQuery = query(requestsCol, where("status", "==", "Fulfilled"));
         const fulfilledSnapshot = await getCountFromServer(fulfilledQuery);
 
@@ -105,12 +103,13 @@ const faqs = [
 
 export default async function Home() {
   const urgentRequests = await getUrgentRequests();
-  const topDonors = await getTopDonors();
+  const { pinnedDonors, otherDonors } = await getHomepageDonors();
   const stats = await getStats();
+  const allDonors = [...pinnedDonors, ...otherDonors.filter(d => !pinnedDonors.some(pd => pd.uid === d.uid))].slice(0, 6);
 
   return (
     <div className="flex flex-col items-center">
-      <section className="w-full bg-background">
+      <section className="w-full bg-primary/5">
         <div className="container mx-auto flex flex-col items-center text-center py-20 md:py-32 px-4">
             <div className="space-y-6 max-w-2xl">
               <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-primary font-headline animate-fade-in-up">
@@ -141,7 +140,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="bg-primary/5 w-full py-12 md:py-16">
+      <section className="bg-background w-full py-12 md:py-16">
         <div className="container mx-auto px-4">
             <h2 className="text-center text-3xl font-bold text-primary md:text-4xl font-headline animate-fade-in-up">
                 কেন রক্তদান করবেন?
@@ -175,7 +174,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="w-full py-12 md:py-16 bg-background">
+      <section className="w-full py-12 md:py-16 bg-primary/5">
         <div className="container mx-auto px-4">
           <div className="text-center">
             <h2 className="text-3xl font-bold text-primary md:text-4xl font-headline">
@@ -184,10 +183,10 @@ export default async function Home() {
             <p className="mt-2 text-lg text-muted-foreground">Our active and available donors</p>
           </div>
           <Separator className="my-8" />
-          {topDonors.length > 0 ? (
+          {allDonors.length > 0 ? (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {topDonors.map((donor) => (
-                <DonorCard key={donor.id} donor={donor} />
+              {allDonors.map((donor) => (
+                <DonorCard key={donor.uid} donor={donor} />
               ))}
             </div>
           ) : (
@@ -201,7 +200,7 @@ export default async function Home() {
         </div>
       </section>
       
-      <section className="w-full bg-primary/5 py-12 md:py-16">
+      <section className="w-full bg-background py-12 md:py-16">
         <div className="container mx-auto px-4">
           <div className="text-center">
             <h2 className="text-3xl font-bold text-primary md:text-4xl font-headline">
@@ -227,7 +226,7 @@ export default async function Home() {
         </div>
       </section>
 
-       <section className="w-full bg-background py-12 md:py-16">
+       <section className="w-full bg-primary/5 py-12 md:py-16">
         <div className="container mx-auto px-4 text-center">
             <h2 className="text-3xl font-bold text-primary md:text-4xl font-headline">
                 আমাদের পরিসংখ্যান
@@ -256,7 +255,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="w-full py-12 md:py-16 bg-primary/5">
+      <section className="w-full py-12 md:py-16 bg-background">
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
@@ -289,7 +288,7 @@ export default async function Home() {
         </div>
       </section>
       
-       <section className="w-full py-12 md:py-16 bg-background">
+       <section className="w-full py-12 md:py-16 bg-primary/5">
         <div className="container mx-auto px-4">
            <h2 className="text-center text-3xl font-bold text-primary md:text-4xl font-headline">
             কেন রক্তবন্ধু ব্যবহার করবেন?
@@ -324,7 +323,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="w-full py-12 md:py-16 bg-primary/5">
+      <section className="w-full py-12 md:py-16 bg-background">
         <div className="container mx-auto px-4 text-center">
             <div className="mx-auto max-w-2xl h-40 flex items-center justify-center rounded-lg bg-muted/50 border-2 border-dashed">
                 <p className="text-muted-foreground">Advertisement Placeholder</p>
@@ -332,7 +331,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="w-full py-12 md:py-16 bg-background">
+      <section className="w-full py-12 md:py-16 bg-primary/5">
         <div className="container mx-auto px-4">
           <div className="text-center">
             <h2 className="text-3xl font-bold text-primary md:text-4xl font-headline">
@@ -421,9 +420,9 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="w-full py-12 md:py-16 bg-primary/5">
+      <section className="w-full py-12 md:py-16 bg-background">
         <div className="container mx-auto px-4">
-            <Card className="bg-background/80 p-8 rounded-lg shadow-lg">
+            <Card className="bg-primary/5 p-8 rounded-lg shadow-lg">
                 <div className="grid md:grid-cols-3 gap-8 items-center">
                     <div className="md:col-span-1 flex justify-center">
                         <Image
