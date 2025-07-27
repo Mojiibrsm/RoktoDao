@@ -43,12 +43,10 @@ async function getHomepageDonors(): Promise<{pinnedDonors: Donor[], otherDonors:
   try {
     const donorsRef = collection(db, 'donors');
     
-    // Get pinned donors
     const pinnedQuery = query(donorsRef, where('isPinned', '==', true), where('isAvailable', '==', true));
     const pinnedSnapshot = await getDocs(pinnedQuery);
     const pinnedDonors = pinnedSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Donor[];
 
-    // Get other available donors, excluding pinned ones
     const otherQuery = query(donorsRef, where('isAvailable', '==', true), limit(6));
     const otherSnapshot = await getDocs(otherQuery);
     const otherDonors = otherSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Donor[];
@@ -86,6 +84,26 @@ async function getStats() {
         }
     }
 }
+
+interface GalleryImage {
+    id: string;
+    imageUrl: string;
+}
+async function getGalleryImages(): Promise<GalleryImage[]> {
+    try {
+        const imagesRef = collection(db, 'gallery');
+        const q = query(imagesRef, orderBy('createdAt', 'desc'), limit(8));
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            imageUrl: doc.data().imageUrl,
+        }));
+    } catch (error) {
+        console.error("Error fetching gallery images: ", error);
+        return [];
+    }
+}
+
 
 const faqs = [
   {
@@ -131,16 +149,17 @@ export default async function Home() {
   const stats = await getStats();
   const allDonors = [...pinnedDonors, ...otherDonors.filter(d => !pinnedDonors.some(pd => pd.uid === d.uid))].slice(0, 6);
   const director = await getDirector();
+  const galleryImages = await getGalleryImages();
 
   return (
     <div className="flex flex-col items-center">
        <section className="w-full bg-primary/5">
         <div className="container mx-auto flex flex-col items-center text-center py-20 md:py-32 px-4">
-            <div className="space-y-6 max-w-2xl">
+            <div className="space-y-6 max-w-3xl">
               <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-primary font-headline animate-fade-in-up">
                 🩸 “আপনার রক্তে বাঁচবে অন্যের স্বপ্ন!”
               </h1>
-              <p className="text-lg text-muted-foreground animate-fade-in-up [animation-delay:200ms]">
+              <p className="text-lg text-muted-foreground animate-fade-in-up [animation-delay:200ms] max-w-2xl mx-auto">
                 জরুরী মুহূর্তে রক্ত খুঁজে পেতে বা রক্তদানের মাধ্যমে জীবন বাঁচাতে আমাদের প্ল্যাটফর্মে যোগ দিন। আপনার সামান্য ত্যাগই পারে অন্যের জীবনে বিশাল পরিবর্তন আনতে।
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up [animation-delay:400ms]">
@@ -279,100 +298,44 @@ export default async function Home() {
             </div>
         </div>
       </section>
-
-      <section className="w-full py-12 md:py-16 bg-background">
+      
+      {director && <section className="w-full py-12 md:py-16 bg-background">
         <div className="container mx-auto px-4">
-          <h2 className="text-center text-3xl font-bold text-primary md:text-4xl font-headline">
-            রক্তদানের মুহূর্ত (গ্যালারি)
-          </h2>
-          <p className="mx-auto mt-4 max-w-3xl text-center text-lg text-foreground/80">
-            আমাদের রক্তযোদ্ধাদের কিছু অনুপ্রেরণামূলক মুহূর্ত।
-          </p>
-          <Separator className="my-8" />
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            <div className="overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
-              <Image
-                src="https://placehold.co/400x400.png"
-                alt="Blood donation moment 1"
-                width={400}
-                height={400}
-                className="w-full h-full object-cover aspect-square"
-                data-ai-hint="blood donation"
-              />
-            </div>
-            <div className="overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
-              <Image
-                src="https://placehold.co/400x400.png"
-                alt="Blood donation moment 2"
-                width={400}
-                height={400}
-                className="w-full h-full object-cover aspect-square"
-                data-ai-hint="happy donor"
-              />
-            </div>
-            <div className="overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
-              <Image
-                src="https://placehold.co/400x400.png"
-                alt="Blood donation moment 3"
-                width={400}
-                height={400}
-                className="w-full h-full object-cover aspect-square"
-                data-ai-hint="hospital charity"
-              />
-            </div>
-            <div className="overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
-              <Image
-                src="https://placehold.co/400x400.png"
-                alt="Blood donation moment 4"
-                width={400}
-                height={400}
-                className="w-full h-full object-cover aspect-square"
-                data-ai-hint="saving life"
-              />
-            </div>
-            <div className="overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
-              <Image
-                src="https://placehold.co/400x400.png"
-                alt="Blood donation moment 5"
-                width={400}
-                height={400}
-                className="w-full h-full object-cover aspect-square"
-                data-ai-hint="donor group"
-              />
-            </div>
-            <div className="overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
-              <Image
-                src="https://placehold.co/400x400.png"
-                alt="Blood donation moment 6"
-                width={400}
-                height={400}
-                className="w-full h-full object-cover aspect-square"
-                data-ai-hint="medical team"
-              />
-            </div>
-            <div className="overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
-              <Image
-                src="https://placehold.co/400x400.png"
-                alt="Blood donation moment 7"
-                width={400}
-                height={400}
-                className="w-full h-full object-cover aspect-square"
-                data-ai-hint="volunteer smiling"
-              />
-            </div>
-            <div className="overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
-              <Image
-                src="https://placehold.co/400x400.png"
-                alt="Blood donation moment 8"
-                width={400}
-                height={400}
-                className="w-full h-full object-cover aspect-square"
-                data-ai-hint="blood bag"
-              />
-            </div>
-          </div>
+            <Card className="bg-primary/5 p-8 rounded-lg shadow-lg">
+                <div className="grid md:grid-cols-3 gap-8 items-center">
+                    <div className="md:col-span-1 flex justify-center">
+                        <Image
+                            src={director.avatar || "/mojibrsm.png"}
+                            alt={director.name}
+                            width={200}
+                            height={200}
+                            data-ai-hint="man portrait"
+                            className="rounded-full object-cover shadow-xl"
+                        />
+                    </div>
+                    <div className="md:col-span-2 text-center md:text-left">
+                        <h2 className="text-3xl font-bold text-primary font-headline">
+                            পরিচালকের বার্তা
+                        </h2>
+                        <Separator className="my-4" />
+                        <p className="text-muted-foreground leading-relaxed">
+                            "RoktoDao একটি অলাভজনক উদ্যোগ যা রক্তদাতা এবং গ্রহীতাদের মধ্যে একটি সেতুবন্ধন তৈরির লক্ষ্যে কাজ করে। প্রযুক্তি ব্যবহার করে জীবন বাঁচানোর এই যাত্রায় আমাদের সঙ্গী হওয়ার জন্য আপনাকে ধন্যবাদ।"
+                        </p>
+                        <p className="font-semibold mt-4"> - {director.name}, প্রতিষ্ঠাতা</p>
+                        <div className="flex justify-center md:justify-start gap-4 mt-4">
+                            <Link href="https://www.facebook.com/MoJiiB.RsM" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-facebook"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+                            </Link>
+                            <Link href="https://www.linkedin.com/in/mojibrsm/" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary"><Linkedin size={24} /></Link>
+                            <Link href="https://github.com/mojib-rsm" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary"><Github size={24} /></Link>
+                            <Link href="http://mojibrsm.com/" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary"><Globe size={24} /></Link>
+                        </div>
+                    </div>
+                </div>
+            </Card>
         </div>
-      </section>
+      </section>}
+
 
       <section className="w-full py-12 md:py-16 bg-primary/5">
         <div className="container mx-auto px-4">
@@ -531,43 +494,6 @@ export default async function Home() {
         </div>
       </section>
 
-      {director && <section className="w-full py-12 md:py-16 bg-background">
-        <div className="container mx-auto px-4">
-            <Card className="bg-primary/5 p-8 rounded-lg shadow-lg">
-                <div className="grid md:grid-cols-3 gap-8 items-center">
-                    <div className="md:col-span-1 flex justify-center">
-                        <Image
-                            src={director.avatar || "/mojibrsm.png"}
-                            alt={director.name}
-                            width={200}
-                            height={200}
-                            data-ai-hint="man portrait"
-                            className="rounded-full object-cover shadow-xl"
-                        />
-                    </div>
-                    <div className="md:col-span-2 text-center md:text-left">
-                        <h2 className="text-3xl font-bold text-primary font-headline">
-                            পরিচালকের বার্তা
-                        </h2>
-                        <Separator className="my-4" />
-                        <p className="text-muted-foreground leading-relaxed">
-                            "RoktoDao একটি অলাভজনক উদ্যোগ যা রক্তদাতা এবং গ্রহীতাদের মধ্যে একটি সেতুবন্ধন তৈরির লক্ষ্যে কাজ করে। প্রযুক্তি ব্যবহার করে জীবন বাঁচানোর এই যাত্রায় আমাদের সঙ্গী হওয়ার জন্য আপনাকে ধন্যবাদ।"
-                        </p>
-                        <p className="font-semibold mt-4"> - {director.name}, প্রতিষ্ঠাতা</p>
-                        <div className="flex justify-center md:justify-start gap-4 mt-4">
-                            <Link href="https://www.facebook.com/MoJiiB.RsM" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-facebook"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
-                            </Link>
-                            <Link href="https://www.linkedin.com/in/mojibrsm/" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary"><Linkedin size={24} /></Link>
-                            <Link href="https://github.com/mojib-rsm" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary"><Github size={24} /></Link>
-                            <Link href="http://mojibrsm.com/" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary"><Globe size={24} /></Link>
-                        </div>
-                    </div>
-                </div>
-            </Card>
-        </div>
-      </section>}
-
       <section className="container mx-auto py-12 md:py-16 px-4 max-w-4xl">
         <h2 className="text-center text-3xl font-bold text-primary md:text-4xl font-headline">
             সাধারণ জিজ্ঞাসা
@@ -589,6 +515,34 @@ export default async function Home() {
           <Button asChild variant="outline">
               <Link href="/faq">আরো প্রশ্ন দেখুন</Link>
           </Button>
+        </div>
+      </section>
+
+      <section className="w-full py-12 md:py-16 bg-background">
+        <div className="container mx-auto px-4">
+          <h2 className="text-center text-3xl font-bold text-primary md:text-4xl font-headline">
+            রক্তদানের মুহূর্ত (গ্যালারি)
+          </h2>
+          <p className="mx-auto mt-4 max-w-3xl text-center text-lg text-foreground/80">
+            আমাদের রক্তযোদ্ধাদের কিছু অনুপ্রেরণামূলক মুহূর্ত।
+          </p>
+          <Separator className="my-8" />
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+             {galleryImages.map(image => (
+                <div key={image.id} className="overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
+                  <Image
+                    src={image.imageUrl}
+                    alt="Blood donation moment"
+                    width={400}
+                    height={400}
+                    className="w-full h-full object-cover aspect-square"
+                  />
+                </div>
+            ))}
+            {galleryImages.length === 0 && (
+              <p className="col-span-full text-center text-muted-foreground">গ্যালারিতে কোনো ছবি পাওয়া যায়নি।</p>
+            )}
+          </div>
         </div>
       </section>
 

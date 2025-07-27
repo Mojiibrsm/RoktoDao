@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Droplet, Home, Users, Bell, UserPlus, Settings, MessageSquareWarning, Droplet as BloodDrop, Info, Shield, Newspaper, Globe } from 'lucide-react';
+import { Droplet, Home, Users, Bell, UserPlus, Settings, MessageSquareWarning, Droplet as BloodDrop, Info, Shield, Newspaper, Globe, Image as ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from './ui/separator';
 
@@ -14,6 +14,7 @@ const navLinks = [
   { href: '/admin/users', label: 'User Management', icon: UserPlus },
   { href: '/admin/moderators', label: 'Moderators', icon: Shield },
   { href: '/admin/blog', label: 'Blog Management', icon: Newspaper },
+  { href: '/admin/gallery', label: 'Gallery Management', icon: ImageIcon },
   { href: '/admin/seo', label: 'SEO Management', icon: Globe },
   { href: '/admin/notifications', label: 'Notifications', icon: Bell },
   { href: '/admin/feedback', label: 'Feedback/Reports', icon: MessageSquareWarning },
