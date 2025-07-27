@@ -1,12 +1,12 @@
 
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
-import { collection, getDocs, doc, deleteDoc, addDoc, serverTimestamp, query, orderBy, where, updateDoc } from 'firebase/firestore';
+import { useState, useEffect, useRef, ChangeEvent } from 'react';
+import { collection, getDocs, doc, deleteDoc, addDoc, serverTimestamp, query, orderBy, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Trash2, Upload, Image as ImageIcon, Loader2, CheckCircle } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Trash2, Upload, Image as ImageIcon, Loader2, CheckCircle, PlusCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -21,6 +21,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
+import { useAuth } from '@/hooks/use-auth';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 
 interface GalleryImage {
     id: string;
@@ -29,6 +32,102 @@ interface GalleryImage {
     status: 'pending' | 'approved';
     uploaderId?: string;
 }
+
+const AdminUploadDialog = ({ onUploadComplete }: { onUploadComplete: () => void }) => {
+    const [uploading, setUploading] = useState(false);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const { toast } = useToast();
+    const { user } = useAuth();
+
+    const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+        if (event.target.files && event.target.files[0]) {
+            setSelectedFile(event.target.files[0]);
+        }
+    };
+
+    const handleUpload = async () => {
+        if (!selectedFile) {
+            toast({ variant: 'destructive', title: 'No file selected' });
+            return;
+        }
+        if (!user) {
+            toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be logged in to upload.' });
+            return;
+        }
+
+        setUploading(true);
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+
+        try {
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData,
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Admin uploads are automatically approved
+                await addDoc(collection(db, 'gallery'), {
+                    imageUrl: data.path,
+                    status: 'approved',
+                    uploaderId: user.uid,
+                    createdAt: serverTimestamp(),
+                });
+                toast({ title: 'Image Uploaded', description: 'The image has been added to the gallery.' });
+                setSelectedFile(null);
+                if(fileInputRef.current) fileInputRef.current.value = "";
+                setIsDialogOpen(false);
+                onUploadComplete();
+            } else {
+                throw new Error(data.error || 'Failed to get a success response from server.');
+            }
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Upload Failed', description: error.message });
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    return (
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+                <Button><Upload className="mr-2 h-4 w-4" /> Upload Image</Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Upload New Gallery Image</DialogTitle>
+                    <DialogDescription>
+                        Images uploaded here will be automatically approved and added to the gallery.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                    <Input 
+                        type="file" 
+                        ref={fileInputRef}
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        disabled={uploading}
+                    />
+                    {selectedFile && (
+                        <p className="text-sm text-muted-foreground mt-2">Selected: {selectedFile.name}</p>
+                    )}
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild><Button type="button" variant="secondary">Cancel</Button></DialogClose>
+                    <Button onClick={handleUpload} disabled={uploading || !selectedFile}>
+                        {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
+                        {uploading ? 'Uploading...' : 'Submit Image'}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
 
 export default function GalleryManagementPage() {
     const [pendingImages, setPendingImages] = useState<GalleryImage[]>([]);
@@ -135,11 +234,14 @@ export default function GalleryManagementPage() {
 
     return (
         <div>
-            <header className="py-4">
-                <h1 className="text-2xl font-bold tracking-tight text-primary md:text-3xl font-headline">
-                    Gallery Management
-                </h1>
-                <p className="text-muted-foreground">Approve or remove user-submitted images for the gallery.</p>
+            <header className="py-4 flex justify-between items-center">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight text-primary md:text-3xl font-headline">
+                        Gallery Management
+                    </h1>
+                    <p className="text-muted-foreground">Approve or remove images, and upload new ones.</p>
+                </div>
+                 <AdminUploadDialog onUploadComplete={fetchImages} />
             </header>
             
             <Card className="mb-8">
