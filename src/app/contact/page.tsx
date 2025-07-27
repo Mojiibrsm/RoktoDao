@@ -9,19 +9,52 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import React from 'react';
+import React, { useState } from 'react';
 
 export default function ContactPage() {
     const { toast } = useToast();
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        toast({
-            title: "বার্তা পাঠানো হয়েছে!",
-            description: "আপনার বার্তাটি আমরা পেয়েছি। শীঘ্রই আপনার সাথে যোগাযোগ করা হবে।",
-        });
-        // Here you would typically handle form submission, e.g., send an email or save to a database.
-        (event.target as HTMLFormElement).reset();
+        setIsSubmitting(true);
+        const form = event.target as HTMLFormElement;
+        const formData = new FormData(form);
+        const name = formData.get('name') as string;
+        const email = formData.get('email') as string;
+        const message = formData.get('message') as string;
+
+        try {
+            const response = await fetch('/api/send-email', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    type: 'contact_form',
+                    data: { name, email, message },
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to send message.');
+            }
+
+            toast({
+                title: "বার্তা পাঠানো হয়েছে!",
+                description: "আপনার বার্তাটি আমরা পেয়েছি। শীঘ্রই আপনার সাথে যোগাযোগ করা হবে।",
+            });
+            form.reset();
+        } catch (error) {
+            console.error('Contact form error:', error);
+            toast({
+                variant: 'destructive',
+                title: "ত্রুটি!",
+                description: "বার্তা পাঠাতে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।",
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
   return (
@@ -64,7 +97,7 @@ export default function ContactPage() {
                         </div>
                         <div>
                             <h3 className="text-xl font-semibold">ইমেইল করুন</h3>
-                            <p className="text-muted-foreground">support@roktodao.com</p>
+                            <p className="text-muted-foreground">mojibrsm@gmail.com</p>
                         </div>
                     </div>
                      <div className="flex items-start gap-4">
@@ -73,7 +106,7 @@ export default function ContactPage() {
                         </div>
                         <div>
                             <h3 className="text-xl font-semibold">ফোন করুন</h3>
-                            <p className="text-muted-foreground">+880 1712 345678</p>
+                            <p className="text-muted-foreground">+8801600151907</p>
                         </div>
                     </div>
                 </div>
@@ -89,17 +122,19 @@ export default function ContactPage() {
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div className="space-y-2">
                                 <Label htmlFor="name">আপনার নাম</Label>
-                                <Input id="name" placeholder="সম্পূর্ণ নাম" required />
+                                <Input id="name" name="name" placeholder="সম্পূর্ণ নাম" required />
                             </div>
                              <div className="space-y-2">
                                 <Label htmlFor="email">আপনার ইমেইল</Label>
-                                <Input id="email" type="email" placeholder="you@example.com" required />
+                                <Input id="email" name="email" type="email" placeholder="you@example.com" required />
                             </div>
                              <div className="space-y-2">
                                 <Label htmlFor="message">আপনার বার্তা</Label>
-                                <Textarea id="message" placeholder="আপনার বার্তা এখানে লিখুন..." required rows={5} />
+                                <Textarea id="message" name="message" placeholder="আপনার বার্তা এখানে লিখুন..." required rows={5} />
                             </div>
-                            <Button type="submit" className="w-full">বার্তা পাঠান</Button>
+                            <Button type="submit" className="w-full" disabled={isSubmitting}>
+                                {isSubmitting ? 'পাঠানো হচ্ছে...' : 'বার্তা পাঠান'}
+                            </Button>
                         </form>
                     </CardContent>
                 </Card>

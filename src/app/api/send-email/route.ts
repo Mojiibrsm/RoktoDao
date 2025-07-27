@@ -73,6 +73,17 @@ export async function POST(request: NextRequest) {
         </ul>
         <p>Please review the request in the admin panel.</p>
       `;
+    } else if (type === 'contact_form') {
+      subject = `📨 New Contact Message from ${data.name}`;
+      htmlContent = `
+        <h1>New message from your website's contact form!</h1>
+        <p>You have received a new message from <strong>${data.name}</strong> (${data.email}).</p>
+        <hr>
+        <h2>Message:</h2>
+        <p style="white-space: pre-wrap;">${data.message}</p>
+        <hr>
+        <p>You can reply to this user directly at: <a href="mailto:${data.email}">${data.email}</a></p>
+      `;
     } else {
         return NextResponse.json({ success: false, error: 'Invalid notification type.' }, { status: 400 });
     }
