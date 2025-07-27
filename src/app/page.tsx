@@ -282,6 +282,100 @@ export default async function Home() {
 
       <section className="w-full py-12 md:py-16 bg-background">
         <div className="container mx-auto px-4">
+          <h2 className="text-center text-3xl font-bold text-primary md:text-4xl font-headline">
+            রক্তদানের মুহূর্ত (গ্যালারি)
+          </h2>
+          <p className="mx-auto mt-4 max-w-3xl text-center text-lg text-foreground/80">
+            আমাদের রক্তযোদ্ধাদের কিছু অনুপ্রেরণামূলক মুহূর্ত।
+          </p>
+          <Separator className="my-8" />
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <Image
+                src="https://placehold.co/400x400.png"
+                alt="Blood donation moment 1"
+                width={400}
+                height={400}
+                className="w-full h-full object-cover aspect-square"
+                data-ai-hint="blood donation"
+              />
+            </div>
+            <div className="overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <Image
+                src="https://placehold.co/400x400.png"
+                alt="Blood donation moment 2"
+                width={400}
+                height={400}
+                className="w-full h-full object-cover aspect-square"
+                data-ai-hint="happy donor"
+              />
+            </div>
+            <div className="overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <Image
+                src="https://placehold.co/400x400.png"
+                alt="Blood donation moment 3"
+                width={400}
+                height={400}
+                className="w-full h-full object-cover aspect-square"
+                data-ai-hint="hospital charity"
+              />
+            </div>
+            <div className="overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <Image
+                src="https://placehold.co/400x400.png"
+                alt="Blood donation moment 4"
+                width={400}
+                height={400}
+                className="w-full h-full object-cover aspect-square"
+                data-ai-hint="saving life"
+              />
+            </div>
+            <div className="overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <Image
+                src="https://placehold.co/400x400.png"
+                alt="Blood donation moment 5"
+                width={400}
+                height={400}
+                className="w-full h-full object-cover aspect-square"
+                data-ai-hint="donor group"
+              />
+            </div>
+            <div className="overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <Image
+                src="https://placehold.co/400x400.png"
+                alt="Blood donation moment 6"
+                width={400}
+                height={400}
+                className="w-full h-full object-cover aspect-square"
+                data-ai-hint="medical team"
+              />
+            </div>
+            <div className="overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <Image
+                src="https://placehold.co/400x400.png"
+                alt="Blood donation moment 7"
+                width={400}
+                height={400}
+                className="w-full h-full object-cover aspect-square"
+                data-ai-hint="volunteer smiling"
+              />
+            </div>
+            <div className="overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <Image
+                src="https://placehold.co/400x400.png"
+                alt="Blood donation moment 8"
+                width={400}
+                height={400}
+                className="w-full h-full object-cover aspect-square"
+                data-ai-hint="blood bag"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="w-full py-12 md:py-16 bg-primary/5">
+        <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-3xl font-bold text-primary font-headline">
@@ -313,7 +407,7 @@ export default async function Home() {
         </div>
       </section>
       
-       <section className="w-full py-12 md:py-16 bg-primary/5">
+       <section className="w-full py-12 md:py-16 bg-background">
         <div className="container mx-auto px-4">
            <h2 className="text-center text-3xl font-bold text-primary md:text-4xl font-headline">
             কেন রক্তবন্ধু ব্যবহার করবেন?
