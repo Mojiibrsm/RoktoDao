@@ -24,7 +24,7 @@ export default function Footer() {
             FAQ
           </Link>
           <span className="text-muted-foreground">|</span>
-          <Link href="mailto:support@roktobondhu.org" className="text-muted-foreground hover:text-primary transition-colors">
+          <Link href="/contact" className="text-muted-foreground hover:text-primary transition-colors">
             Contact
           </Link>
         </div>

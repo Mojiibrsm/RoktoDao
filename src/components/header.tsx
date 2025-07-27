@@ -45,7 +45,7 @@ export default function Header() {
               {link.label}
             </Link>
           ))}
-           <Link href="mailto:support@roktobondhu.org" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
+           <Link href="/contact" className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
               যোগাযোগ
             </Link>
         </nav>
@@ -98,7 +98,7 @@ export default function Header() {
                   <Link href="/faq" className="text-lg font-medium text-muted-foreground transition-colors hover:text-primary">
                     সাধারণ জিজ্ঞাসা
                   </Link>
-                   <Link href="mailto:support@roktobondhu.org" className="text-lg font-medium text-muted-foreground transition-colors hover:text-primary">
+                   <Link href="/contact" className="text-lg font-medium text-muted-foreground transition-colors hover:text-primary">
                     যোগাযোগ
                   </Link>
               </nav>
