@@ -24,6 +24,7 @@ import { useEffect, useState } from 'react';
 interface GalleryImage {
     id: string;
     imageUrl: string;
+    status: 'approved' | 'pending';
 }
 interface Stats {
   totalDonors: number;
@@ -109,12 +110,12 @@ export default function Home() {
 
         // Fetch Gallery Images
         const imagesRef = collection(db, 'gallery');
-        const galleryQuery = query(imagesRef, where('status', '==', 'approved'), orderBy('createdAt', 'desc'), limit(8));
+        const galleryQuery = query(imagesRef, orderBy('createdAt', 'desc'), limit(8));
         const gallerySnapshot = await getDocs(galleryQuery);
-        setGalleryImages(gallerySnapshot.docs.map(doc => ({
-            id: doc.id,
-            imageUrl: doc.data().imageUrl,
-        })));
+        const approvedImages = gallerySnapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() } as GalleryImage))
+            .filter(img => img.status === 'approved');
+        setGalleryImages(approvedImages);
 
       } catch (error) {
         console.error("Error fetching homepage data:", error);

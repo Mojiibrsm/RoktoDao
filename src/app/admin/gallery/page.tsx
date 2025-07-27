@@ -17,6 +17,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
@@ -41,18 +42,16 @@ export default function GalleryManagementPage() {
         setLoading(true);
         try {
             const imagesCollection = collection(db, 'gallery');
+            const q = query(imagesCollection, orderBy('createdAt', 'desc'));
+            const querySnapshot = await getDocs(q);
             
-            const pendingQuery = query(imagesCollection, where('status', '==', 'pending'), orderBy('createdAt', 'desc'));
-            const pendingSnapshot = await getDocs(pendingQuery);
-            const pendingList = pendingSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GalleryImage));
-            setPendingImages(pendingList);
-
-            const approvedQuery = query(imagesCollection, where('status', '==', 'approved'), orderBy('createdAt', 'desc'));
-            const approvedSnapshot = await getDocs(approvedQuery);
-            const approvedList = approvedSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GalleryImage));
-            setApprovedImages(approvedList);
+            const allImages = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GalleryImage));
+            
+            setPendingImages(allImages.filter(img => img.status === 'pending'));
+            setApprovedImages(allImages.filter(img => img.status === 'approved'));
 
         } catch (error) {
+            console.error(error);
             toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch gallery images.' });
         } finally {
             setLoading(false);

@@ -135,11 +135,15 @@ export default function GalleryPage() {
             setLoading(true);
             try {
                 const imagesCollection = collection(db, 'gallery');
-                const q = query(imagesCollection, where('status', '==', 'approved'), orderBy('createdAt', 'desc'));
+                // Order by creation time and filter for approved status on the client
+                const q = query(imagesCollection, orderBy('createdAt', 'desc'));
                 const imagesSnapshot = await getDocs(q);
-                const imagesList = imagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GalleryImage));
+                const imagesList = imagesSnapshot.docs
+                    .map(doc => ({ id: doc.id, ...doc.data() } as GalleryImage))
+                    .filter(img => img.status === 'approved');
                 setImages(imagesList);
             } catch (error) {
+                console.error(error);
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch gallery images.' });
             } finally {
                 setLoading(false);
