@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useTransition, useCallback } from 'react';
+import { useState, useEffect, useTransition, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -55,11 +55,20 @@ export default function SearchDonorsPage() {
     }
   }, [isClient, handleSearch]);
   
-  const districtOptions = division !== 'any' 
-    ? locations[division as keyof typeof locations]?.districts.map(d => ({ value: d, label: d })).sort((a, b) => a.label.localeCompare(b.label, 'bn'))
-    : Object.keys(locations).flatMap(div => 
-        locations[div as keyof typeof locations].districts.map(d => ({ value: d, label: d }))
-      ).sort((a, b) => a.label.localeCompare(b.label, 'bn'));
+  const districtOptions = useMemo(() => {
+    if (division === 'any' || !locations[division as keyof typeof locations]) {
+      return Object.values(locations).flatMap(div => div.districts).sort((a,b) => a.localeCompare(b, 'bn'));
+    }
+    return locations[division as keyof typeof locations].districts.sort((a, b) => a.localeCompare(b, 'bn'));
+  }, [division]);
+
+  const upazilaOptions = useMemo(() => {
+    if (district === 'any' || !upazilas[district as keyof typeof upazilas]) {
+      return [];
+    }
+    return upazilas[district as keyof typeof upazilas].sort((a, b) => a.localeCompare(b, 'bn'));
+  }, [district]);
+
 
   if (!isClient) {
     return null;
@@ -100,17 +109,17 @@ export default function SearchDonorsPage() {
                     <SelectTrigger id="district"><SelectValue placeholder="Any" /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="any">Any</SelectItem>
-                        {districtOptions.map(d => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}
+                        {districtOptions.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                     </SelectContent>
                 </Select>
               </div>
              <div className="space-y-2">
               <Label htmlFor="upazila">Upazila / Area</Label>
-              <Select value={upazila} onValueChange={setUpazila} disabled={!district || district === 'any'}>
+              <Select value={upazila} onValueChange={setUpazila} disabled={district === 'any'}>
                 <SelectTrigger id="upazila"><SelectValue placeholder="Any" /></SelectTrigger>
                 <SelectContent>
                    <SelectItem value="any">Any</SelectItem>
-                   {district && district !== 'any' && upazilas[district as keyof typeof upazilas]?.map(up => <SelectItem key={up} value={up}>{up}</SelectItem>)}
+                   {upazilaOptions.map(up => <SelectItem key={up} value={up}>{up}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

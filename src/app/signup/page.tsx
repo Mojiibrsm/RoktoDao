@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useRef, ChangeEvent } from 'react';
+import { useState, useEffect, useRef, ChangeEvent, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -86,12 +86,29 @@ export default function SignupPage() {
   const selectedDivision = form.watch('division');
   const selectedDistrict = form.watch('district');
 
-  const districtOptions = selectedDivision 
-    ? locations[selectedDivision as keyof typeof locations]?.districts.map(district => ({
+  const districtOptions = useMemo(() => {
+    if (!selectedDivision || !locations[selectedDivision as keyof typeof locations]) {
+      return [];
+    }
+    return locations[selectedDivision as keyof typeof locations].districts
+      .map(district => ({
         value: district,
         label: district,
-      })).sort((a,b) => a.label.localeCompare(b.label, 'bn'))
-    : [];
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'bn'));
+  }, [selectedDivision]);
+
+  const upazilaOptions = useMemo(() => {
+    if (!selectedDistrict || !upazilas[selectedDistrict as keyof typeof upazilas]) {
+      return [];
+    }
+    return upazilas[selectedDistrict as keyof typeof upazilas]
+      .map(upazila => ({
+        value: upazila,
+        label: upazila,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'bn'));
+  }, [selectedDistrict]);
     
   const handleFileSelect = async (e: ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) {
@@ -384,7 +401,9 @@ export default function SignupPage() {
                         <Select onValueChange={field.onChange} value={field.value} disabled={!selectedDistrict}>
                             <FormControl><SelectTrigger><SelectValue placeholder="উপজেলা নির্বাচন করুন" /></SelectTrigger></FormControl>
                             <SelectContent>
-                            {selectedDistrict && upazilas[selectedDistrict as keyof typeof upazilas]?.map(up => <SelectItem key={up} value={up}>{up}</SelectItem>)}
+                            {upazilaOptions.map(up => (
+                                <SelectItem key={up.value} value={up.value}>{up.label}</SelectItem>
+                            ))}
                             </SelectContent>
                         </Select>
                         <FormMessage />
@@ -425,5 +444,3 @@ export default function SignupPage() {
     </div>
   );
 }
-
-    
