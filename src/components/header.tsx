@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Droplet, Menu, LogOut, UserCircle, HeartHandshake, LayoutDashboard, Info, Phone, Users } from 'lucide-react';
+import { Droplet, Menu, LogOut, UserCircle, HeartHandshake, LayoutDashboard, Info, Phone, Users, Image as ImageIcon } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import NoticeBar from './notice-bar';
@@ -12,6 +12,7 @@ import NoticeBar from './notice-bar';
 const navLinks = [
   { href: '/search-donors', label: 'রক্তদাতা খুঁজুন' },
   { href: '/request-blood', label: 'রক্তের অনুরোধ' },
+  { href: '/gallery', label: 'গ্যালারি' },
   { href: '/about', label: 'আমাদের সম্পর্কে' },
   { href: '/team', label: 'আমাদের টিম' },
 ];

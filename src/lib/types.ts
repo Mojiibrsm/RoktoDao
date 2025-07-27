@@ -58,3 +58,11 @@ export interface BlogPost {
   hint: string;
   createdAt: any;
 }
+
+export interface GalleryImage {
+  id: string;
+  imageUrl: string;
+  status: 'pending' | 'approved';
+  uploaderId?: string;
+  createdAt: any;
+}
