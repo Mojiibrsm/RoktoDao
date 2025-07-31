@@ -60,6 +60,8 @@ const AdminUploadDialog = ({ onUploadComplete }: { onUploadComplete: () => void 
         setUploading(true);
         const formData = new FormData();
         formData.append('file', selectedFile);
+        formData.append('uploaderId', user.uid);
+
 
         try {
             const response = await fetch('/api/upload', {

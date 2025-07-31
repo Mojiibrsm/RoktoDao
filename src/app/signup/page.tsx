@@ -120,6 +120,7 @@ export default function SignupPage() {
 
     const formData = new FormData();
     formData.append('file', file);
+    // We don't have a uploaderId yet, but the API doesn't strictly need it
 
     try {
       const response = await fetch('/api/upload', {

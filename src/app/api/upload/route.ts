@@ -1,42 +1,40 @@
+
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile } from 'fs/promises';
-import { join } from 'path';
-import { mkdirSync, existsSync } from 'fs';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { app } from '@/lib/firebase'; // Ensure your firebase app is initialized and exported
+
+const storage = getStorage(app);
 
 export async function POST(request: NextRequest) {
   const data = await request.formData();
   const file: File | null = data.get('file') as unknown as File;
+  const uploaderId: string | null = data.get('uploaderId') as string | null;
+
 
   if (!file) {
     return NextResponse.json({ success: false, error: 'No file provided.' }, { status: 400 });
   }
 
-  const bytes = await file.arrayBuffer();
-  const buffer = Buffer.from(bytes);
-
-  // Create a unique filename
-  const filename = `${Date.now()}-${file.name.replace(/\s/g, '_')}`;
-  
-  // Define the upload directory path
-  const uploadDir = join(process.cwd(), 'public/uploads');
-
-  // Ensure the upload directory exists
-  if (!existsSync(uploadDir)) {
-    mkdirSync(uploadDir, { recursive: true });
-  }
-  
-  const path = join(uploadDir, filename);
-  
   try {
-    await writeFile(path, buffer);
-    console.log(`File saved to ${path}`);
-    
-    // Return the public path to the file
-    const publicPath = `/uploads/${filename}`;
-    return NextResponse.json({ success: true, path: publicPath });
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+
+    // Create a unique filename for Firebase Storage
+    const filename = `${Date.now()}-${file.name.replace(/\s/g, '_')}`;
+    const storageRef = ref(storage, `uploads/${filename}`);
+
+    // Upload the file to Firebase Storage
+    const snapshot = await uploadBytes(storageRef, buffer, {
+      contentType: file.type,
+    });
+
+    // Get the public URL of the uploaded file
+    const publicUrl = await getDownloadURL(snapshot.ref);
+
+    return NextResponse.json({ success: true, path: publicUrl });
 
   } catch (error) {
-    console.error('Error saving file:', error);
-    return NextResponse.json({ success: false, error: 'Failed to save file.' }, { status: 500 });
+    console.error('Error uploading file to Firebase Storage:', error);
+    return NextResponse.json({ success: false, error: 'Failed to upload file.' }, { status: 500 });
   }
 }

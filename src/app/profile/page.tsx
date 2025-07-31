@@ -166,6 +166,8 @@ function ProfilePageComponent() {
 
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('uploaderId', targetUid);
+
 
     try {
       const response = await fetch('/api/upload', {
