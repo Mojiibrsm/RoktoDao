@@ -22,6 +22,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/use-auth';
 import Link from 'next/link';
+import IK from 'imagekit-javascript';
 
 interface GalleryImage {
     id: string;
@@ -29,7 +30,15 @@ interface GalleryImage {
     status: 'pending' | 'approved';
     uploaderId?: string;
     createdAt: any;
+    filePath?: string;
+    fileId?: string;
 }
+
+const imagekit = new IK({
+    publicKey: process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY || 'public_mZ0R0Fsxxuu72DflLr4kGejkwrE=',
+    urlEndpoint: process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT || 'https://ik.imagekit.io/uekohag7w',
+    authenticationEndpoint: '/api/imagekit-auth',
+});
 
 const UploadDialog = () => {
     const [uploading, setUploading] = useState(false);
@@ -56,33 +65,29 @@ const UploadDialog = () => {
         }
 
         setUploading(true);
-        const formData = new FormData();
-        formData.append('file', selectedFile);
-        formData.append('uploaderId', user.uid);
-
 
         try {
-            const response = await fetch('/api/upload', {
-                method: 'POST',
-                body: formData,
+            const response = await imagekit.upload({
+                file: selectedFile,
+                fileName: selectedFile.name,
+                useUniqueFileName: true,
+                folder: '/roktodao/gallery/',
+            });
+            
+            await addDoc(collection(db, 'gallery'), {
+                imageUrl: response.url,
+                filePath: response.filePath,
+                fileId: response.fileId,
+                status: 'pending',
+                uploaderId: user.uid,
+                createdAt: serverTimestamp(),
             });
 
-            const data = await response.json();
+            toast({ title: 'Image Uploaded', description: 'Thank you! Your image is now pending approval from an admin.' });
+            setSelectedFile(null);
+            if(fileInputRef.current) fileInputRef.current.value = "";
+            setIsDialogOpen(false);
 
-            if (data.success) {
-                await addDoc(collection(db, 'gallery'), {
-                    imageUrl: data.path,
-                    status: 'pending',
-                    uploaderId: user.uid,
-                    createdAt: serverTimestamp(),
-                });
-                toast({ title: 'Image Uploaded', description: 'Thank you! Your image is now pending approval from an admin.' });
-                setSelectedFile(null);
-                if(fileInputRef.current) fileInputRef.current.value = "";
-                setIsDialogOpen(false);
-            } else {
-                throw new Error(data.error || 'Failed to get a success response from server.');
-            }
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Upload Failed', description: error.message });
         } finally {

@@ -24,6 +24,7 @@ import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/use-auth';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import IK from 'imagekit-javascript';
 
 interface GalleryImage {
     id: string;
@@ -31,7 +32,15 @@ interface GalleryImage {
     createdAt: any;
     status: 'pending' | 'approved';
     uploaderId?: string;
+    filePath?: string; // For deletion from ImageKit
+    fileId?: string; // For deletion from ImageKit
 }
+
+const imagekit = new IK({
+    publicKey: process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY || 'public_mZ0R0Fsxxuu72DflLr4kGejkwrE=',
+    urlEndpoint: process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT || 'https://ik.imagekit.io/uekohag7w',
+    authenticationEndpoint: '/api/imagekit-auth',
+});
 
 const AdminUploadDialog = ({ onUploadComplete }: { onUploadComplete: () => void }) => {
     const [uploading, setUploading] = useState(false);
@@ -58,35 +67,29 @@ const AdminUploadDialog = ({ onUploadComplete }: { onUploadComplete: () => void 
         }
 
         setUploading(true);
-        const formData = new FormData();
-        formData.append('file', selectedFile);
-        formData.append('uploaderId', user.uid);
-
 
         try {
-            const response = await fetch('/api/upload', {
-                method: 'POST',
-                body: formData,
+            const response = await imagekit.upload({
+                file: selectedFile,
+                fileName: selectedFile.name,
+                useUniqueFileName: true,
+                folder: '/roktodao/gallery/',
             });
 
-            const data = await response.json();
-
-            if (data.success) {
-                // Admin uploads are automatically approved
-                await addDoc(collection(db, 'gallery'), {
-                    imageUrl: data.path,
-                    status: 'approved',
-                    uploaderId: user.uid,
-                    createdAt: serverTimestamp(),
-                });
-                toast({ title: 'Image Uploaded', description: 'The image has been added to the gallery.' });
-                setSelectedFile(null);
-                if(fileInputRef.current) fileInputRef.current.value = "";
-                setIsDialogOpen(false);
-                onUploadComplete();
-            } else {
-                throw new Error(data.error || 'Failed to get a success response from server.');
-            }
+            // Admin uploads are automatically approved
+            await addDoc(collection(db, 'gallery'), {
+                imageUrl: response.url,
+                filePath: response.filePath,
+                fileId: response.fileId,
+                status: 'approved',
+                uploaderId: user.uid,
+                createdAt: serverTimestamp(),
+            });
+            toast({ title: 'Image Uploaded', description: 'The image has been added to the gallery.' });
+            setSelectedFile(null);
+            if(fileInputRef.current) fileInputRef.current.value = "";
+            setIsDialogOpen(false);
+            onUploadComplete();
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Upload Failed', description: error.message });
         } finally {
@@ -180,11 +183,13 @@ export default function GalleryManagementPage() {
     const handleDeleteImage = async (imageId: string) => {
         setIsDeleting(imageId);
         try {
+            // Note: Deleting from ImageKit requires a backend endpoint for security.
+            // This implementation only deletes the Firestore record.
             await deleteDoc(doc(db, 'gallery', imageId));
-            toast({ title: 'Image Deleted', description: 'The image has been removed.' });
+            toast({ title: 'Image Record Deleted', description: 'The image reference has been removed from the database.' });
             fetchImages();
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not delete the image.' });
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not delete the image record.' });
         } finally {
             setIsDeleting(null);
         }
@@ -221,7 +226,7 @@ export default function GalleryManagementPage() {
                         <AlertDialogHeader>
                         <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete this image.
+                            This action cannot be undone. This will permanently delete this image record.
                         </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

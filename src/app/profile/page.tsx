@@ -24,7 +24,7 @@ import { db } from '@/lib/firebase';
 import type { Donor } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import Image from 'next/image';
+import IK from 'imagekit-javascript';
 
 const profileSchema = z.object({
   fullName: z.string().min(3, { message: 'Full name is required.' }),
@@ -40,6 +40,13 @@ const profileSchema = z.object({
   donationCount: z.coerce.number().optional(),
   profilePictureUrl: z.string().optional(),
 });
+
+const imagekit = new IK({
+    publicKey: process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY || 'public_mZ0R0Fsxxuu72DflLr4kGejkwrE=',
+    urlEndpoint: process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT || 'https://ik.imagekit.io/uekohag7w',
+    authenticationEndpoint: '/api/imagekit-auth',
+});
+
 
 function ProfilePageComponent() {
   const { user, loading, isAdmin } = useAuth();
@@ -164,26 +171,16 @@ function ProfilePageComponent() {
 
     setUploading(true);
 
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('uploaderId', targetUid);
-
-
     try {
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setProfileImageUrl(data.path);
-        form.setValue('profilePictureUrl', data.path);
+        const response = await imagekit.upload({
+            file: file,
+            fileName: file.name,
+            useUniqueFileName: true,
+            folder: '/roktodao/avatars/',
+        });
+        setProfileImageUrl(response.url);
+        form.setValue('profilePictureUrl', response.url);
         toast({ title: 'Success', description: 'Profile picture uploaded!' });
-      } else {
-        throw new Error(data.error || 'Upload failed');
-      }
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Upload Failed', description: error.message });
     } finally {

@@ -26,6 +26,7 @@ import { bloodGroups, locations, upazilas } from '@/lib/location-data';
 import type { Donor } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import IK from 'imagekit-javascript';
 
 
 const signupSchema = z.object({
@@ -44,6 +45,13 @@ const signupSchema = z.object({
   donationCount: z.coerce.number().optional(),
   profilePictureUrl: z.string().optional(),
 });
+
+const imagekit = new IK({
+    publicKey: process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY || 'public_mZ0R0Fsxxuu72DflLr4kGejkwrE=',
+    urlEndpoint: process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT || 'https://ik.imagekit.io/uekohag7w',
+    authenticationEndpoint: '/api/imagekit-auth',
+});
+
 
 export default function SignupPage() {
   const router = useRouter();
@@ -118,25 +126,16 @@ export default function SignupPage() {
 
     setUploading(true);
 
-    const formData = new FormData();
-    formData.append('file', file);
-    // We don't have a uploaderId yet, but the API doesn't strictly need it
-
     try {
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setProfileImageUrl(data.path);
-        form.setValue('profilePictureUrl', data.path);
+        const response = await imagekit.upload({
+            file: file,
+            fileName: file.name,
+            useUniqueFileName: true,
+            folder: '/roktodao/avatars/',
+        });
+        setProfileImageUrl(response.url);
+        form.setValue('profilePictureUrl', response.url);
         toast({ title: 'Success', description: 'Profile picture uploaded!' });
-      } else {
-        throw new Error(data.error || 'Upload failed');
-      }
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Upload Failed', description: error.message });
     } finally {
