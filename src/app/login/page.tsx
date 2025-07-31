@@ -82,13 +82,6 @@ export default function LoginPage() {
           <CardDescription>Log in to your RoktoDao account</CardDescription>
         </CardHeader>
         <CardContent>
-          <Alert className="mb-4">
-            <Info className="h-4 w-4" />
-            <AlertTitle>Admin Access</AlertTitle>
-            <AlertDescription>
-              Use <strong>admin@roktodao.com</strong> and password <strong>123456</strong> to log in as an admin.
-            </AlertDescription>
-          </Alert>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
