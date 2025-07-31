@@ -67,7 +67,14 @@ const UploadDialog = () => {
         setUploading(true);
 
         try {
+            const authResponse = await fetch('/api/imagekit-auth');
+            if (!authResponse.ok) {
+                throw new Error('Failed to get authentication parameters');
+            }
+            const authParams = await authResponse.json();
+
             const response = await imagekit.upload({
+                ...authParams,
                 file: selectedFile,
                 fileName: selectedFile.name,
                 useUniqueFileName: true,
