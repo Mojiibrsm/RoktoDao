@@ -86,7 +86,7 @@ export default function LoginPage() {
             <Info className="h-4 w-4" />
             <AlertTitle>Admin Access</AlertTitle>
             <AlertDescription>
-              Use <strong>admin@roktobondhu.com</strong> and password <strong>123456</strong> to log in as an admin.
+              Use <strong>admin@roktodao.com</strong> and password <strong>123456</strong> to log in as an admin.
             </AlertDescription>
           </Alert>
           <Form {...form}>
