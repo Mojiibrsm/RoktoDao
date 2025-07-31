@@ -4,9 +4,9 @@ import ImageKit from 'imagekit';
 
 // Initialize ImageKit
 const imagekit = new ImageKit({
-    publicKey: process.env.IMAGEKIT_PUBLIC_KEY || '',
-    privateKey: process.env.IMAGEKIT_PRIVATE_KEY || '',
-    urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT || '',
+    publicKey: "public_mZ0R0Fsxxuu72DflLr4kGejkwrE=",
+    privateKey: "private_oxWypOIrfyl2gy6t4wgh4wJilRQ=",
+    urlEndpoint: "https://ik.imagekit.io/uekohag7w",
 });
 
 export async function GET(request: NextRequest) {
