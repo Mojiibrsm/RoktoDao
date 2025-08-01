@@ -371,10 +371,10 @@ export default async function Home() {
        <section className="w-full py-12 md:py-16 bg-background">
         <div className="container mx-auto px-4">
            <h2 className="text-center text-3xl font-bold text-primary md:text-4xl font-headline">
-            কেন রক্তবন্ধু ব্যবহার করবেন?
+            কেন রক্তদাও ব্যবহার করবেন?
           </h2>
           <p className="mx-auto mt-4 max-w-3xl text-center text-lg text-foreground/80">
-            রক্তদান একটি মহৎ কাজ। এর মাধ্যমে আপনি অন্যের জীবন বাঁচাতে পারেন। রক্তবন্ধু এই প্রক্রিয়াকে আরও সহজ করে তুলেছে।
+            রক্তদান একটি মহৎ কাজ। এর মাধ্যমে আপনি অন্যের জীবন বাঁচাতে পারেন। রক্তদাও এই প্রক্রিয়াকে আরও সহজ করে তুলেছে।
           </p>
           <Separator className="my-8" />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

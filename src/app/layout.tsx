@@ -13,7 +13,7 @@ const ptSans = PT_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'RoktoBondhu',
+  title: 'RoktoDao',
   description: 'রক্ত দিন, জীবন বাঁচান — এখন আরও সহজে!',
 };
 

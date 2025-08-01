@@ -42,7 +42,7 @@ export default function WhyDonateBloodPage() {
               </li>
                <li className="flex items-start gap-4">
                 <CheckCircle2 className="h-6 w-6 text-green-500 mt-1 flex-shrink-0" />
-                <span>নারী darদের ক্ষেত্রে, গর্ভাবস্থায় বা সন্তান জন্মের ১ বছরের মধ্যে রক্তদান করা উচিত নয়।</span>
+                <span>নারী ডোনারদের ক্ষেত্রে, গর্ভাবস্থায় বা সন্তান জন্মের ১ বছরের মধ্যে রক্তদান করা উচিত নয়।</span>
               </li>
             </ul>
           </div>
