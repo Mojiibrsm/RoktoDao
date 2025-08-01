@@ -58,32 +58,32 @@ export default function BlogPage() {
         ) : posts.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {posts.map((post: BlogPost) => (
-              <Card key={post.slug} className="flex flex-col overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
-                 <Image
-                    src={post.image}
-                    alt={post.title}
-                    width={600}
-                    height={400}
-                    className="w-full h-48 object-cover"
-                    data-ai-hint={post.hint}
-                  />
-                <CardHeader>
-                  <CardTitle>{post.title}</CardTitle>
-                  <CardDescription>
-                    <span>{new Date(post.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span> &bull; <span>by {post.author}</span>
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex-grow">
-                  <p className="text-muted-foreground">{post.excerpt}</p>
-                </CardContent>
-                <CardFooter>
-                  <Button asChild variant="link" className="pl-0">
-                    <Link href={`/blog/${post.slug}`}>
-                      Read More <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                  </Button>
-                </CardFooter>
-              </Card>
+              <Link key={post.slug} href={`/blog/${post.slug}`} className="flex flex-col no-underline">
+                <Card className="flex flex-col flex-grow overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+                  <Image
+                      src={post.image}
+                      alt={post.title}
+                      width={600}
+                      height={400}
+                      className="w-full h-48 object-cover"
+                      data-ai-hint={post.hint}
+                    />
+                  <CardHeader>
+                    <CardTitle>{post.title}</CardTitle>
+                    <CardDescription>
+                      <span>{new Date(post.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span> &bull; <span>by {post.author}</span>
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex-grow">
+                    <p className="text-muted-foreground">{post.excerpt}</p>
+                  </CardContent>
+                  <CardFooter>
+                     <p className="text-sm font-medium text-primary hover:underline flex items-center">
+                      বিস্তারিত পড়ুন <ArrowRight className="ml-2 h-4 w-4" />
+                    </p>
+                  </CardFooter>
+                </Card>
+              </Link>
             ))}
           </div>
         ) : (
