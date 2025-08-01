@@ -58,6 +58,7 @@ function ProfilePageComponent() {
   const [pageLoading, setPageLoading] = useState(true);
   
   const [uploading, setUploading] = useState(false);
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
   const [profileImageUrl, setProfileImageUrl] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -162,36 +163,15 @@ function ProfilePageComponent() {
     loadProfile();
   }, [user, loading, router, form, userIdToEdit, isAdmin, toast, targetUid]);
   
-  const handleFileSelect = async (e: ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) {
-      return;
-    }
-    const file = e.target.files[0];
-    if (!targetUid) return;
-
-    setUploading(true);
-
-    try {
-        const authResponse = await fetch('/api/imagekit-auth');
-        if (!authResponse.ok) {
-            throw new Error('Failed to get authentication parameters');
-        }
-        const authParams = await authResponse.json();
-
-        const response = await imagekit.upload({
-            ...authParams,
-            file: file,
-            fileName: file.name,
-            useUniqueFileName: true,
-            folder: '/roktodao/avatars/',
-        });
-        setProfileImageUrl(response.url);
-        form.setValue('profilePictureUrl', response.url);
-        toast({ title: 'Success', description: 'Profile picture uploaded!' });
-    } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Upload Failed', description: error.message });
-    } finally {
-      setUploading(false);
+  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      setProfileImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfileImageUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -202,8 +182,27 @@ function ProfilePageComponent() {
         return;
     }
     setIsSubmitting(true);
-    
+
+    let finalProfilePictureUrl = values.profilePictureUrl || '';
+
     try {
+        if (profileImageFile) {
+            const authResponse = await fetch('/api/imagekit-auth');
+            if (!authResponse.ok) {
+                throw new Error('Failed to get authentication parameters');
+            }
+            const authParams = await authResponse.json();
+
+            const response = await imagekit.upload({
+                ...authParams,
+                file: profileImageFile,
+                fileName: profileImageFile.name,
+                useUniqueFileName: true,
+                folder: '/roktodao/avatars/',
+            });
+            finalProfilePictureUrl = response.url;
+        }
+
       const donorRef = doc(db, 'donors', targetUid);
       const docSnap = await getDoc(donorRef);
 
@@ -221,7 +220,7 @@ function ProfilePageComponent() {
         dateOfBirth: values.dateOfBirth?.toISOString(),
         gender: values.gender,
         donationCount: values.donationCount,
-        profilePictureUrl: values.profilePictureUrl,
+        profilePictureUrl: finalProfilePictureUrl,
       };
 
       if (docSnap.exists()) {
@@ -271,19 +270,21 @@ function ProfilePageComponent() {
       <Card className="shadow-lg">
         <CardHeader>
           <div className="flex flex-col md:flex-row items-center gap-6">
-            <div className="relative">
+             <div className="relative">
                 <Avatar className="h-32 w-32 border-4 border-muted">
                     <AvatarImage src={profileImageUrl || undefined} alt={form.watch('fullName')} />
                     <AvatarFallback>
                         <User className="h-16 w-16 text-muted-foreground" />
                     </AvatarFallback>
                 </Avatar>
-                <div 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="absolute inset-0 bg-black/50 flex items-center justify-center text-white rounded-full opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
+                <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="absolute inset-0 bg-black/50 flex items-center justify-center text-white rounded-full opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
+                    disabled={isSubmitting}
                 >
-                  {uploading ? <Loader2 className="h-8 w-8 animate-spin" /> : <Upload className="h-8 w-8" />}
-                </div>
+                    <Upload className="h-8 w-8" />
+                </button>
                 <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" className="hidden" />
             </div>
             <div>
@@ -434,7 +435,12 @@ function ProfilePageComponent() {
               )} />
               <div className="md:col-span-2 text-right">
                 <Button type="submit" size="lg" disabled={isSubmitting}>
-                    {isSubmitting ? 'Saving...' : 'Save Profile'}
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : 'Save Profile'}
                 </Button>
               </div>
             </form>

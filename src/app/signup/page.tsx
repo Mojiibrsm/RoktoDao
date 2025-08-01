@@ -47,9 +47,9 @@ const signupSchema = z.object({
 });
 
 const imagekit = new IK({
-    publicKey: "public_mZ0R0Fsxxuu72DflLr4kGejkwrE=",
-    privateKey: "private_oxWypOIrfyl2gy6t4wgh4wJilRQ=",
-    urlEndpoint: "https://ik.imagekit.io/uekohag7w"
+    publicKey: process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY || 'public_mZ0R0Fsxxuu72DflLr4kGejkwrE=',
+    privateKey: process.env.NEXT_PUBLIC_IMAGEKIT_PRIVATE_KEY || 'private_oxWypOIrfyl2gy6t4wgh4wJilRQ=',
+    urlEndpoint: process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT || 'https://ik.imagekit.io/uekohag7w',
 });
 
 
@@ -59,7 +59,7 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const { user, loading } = useAuth();
   
-  const [uploading, setUploading] = useState(false);
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
   const [profileImageUrl, setProfileImageUrl] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -118,41 +118,51 @@ export default function SignupPage() {
       .sort((a, b) => a.label.localeCompare(b.label, 'bn'));
   }, [selectedDistrict]);
     
-  const handleFileSelect = async (e: ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) {
-      return;
-    }
-    const file = e.target.files[0];
-
-    setUploading(true);
-
-    try {
-        const authResponse = await fetch('/api/imagekit-auth');
-        if (!authResponse.ok) {
-            throw new Error('Failed to get authentication parameters');
-        }
-        const authParams = await authResponse.json();
-
-        const response = await imagekit.upload({
-            ...authParams,
-            file: file,
-            fileName: file.name,
-            useUniqueFileName: true,
-            folder: '/roktodao/avatars/',
-        });
-        setProfileImageUrl(response.url);
-        form.setValue('profilePictureUrl', response.url);
-        toast({ title: 'Success', description: 'Profile picture uploaded!' });
-    } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Upload Failed', description: error.message });
-    } finally {
-      setUploading(false);
+  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      setProfileImageFile(file);
+      // Create a URL for preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfileImageUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
   const onSubmit = async (values: z.infer<typeof signupSchema>) => {
     setIsLoading(true);
+    let finalProfilePictureUrl = '';
+
     try {
+      // Upload image first if selected
+      if (profileImageFile) {
+        try {
+            const authResponse = await fetch('/api/imagekit-auth');
+             if (!authResponse.ok) {
+                throw new Error('Authentication failed for image upload.');
+            }
+            const authParams = await authResponse.json();
+            const response = await imagekit.upload({
+                ...authParams,
+                file: profileImageFile,
+                fileName: profileImageFile.name,
+                useUniqueFileName: true,
+                folder: '/roktodao/avatars/',
+            });
+            finalProfilePictureUrl = response.url;
+        } catch (uploadError) {
+             toast({
+                variant: 'destructive',
+                title: 'Image Upload Failed',
+                description: 'Could not upload profile picture. Please try again.',
+            });
+            setIsLoading(false);
+            return;
+        }
+      }
+
       // 1. Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
@@ -173,7 +183,7 @@ export default function SignupPage() {
         dateOfBirth: values.dateOfBirth?.toISOString(),
         gender: values.gender,
         donationCount: values.donationCount,
-        profilePictureUrl: values.profilePictureUrl,
+        profilePictureUrl: finalProfilePictureUrl,
         isVerified: false,
         isAdmin: false,
         createdAt: serverTimestamp(),
@@ -202,7 +212,6 @@ export default function SignupPage() {
         });
       } catch (emailError) {
         console.error("Could not send notification email:", emailError);
-        // Don't block user flow if email fails
       }
 
 
@@ -210,7 +219,7 @@ export default function SignupPage() {
         title: 'Account Created Successfully!',
         description: "Welcome to RoktoDao. Your donor profile is active.",
       });
-      router.push('/profile'); // Redirect to profile page for viewing/editing in future
+      router.push('/profile');
 
     } catch (error: any) {
       const errorCode = error.code;
@@ -260,12 +269,14 @@ export default function SignupPage() {
                                     <User className="h-16 w-16 text-muted-foreground" />
                                 </AvatarFallback>
                             </Avatar>
-                            <div 
+                            <button
+                              type="button" 
                               onClick={() => fileInputRef.current?.click()}
                               className="absolute inset-0 bg-black/50 flex items-center justify-center text-white rounded-full opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
+                              disabled={isLoading}
                             >
-                              {uploading ? <Loader2 className="h-8 w-8 animate-spin" /> : <Upload className="h-8 w-8" />}
-                            </div>
+                               <Upload className="h-8 w-8" />
+                            </button>
                             <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" className="hidden" />
                         </div>
                     </FormControl>
@@ -433,8 +444,13 @@ export default function SignupPage() {
                         </FormItem>
                     )} />
                     <div className="md:col-span-2">
-                        <Button type="submit" className="w-full" size="lg" disabled={isLoading || uploading}>
-                            {isLoading ? 'অ্যাকাউন্ট তৈরি করা হচ্ছে...' : 'অ্যাকাউন্ট তৈরি করুন এবং ডোনার হোন'}
+                        <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+                            {isLoading ? (
+                                <>
+                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                 অ্যাকাউন্ট তৈরি করা হচ্ছে...
+                                </>
+                               ) : 'অ্যাকাউন্ট তৈরি করুন এবং ডোনার হোন'}
                         </Button>
                     </div>
                 </div>
