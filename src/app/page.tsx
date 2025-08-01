@@ -62,8 +62,8 @@ async function getHomepageData() {
                 id: doc.id,
                 ...data,
                 // Convert Timestamps to string to avoid serialization errors
-                neededDate: data.neededDate instanceof Timestamp ? data.neededDate.toDate().toISOString() : data.neededDate,
-                createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt,
+                neededDate: data.neededDate,
+                createdAt: data.createdAt?.toDate().toISOString(),
             } as BloodRequest;
         });
 
@@ -77,8 +77,8 @@ async function getHomepageData() {
                 id: doc.id, 
                 ...data,
                 // Convert Timestamps to string to avoid serialization errors
-                lastDonationDate: data.lastDonationDate instanceof Timestamp ? data.lastDonationDate.toDate().toISOString() : data.lastDonationDate,
-                createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt,
+                lastDonationDate: data.lastDonationDate,
+                createdAt: data.createdAt?.toDate().toISOString(),
             } as Donor;
         });
         
@@ -91,8 +91,8 @@ async function getHomepageData() {
               return { 
                 id: doc.id, 
                 ...data,
-                lastDonationDate: data.lastDonationDate instanceof Timestamp ? data.lastDonationDate.toDate().toISOString() : data.lastDonationDate,
-                createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt,
+                lastDonationDate: data.lastDonationDate,
+                createdAt: data.createdAt?.toDate().toISOString(),
               } as Donor
           });
           const nonPinnedDonors = otherDonors.filter(d => !donors.some(pd => pd.uid === d.uid));
@@ -459,7 +459,8 @@ export default async function Home() {
                   </Button>
                 </CardFooter>
               </Card>
-               <Card className="flex flex-col overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <Link href="/team" className="flex flex-col overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-lg no-underline">
+               <Card className="flex flex-col flex-grow">
                 <Image
                     src="https://placehold.co/600x400.png"
                     alt="আমাদের টিম"
@@ -475,13 +476,12 @@ export default async function Home() {
                   <p className="text-muted-foreground">আমাদের নিবেদিতপ্রাণ টিম সম্পর্কে জানুন যারা এই প্ল্যাটফর্মটি পরিচালনা করছেন।</p>
                 </CardContent>
                 <CardFooter>
-                  <Button asChild variant="link" className="pl-0">
-                    <Link href="/team">
+                  <p className="text-sm font-medium text-primary hover:underline flex items-center">
                       বিস্তারিত পড়ুন <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                  </Button>
+                  </p>
                 </CardFooter>
               </Card>
+              </Link>
             </div>
 
            <div className="mt-12 text-center">
