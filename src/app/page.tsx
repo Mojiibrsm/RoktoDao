@@ -184,10 +184,10 @@ export default async function Home() {
 
       <section className="bg-background w-full py-12 md:py-16">
         <div className="container mx-auto px-4">
-            <h2 className="text-center text-3xl font-bold text-primary md:text-4xl font-headline animate-fade-in-up">
+            <h2 className="text-center text-3xl font-bold text-primary md:text-4xl font-headline">
                 কেন রক্তদান করবেন?
             </h2>
-            <p className="mx-auto mt-4 max-w-3xl text-center text-lg text-foreground/80 animate-fade-in-up [animation-delay:200ms]">
+            <p className="mx-auto mt-4 max-w-3xl text-center text-lg text-foreground/80">
               রক্তদান শুধুমাত্র অন্যের জীবন বাঁচায় না, আপনার স্বাস্থ্যের জন্যও এটি উপকারী।
             </p>
             <Separator className="my-8" />
