@@ -32,7 +32,6 @@ import IK from 'imagekit-javascript';
 const signupSchema = z.object({
   fullName: z.string().min(3, { message: 'Full name is required.' }),
   email: z.string().email({ message: 'Invalid email address.' }),
-  password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
   bloodGroup: z.string({ required_error: 'Blood group is required.' }).min(1, 'Blood group is required.'),
   phoneNumber: z.string().min(11, { message: 'A valid phone number is required.' }),
   division: z.string({ required_error: 'Division is required.' }).min(1, 'Division is required.'),
@@ -76,7 +75,6 @@ export default function SignupPage() {
     defaultValues: {
       fullName: '',
       email: '',
-      password: '',
       bloodGroup: '',
       phoneNumber: '',
       division: '',
@@ -135,6 +133,9 @@ export default function SignupPage() {
     setIsLoading(true);
     let finalProfilePictureUrl = '';
 
+    // Generate a random password
+    const generatedPassword = Math.random().toString(36).slice(-8);
+
     try {
       // Upload image first if selected
       if (profileImageFile) {
@@ -164,7 +165,7 @@ export default function SignupPage() {
       }
 
       // 1. Create user in Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+      const userCredential = await createUserWithEmailAndPassword(auth, values.email, generatedPassword);
       const user = userCredential.user;
 
       // 2. Create donor profile in Firestore
@@ -191,7 +192,28 @@ export default function SignupPage() {
 
       await setDoc(doc(db, 'donors', user.uid), donorData);
 
-      // 3. Send email notification
+      // 3. Send credentials and welcome email
+      try {
+        await fetch('/api/send-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            type: 'send_credentials',
+            data: {
+              fullName: values.fullName,
+              email: values.email,
+              password: generatedPassword,
+            },
+          }),
+        });
+      } catch (emailError) {
+        console.error("Could not send credentials email:", emailError);
+        // Don't block signup flow, but maybe log this
+      }
+
+      // 4. Send new donor notification to admin
       try {
         await fetch('/api/send-email', {
           method: 'POST',
@@ -211,13 +233,13 @@ export default function SignupPage() {
           }),
         });
       } catch (emailError) {
-        console.error("Could not send notification email:", emailError);
+        console.error("Could not send notification email to admin:", emailError);
       }
 
 
       toast({
         title: 'Account Created Successfully!',
-        description: "Welcome to RoktoDao. Your donor profile is active.",
+        description: "Welcome to RoktoDao. Please check your email for your password.",
       });
       router.push('/profile');
 
@@ -312,19 +334,7 @@ export default function SignupPage() {
                         </FormItem>
                         )}
                     />
-                    <FormField
-                        control={form.control}
-                        name="password"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>পাসওয়ার্ড</FormLabel>
-                            <FormControl>
-                            <Input type="password" placeholder="••••••••" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
+                    
                     <FormField control={form.control} name="bloodGroup" render={({ field }) => (
                         <FormItem>
                         <FormLabel>রক্তের গ্রুপ</FormLabel>

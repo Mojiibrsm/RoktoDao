@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
 
     let subject = '';
     let htmlContent = '';
+    let recipientEmail = adminEmail; // Default recipient is admin
 
     if (type === 'new_donor') {
       if (!settings.notifyNewDonor) return NextResponse.json({ success: true, message: 'Notification for new donor is disabled.' });
@@ -83,6 +84,22 @@ export async function POST(request: NextRequest) {
         <p>You can reply to this user directly at: <a href="mailto:${data.email}">${data.email}</a></p>
         <p>This has also been logged in your admin feedback panel.</p>
       `;
+    } else if (type === 'send_credentials') {
+        recipientEmail = data.email;
+        subject = `স্বাগতম! আপনার RoktoDao অ্যাকাউন্ট তৈরি হয়েছে`;
+        htmlContent = `
+          <h1>RoktoDao-তে আপনাকে স্বাগতম!</h1>
+          <p>প্রিয় ${data.fullName},</p>
+          <p>জীবন বাঁচানোর এই যাত্রায় আমাদের সাথে যোগ দেওয়ার জন্য আপনাকে ধন্যবাদ। আপনার ডোনার অ্যাকাউন্ট সফলভাবে তৈরি হয়েছে।</p>
+          <p>আপনার অ্যাকাউন্টে লগইন করার জন্য নিচের তথ্যগুলো ব্যবহার করুন:</p>
+          <ul>
+            <li><strong>ইমেইল:</strong> ${data.email}</li>
+            <li><strong>পাসওয়ার্ড:</strong> ${data.password}</li>
+          </ul>
+          <p>লগইন করার পর, আপনি আপনার প্রোফাইল পেজ থেকে পাসওয়ার্ড পরিবর্তন করে নিতে পারবেন।</p>
+          <p>ধন্যবাদ,</p>
+          <p><strong>RoktoDao টিম</strong></p>
+        `;
     } else {
         return NextResponse.json({ success: false, error: 'Invalid notification type.' }, { status: 400 });
     }
@@ -101,7 +118,7 @@ export async function POST(request: NextRequest) {
     // Send mail with defined transport object
     await transporter.sendMail({
       from: `"RoktoDao Notifications" <${process.env.SMTP_USER}>`,
-      to: adminEmail,
+      to: recipientEmail,
       subject: subject,
       html: htmlContent,
     });
