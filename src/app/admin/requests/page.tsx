@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { MoreHorizontal, Check, X, Trash2, CheckCheck, PlusCircle, AlertTriangle, Edit, Copy } from 'lucide-react';
+import { MoreHorizontal, Check, X, Trash2, CheckCheck, PlusCircle, AlertTriangle, Edit, Copy, Share2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -567,7 +567,7 @@ export default function AdminRequestsPage() {
                           <TableCell>
                             <div className="flex items-center gap-1">
                                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleCopy(formatCopyText(req))}>
-                                    <Copy className="h-4 w-4" />
+                                    <Share2 className="h-4 w-4" />
                                 </Button>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
