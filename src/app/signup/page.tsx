@@ -47,9 +47,9 @@ const signupSchema = z.object({
 });
 
 const imagekit = new IK({
-    publicKey: process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY || 'public_mZ0R0Fsxxuu72DflLr4kGejkwrE=',
-    urlEndpoint: process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT || 'https://ik.imagekit.io/uekohag7w',
-    authenticationEndpoint: '/api/imagekit-auth',
+    publicKey: "public_mZ0R0Fsxxuu72DflLr4kGejkwrE=",
+    privateKey: "private_oxWypOIrfyl2gy6t4wgh4wJilRQ=",
+    urlEndpoint: "https://ik.imagekit.io/uekohag7w"
 });
 
 
@@ -243,8 +243,8 @@ export default function SignupPage() {
       <Card className="w-full max-w-3xl shadow-xl">
         <CardHeader className="text-center">
           <Droplet className="mx-auto h-12 w-12 text-primary" />
-          <CardTitle className="text-2xl font-headline">জীবন রক্ষাকারী হোন</CardTitle>
-          <CardDescription>আপনার রক্তবন্ধু অ্যাকাউন্ট এবং ডোনার প্রোফাইল তৈরি করুন</CardDescription>
+          <CardTitle className="text-2xl font-headline">ডোনার হিসেবে যুক্ত হোন</CardTitle>
+          <CardDescription>আপনার রক্তদাও অ্যাকাউন্ট এবং ডোনার প্রোফাইল তৈরি করুন</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
