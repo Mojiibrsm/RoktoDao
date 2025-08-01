@@ -32,7 +32,7 @@ export default function AboutPage() {
             <Card className="shadow-xl">
               <CardContent className="p-8">
                 <img
-                  src="https://placehold.co/600x400.png"
+                  src="https://ik.imagekit.io/uekohag7w/roktodao/gallery/community-people.jpg"
                   alt="Community of donors"
                   data-ai-hint="community people"
                   className="rounded-lg object-cover w-full h-full"
