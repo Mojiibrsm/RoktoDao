@@ -66,3 +66,16 @@ export interface GalleryImage {
   uploaderId?: string;
   createdAt: any;
 }
+
+export type FeedbackType = {
+  id: string;
+  user: {
+    name: string;
+    email: string;
+  };
+  type: 'Bug' | 'Suggestion' | 'Complaint' | 'Other';
+  message: string;
+  date: string;
+  status: 'New' | 'In Progress' | 'Resolved' | 'Ignored';
+  createdAt?: any;
+};

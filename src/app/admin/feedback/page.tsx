@@ -1,13 +1,16 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { collection, getDocs, doc, deleteDoc, updateDoc, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import type { Feedback as FeedbackType } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { MoreHorizontal, Trash2, CheckCircle, Eye } from 'lucide-react';
+import { MoreHorizontal, Trash2, CheckCircle, Eye, Loader2, Frown } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,73 +29,68 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
 
-type Feedback = {
-  id: string;
-  user: {
-    name: string;
-    email: string;
-  };
-  type: 'Bug' | 'Suggestion' | 'Complaint' | 'Other';
-  message: string;
-  date: string;
-  status: 'New' | 'In Progress' | 'Resolved' | 'Ignored';
-};
-
-const mockFeedback: Feedback[] = [
-  {
-    id: 'fb-001',
-    user: { name: 'Alice Johnson', email: 'alice@example.com' },
-    type: 'Bug',
-    message: 'The search filter for donors in Dhaka division is not working correctly. It shows donors from other divisions as well.',
-    date: '2023-10-26',
-    status: 'New',
-  },
-  {
-    id: 'fb-002',
-    user: { name: 'Bob Williams', email: 'bob@example.com' },
-    type: 'Suggestion',
-    message: 'It would be great to have a feature to see the donation history for each donor on their profile page.',
-    date: '2023-10-25',
-    status: 'In Progress',
-  },
-  {
-    id: 'fb-003',
-    user: { name: 'Anonymous', email: 'N/A' },
-    type: 'Complaint',
-    message: 'I tried to contact a donor, but the phone number provided was incorrect. Please verify the contact details.',
-    date: '2023-10-24',
-    status: 'Resolved',
-  },
-  {
-    id: 'fb-004',
-    user: { name: 'Charlie Brown', email: 'charlie@example.com' },
-    type: 'Other',
-    message: 'Just wanted to say this is a great initiative! Keep up the good work.',
-    date: '2023-10-23',
-    status: 'Ignored',
-  },
-];
-
+type Feedback = FeedbackType & { id: string };
 
 export default function AdminFeedbackPage() {
-    const [feedbackList, setFeedbackList] = useState<Feedback[]>(mockFeedback);
+    const [feedbackList, setFeedbackList] = useState<Feedback[]>([]);
+    const [loading, setLoading] = useState(true);
     const [selectedFeedback, setSelectedFeedback] = useState<Feedback | null>(null);
     const [isViewOpen, setIsViewOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const { toast } = useToast();
 
-    const handleUpdateStatus = (id: string, status: Feedback['status']) => {
-        setFeedbackList(feedbackList.map(fb => fb.id === id ? { ...fb, status } : fb));
-        toast({ title: "Status Updated", description: `Feedback marked as ${status}.` });
+    const fetchFeedback = async () => {
+        setLoading(true);
+        try {
+            const feedbackCollection = collection(db, 'feedback');
+            const q = query(feedbackCollection, orderBy('createdAt', 'desc'));
+            const feedbackSnapshot = await getDocs(q);
+            const list = feedbackSnapshot.docs.map(doc => {
+                const data = doc.data();
+                return { 
+                    id: doc.id,
+                    ...data,
+                    date: data.createdAt?.toDate ? format(data.createdAt.toDate(), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+                } as Feedback
+            });
+            setFeedbackList(list);
+        } catch (error) {
+            console.error(error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch feedback.' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchFeedback();
+    }, []);
+
+    const handleUpdateStatus = async (id: string, status: FeedbackType['status']) => {
+        try {
+            const feedbackRef = doc(db, 'feedback', id);
+            await updateDoc(feedbackRef, { status });
+            toast({ title: "Status Updated", description: `Feedback marked as ${status}.` });
+            fetchFeedback();
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not update status.' });
+        }
     };
     
-    const handleDelete = (id: string | null) => {
+    const handleDelete = async (id: string | null) => {
         if (!id) return;
-        setFeedbackList(feedbackList.filter(fb => fb.id !== id));
-        toast({ title: "Feedback Deleted", variant: "destructive" });
-        setIsDeleteOpen(false);
-        setSelectedFeedback(null);
+        try {
+            await deleteDoc(doc(db, 'feedback', id));
+            toast({ title: "Feedback Deleted", variant: "destructive" });
+            fetchFeedback();
+        } catch (error) {
+             toast({ variant: 'destructive', title: 'Error', description: 'Could not delete feedback.' });
+        } finally {
+            setIsDeleteOpen(false);
+            setSelectedFeedback(null);
+        }
     };
 
     const openDeleteDialog = (feedback: Feedback) => {
@@ -159,52 +157,65 @@ export default function AdminFeedbackPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {feedbackList.map((feedback) => (
-                                <TableRow key={feedback.id}>
-                                    <TableCell className="font-medium">{feedback.user.name}</TableCell>
-                                    <TableCell>
-                                        <Badge variant={getTypeVariant(feedback.type)}>{feedback.type}</Badge>
-                                    </TableCell>
-                                    <TableCell className="max-w-xs truncate">{feedback.message}</TableCell>
-                                    <TableCell>{feedback.date}</TableCell>
-                                    <TableCell>
-                                        <Badge variant={getStatusVariant(feedback.status)} className={getStatusClass(feedback.status)}>
-                                            {feedback.status}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button aria-haspopup="true" size="icon" variant="ghost">
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                    <span className="sr-only">Toggle menu</span>
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                <DropdownMenuItem onSelect={() => openViewDialog(feedback)}>
-                                                    <Eye className="mr-2 h-4 w-4" /> View Details
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onSelect={() => handleUpdateStatus(feedback.id, 'Resolved')}>
-                                                    <CheckCircle className="mr-2 h-4 w-4" /> Mark as Resolved
-                                                </DropdownMenuItem>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem 
-                                                    className="text-destructive focus:text-destructive"
-                                                    onSelect={() => openDeleteDialog(feedback)}
-                                                >
-                                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
+                            {loading ? (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="text-center py-10">
+                                        <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+                                        <p className="mt-2 text-muted-foreground">Loading feedback...</p>
                                     </TableCell>
                                 </TableRow>
-                            ))}
+                            ) : feedbackList.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="text-center py-10">
+                                        <Frown className="mx-auto h-8 w-8 text-muted-foreground" />
+                                        <p className="mt-2 text-muted-foreground">No feedback found.</p>
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                feedbackList.map((feedback) => (
+                                    <TableRow key={feedback.id}>
+                                        <TableCell className="font-medium">{feedback.user.name}</TableCell>
+                                        <TableCell>
+                                            <Badge variant={getTypeVariant(feedback.type)}>{feedback.type}</Badge>
+                                        </TableCell>
+                                        <TableCell className="max-w-xs truncate">{feedback.message}</TableCell>
+                                        <TableCell>{feedback.date}</TableCell>
+                                        <TableCell>
+                                            <Badge variant={getStatusVariant(feedback.status)} className={getStatusClass(feedback.status)}>
+                                                {feedback.status}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button aria-haspopup="true" size="icon" variant="ghost">
+                                                        <MoreHorizontal className="h-4 w-4" />
+                                                        <span className="sr-only">Toggle menu</span>
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                    <DropdownMenuItem onSelect={() => openViewDialog(feedback)}>
+                                                        <Eye className="mr-2 h-4 w-4" /> View Details
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onSelect={() => handleUpdateStatus(feedback.id, 'Resolved')}>
+                                                        <CheckCircle className="mr-2 h-4 w-4" /> Mark as Resolved
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem 
+                                                        className="text-destructive focus:text-destructive"
+                                                        onSelect={() => openDeleteDialog(feedback)}
+                                                    >
+                                                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
                         </TableBody>
                     </Table>
-                    {feedbackList.length === 0 && (
-                        <p className="text-center text-muted-foreground p-8">No feedback found.</p>
-                    )}
                 </CardContent>
             </Card>
 

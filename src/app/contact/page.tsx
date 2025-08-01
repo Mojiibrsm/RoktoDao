@@ -10,6 +10,15 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import React, { useState } from 'react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import type { FeedbackType } from '@/lib/types';
+
 
 export default function ContactPage() {
     const { toast } = useToast();
@@ -23,6 +32,7 @@ export default function ContactPage() {
         const name = formData.get('name') as string;
         const email = formData.get('email') as string;
         const message = formData.get('message') as string;
+        const type = formData.get('type') as FeedbackType['type'];
 
         try {
             const response = await fetch('/api/send-email', {
@@ -32,12 +42,13 @@ export default function ContactPage() {
                 },
                 body: JSON.stringify({
                     type: 'contact_form',
-                    data: { name, email, message },
+                    data: { name, email, message, type },
                 }),
             });
 
             if (!response.ok) {
-                throw new Error('Failed to send message.');
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to send message.');
             }
 
             toast({
@@ -45,12 +56,12 @@ export default function ContactPage() {
                 description: "আপনার বার্তাটি আমরা পেয়েছি। শীঘ্রই আপনার সাথে যোগাযোগ করা হবে।",
             });
             form.reset();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Contact form error:', error);
             toast({
                 variant: 'destructive',
                 title: "ত্রুটি!",
-                description: "বার্তা পাঠাতে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।",
+                description: error.message || "বার্তা পাঠাতে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।",
             });
         } finally {
             setIsSubmitting(false);
@@ -127,6 +138,20 @@ export default function ContactPage() {
                              <div className="space-y-2">
                                 <Label htmlFor="email">আপনার ইমেইল</Label>
                                 <Input id="email" name="email" type="email" placeholder="you@example.com" required />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="type">বার্তার ধরন</Label>
+                                <Select name="type" defaultValue="Other" required>
+                                    <SelectTrigger id="type">
+                                        <SelectValue placeholder="বার্তার ধরন নির্বাচন করুন" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Suggestion">পরামর্শ (Suggestion)</SelectItem>
+                                        <SelectItem value="Bug">সমস্যা (Bug Report)</SelectItem>
+                                        <SelectItem value="Complaint">অভিযোগ (Complaint)</SelectItem>
+                                        <SelectItem value="Other">অন্যান্য (Other)</SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
                              <div className="space-y-2">
                                 <Label htmlFor="message">আপনার বার্তা</Label>

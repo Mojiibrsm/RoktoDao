@@ -1,8 +1,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import type { FeedbackType } from '@/lib/types';
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,29 +26,12 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, error: 'Admin email not set in settings.' }, { status: 500 });
     }
 
-    // Check if notification for this type is enabled
-    if (type === 'new_donor' && !settings.notifyNewDonor) {
-        return NextResponse.json({ success: true, message: 'Notification for new donor is disabled.' });
-    }
-    if (type === 'new_request' && !settings.notifyNewRequest) {
-        return NextResponse.json({ success: true, message: 'Notification for new request is disabled.' });
-    }
-    
-    // Create a transporter object using the SMTP transport
-    let transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT),
-      secure: process.env.SMTP_PORT === '465', // true for 465, false for other ports
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
-
     let subject = '';
     let htmlContent = '';
 
     if (type === 'new_donor') {
+      if (!settings.notifyNewDonor) return NextResponse.json({ success: true, message: 'Notification for new donor is disabled.' });
+      
       subject = '🎉 New Donor Registered on RoktoDao!';
       htmlContent = `
         <h1>New Donor Alert!</h1>
@@ -60,6 +45,8 @@ export async function POST(request: NextRequest) {
         <p>Please review their profile in the admin panel.</p>
       `;
     } else if (type === 'new_request') {
+       if (!settings.notifyNewRequest) return NextResponse.json({ success: true, message: 'Notification for new request is disabled.' });
+
       subject = '🩸 New Blood Request on RoktoDao!';
       htmlContent = `
         <h1>New Blood Request!</h1>
@@ -74,19 +61,42 @@ export async function POST(request: NextRequest) {
         <p>Please review the request in the admin panel.</p>
       `;
     } else if (type === 'contact_form') {
+      // Save feedback to Firestore
+      const feedbackData: Omit<FeedbackType, 'id' | 'date'> = {
+        user: { name: data.name, email: data.email },
+        type: data.type || 'Other',
+        message: data.message,
+        status: 'New',
+        createdAt: serverTimestamp(),
+      };
+      await addDoc(collection(db, 'feedback'), feedbackData);
+
       subject = `📨 New Contact Message from ${data.name}`;
       htmlContent = `
         <h1>New message from your website's contact form!</h1>
         <p>You have received a new message from <strong>${data.name}</strong> (${data.email}).</p>
+        <p><strong>Type:</strong> ${data.type || 'N/A'}</p>
         <hr>
         <h2>Message:</h2>
         <p style="white-space: pre-wrap;">${data.message}</p>
         <hr>
         <p>You can reply to this user directly at: <a href="mailto:${data.email}">${data.email}</a></p>
+        <p>This has also been logged in your admin feedback panel.</p>
       `;
     } else {
         return NextResponse.json({ success: false, error: 'Invalid notification type.' }, { status: 400 });
     }
+    
+    // Create a transporter object using the SMTP transport
+    let transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT),
+      secure: process.env.SMTP_PORT === '465', // true for 465, false for other ports
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
 
     // Send mail with defined transport object
     await transporter.sendMail({
