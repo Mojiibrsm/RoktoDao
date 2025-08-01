@@ -61,7 +61,9 @@ async function getHomepageData() {
             return {
                 id: doc.id,
                 ...data,
+                // Convert Timestamps to string to avoid serialization errors
                 neededDate: data.neededDate instanceof Timestamp ? data.neededDate.toDate().toISOString() : data.neededDate,
+                createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt,
             } as BloodRequest;
         });
 
@@ -69,13 +71,30 @@ async function getHomepageData() {
         const donorsRef = collection(db, 'donors');
         const pinnedQuery = query(donorsRef, where('isPinned', '==', true), where('isAvailable', '==', true), limit(6));
         const pinnedSnapshot = await getDocs(pinnedQuery);
-        const pinnedDonors = pinnedSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Donor[];
+        const pinnedDonors = pinnedSnapshot.docs.map(doc => {
+            const data = doc.data();
+            return { 
+                id: doc.id, 
+                ...data,
+                // Convert Timestamps to string to avoid serialization errors
+                lastDonationDate: data.lastDonationDate instanceof Timestamp ? data.lastDonationDate.toDate().toISOString() : data.lastDonationDate,
+                createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt,
+            } as Donor;
+        });
         
         let donors: Donor[] = [...pinnedDonors];
         if (donors.length < 6) {
           const otherQuery = query(donorsRef, where('isAvailable', '==', true), limit(12)); // Fetch more to filter out pinned ones
           const otherSnapshot = await getDocs(otherQuery);
-          const otherDonors = otherSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Donor[];
+          const otherDonors = otherSnapshot.docs.map(doc => {
+              const data = doc.data();
+              return { 
+                id: doc.id, 
+                ...data,
+                lastDonationDate: data.lastDonationDate instanceof Timestamp ? data.lastDonationDate.toDate().toISOString() : data.lastDonationDate,
+                createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt,
+              } as Donor
+          });
           const nonPinnedDonors = otherDonors.filter(d => !donors.some(pd => pd.uid === d.uid));
           donors = [...donors, ...nonPinnedDonors].slice(0, 6);
         }
