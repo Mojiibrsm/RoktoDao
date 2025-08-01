@@ -52,13 +52,16 @@ export default function LoginPage() {
         title: 'Login Successful',
         description: 'Welcome back!',
       });
-      // This check will be handled by the useAuth hook and redirection logic in profile/admin pages
       router.push('/profile');
     } catch (error: any) {
+      let description = 'An unknown error occurred.';
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+        description = 'ভুল ইমেল বা পাসওয়ার্ড। অনুগ্রহ করে আবার চেষ্টা করুন।';
+      }
       toast({
         variant: 'destructive',
         title: 'Login Failed',
-        description: 'auth/invalid-credential' || 'An unknown error occurred.',
+        description: description,
       });
     } finally {
       setIsLoading(false);
