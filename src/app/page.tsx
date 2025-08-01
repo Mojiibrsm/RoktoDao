@@ -61,8 +61,8 @@ async function getHomepageData() {
             return {
                 id: doc.id,
                 ...data,
-                neededDate: data.neededDate,
-                createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data.createdAt,
+                neededDate: data.neededDate instanceof Timestamp ? data.neededDate.toDate().toISOString() : data.neededDate,
+                createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt,
             } as BloodRequest;
         });
 
@@ -75,8 +75,8 @@ async function getHomepageData() {
             return { 
                 id: doc.id, 
                 ...data,
-                lastDonationDate: data.lastDonationDate,
-                createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data.createdAt,
+                lastDonationDate: data.lastDonationDate instanceof Timestamp ? data.lastDonationDate.toDate().toISOString() : data.lastDonationDate,
+                createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt,
             } as Donor;
         });
         
@@ -89,8 +89,8 @@ async function getHomepageData() {
               return { 
                 id: doc.id, 
                 ...data,
-                lastDonationDate: data.lastDonationDate,
-                createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data.createdAt,
+                lastDonationDate: data.lastDonationDate instanceof Timestamp ? data.lastDonationDate.toDate().toISOString() : data.lastDonationDate,
+                createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt,
               } as Donor
           });
           const nonPinnedDonors = otherDonors.filter(d => !donors.some(pd => pd.uid === d.uid));
