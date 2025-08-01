@@ -28,7 +28,7 @@ export default function DonorCard({ donor }: DonorCardProps) {
       return { canDonate: true, daysRemaining: 0 };
     }
     const lastDonation = new Date(donor.lastDonationDate);
-    const nextDonationDate = addDays(lastDonation, 120); // Assuming 120 days restriction
+    const nextDonationDate = addDays(lastDonation, 90); // Use 90 days (3 months) restriction
     const daysRemaining = differenceInDays(nextDonationDate, new Date());
 
     if (daysRemaining <= 0) {
