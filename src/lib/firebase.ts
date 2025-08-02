@@ -12,17 +12,21 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
+// Initialize Firebase for client-side
 let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
 
-
-// Check if we are in a browser environment before initializing
-if (typeof window !== 'undefined' && firebaseConfig.apiKey) {
-    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-    auth = getAuth(app);
-    db = getFirestore(app);
+// This check ensures Firebase is only initialized on the client-side
+if (typeof window !== 'undefined' && !getApps().length) {
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+} else if (getApps().length) {
+  app = getApp();
+  auth = getAuth(app);
+  db = getFirestore(app);
 }
 
-
+// @ts-ignore
 export { app, auth, db };
