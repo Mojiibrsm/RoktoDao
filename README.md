@@ -16,14 +16,17 @@
 - 📅 Donation History Tracking  
 - 🧑‍💻 Donor Profile Management  
 - 🌍 Area-based Notifications for Donors  
-- 🔐 Admin Panel with Request Approval and Analytics  
-- 🔧 Built with Firebase Studio (Firestore, Auth, Hosting)
+- 🔐 Admin Panel with Request Approval and Analytics 
 
 ---
 
 ## 📸 Screenshots
+<img width="1366" height="768" alt="image" src="https://github.com/user-attachments/assets/e707c91c-b35a-45d1-8f6e-dcad137c0179" />
 
-> _[Add some screenshots or UI previews here]_
+<img width="1366" height="768" alt="image" src="https://github.com/user-attachments/assets/11639fe6-2699-4a19-b5af-5774cbf225c4" />
+<img width="1366" height="768" alt="image" src="https://github.com/user-attachments/assets/81c0f4fd-bb2a-45f9-afed-38a2b4b97aca" />
+<img width="1366" height="768" alt="image" src="https://github.com/user-attachments/assets/9ebc9216-8635-408b-85bb-c884ca431075" />
+
 
 ---
 
