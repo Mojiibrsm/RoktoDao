@@ -6,8 +6,14 @@ import type { ServiceAccount } from 'firebase-admin';
 // It will only initialize if the service account environment variable is available.
 const initializeFirebaseAdmin = () => {
   try {
-    if (!admin.apps.length) {
-      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT as string);
+    const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT;
+    if (!serviceAccountString) {
+      console.warn('Firebase Admin SDK: FIREBASE_SERVICE_ACCOUNT environment variable is not set.');
+      return;
+    }
+
+    if (admin.apps.length === 0) {
+      const serviceAccount = JSON.parse(serviceAccountString) as ServiceAccount;
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
       });

@@ -59,7 +59,7 @@ async function getHomepageData() {
         stats: { totalDonors: 0, totalRequests: 0, donationsFulfilled: 0 }, 
         director: null, 
         galleryImages: [], 
-        error: "Server configuration error: Firebase Admin SDK not initialized. Please set the FIREBASE_SERVICE_ACCOUNT environment variable."
+        error: "Server configuration error: Firebase Admin SDK not initialized. Please set the FIREBASE_SERVICE_ACCOUNT environment variable in your deployment settings."
     };
     }
     try {
