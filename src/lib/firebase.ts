@@ -17,17 +17,17 @@ let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
 
-// Check if the API key is available before initializing
-if (firebaseConfig.apiKey) {
-  app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-  auth = getAuth(app);
-  db = getFirestore(app);
+
+// Check if we are in a browser environment and have the necessary keys
+if (typeof window !== 'undefined' && firebaseConfig.apiKey) {
+    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    auth = getAuth(app);
+    db = getFirestore(app);
 } else {
-  console.warn("Firebase API key is not defined. Firebase has not been initialized.");
-  // Provide dummy instances if Firebase is not initialized to avoid runtime errors on import
-  app = {} as FirebaseApp;
-  auth = {} as Auth;
-  db = {} as Firestore;
+    // For server-side rendering, you might not want to initialize client-side Firebase
+    // or handle it differently. For now, we'll avoid errors by not initializing.
+    // If you need server-side auth, use firebase-admin.
 }
+
 
 export { app, auth, db };
