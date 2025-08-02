@@ -52,6 +52,16 @@ const faqs = [
 ];
 
 async function getHomepageData() {
+    if (!dbAdmin) {
+    return { 
+        urgentRequests: [], 
+        donors: [], 
+        stats: { totalDonors: 0, totalRequests: 0, donationsFulfilled: 0 }, 
+        director: null, 
+        galleryImages: [], 
+        error: "Server configuration error: Firebase Admin SDK not initialized. Please set the FIREBASE_SERVICE_ACCOUNT environment variable."
+    };
+    }
     try {
         const requestsRef = dbAdmin.collection('requests');
         const donorsRef = dbAdmin.collection('donors');
@@ -92,7 +102,7 @@ async function getHomepageData() {
             return {
                 id: doc.id,
                 ...data,
-                neededDate: data.neededDate, // No conversion needed for server components if passed as string
+                neededDate: (data.neededDate as any)?.toDate ? (data.neededDate as any).toDate().toISOString() : data.neededDate,
                 createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString()),
             } as BloodRequest;
         });
@@ -103,7 +113,7 @@ async function getHomepageData() {
             return { 
                 id: doc.id, 
                 ...data,
-                lastDonationDate: data.lastDonationDate,
+                lastDonationDate: (data.lastDonationDate as any)?.toDate ? (data.lastDonationDate as any).toDate().toISOString() : data.lastDonationDate,
                 createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString()),
             } as Donor;
         });
@@ -115,7 +125,7 @@ async function getHomepageData() {
               return { 
                 id: doc.id, 
                 ...data,
-                lastDonationDate: data.lastDonationDate,
+                lastDonationDate: (data.lastDonationDate as any)?.toDate ? (data.lastDonationDate as any).toDate().toISOString() : data.lastDonationDate,
                 createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString()),
               } as Donor
           });
