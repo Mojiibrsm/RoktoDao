@@ -26,9 +26,9 @@ export type Donor = {
     district: string;
     upazila: string;
   };
-  lastDonationDate?: string;
+  lastDonationDate?: string | null;
   isAvailable: boolean;
-  dateOfBirth?: string;
+  dateOfBirth?: string | null;
   gender?: 'Male' | 'Female' | 'Other';
   donationCount?: number;
   isAdmin?: boolean;
