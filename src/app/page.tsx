@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Separator } from '@/components/ui/separator';
 import { db } from '@/lib/firebase';
 import type { BloodRequest, Donor } from '@/lib/types';
-import { collection, getDocs, limit, orderBy, query, where,getCountFromServer, Timestamp } from 'firebase/firestore';
+import { collection, getDocs, limit, orderBy, query, where, Timestamp } from 'firebase/firestore';
 import { Droplet, MapPin, Calendar, Syringe, Search, Heart, Phone, LifeBuoy, HeartPulse, ShieldCheck, Stethoscope, LocateFixed, MessageCircle, Newspaper, Github, Linkedin, Twitter, Users, Globe, HandHeart, ListChecks, AlertTriangle, ArrowRight, Pin } from 'lucide-react';
 import {
   Accordion,
@@ -62,7 +62,7 @@ async function getHomepageData() {
                 id: doc.id,
                 ...data,
                 neededDate: data.neededDate instanceof Timestamp ? data.neededDate.toDate().toISOString() : data.neededDate,
-                createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt,
+                createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString()),
             } as BloodRequest;
         });
 
@@ -76,7 +76,7 @@ async function getHomepageData() {
                 id: doc.id, 
                 ...data,
                 lastDonationDate: data.lastDonationDate instanceof Timestamp ? data.lastDonationDate.toDate().toISOString() : data.lastDonationDate,
-                createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt,
+                createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString()),
             } as Donor;
         });
         
@@ -90,7 +90,7 @@ async function getHomepageData() {
                 id: doc.id, 
                 ...data,
                 lastDonationDate: data.lastDonationDate instanceof Timestamp ? data.lastDonationDate.toDate().toISOString() : data.lastDonationDate,
-                createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt,
+                createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString()),
               } as Donor
           });
           const nonPinnedDonors = otherDonors.filter(d => !donors.some(pd => pd.uid === d.uid));
@@ -98,13 +98,13 @@ async function getHomepageData() {
         }
 
         // Fetch Stats
-        const donorCountSnap = await getCountFromServer(collection(db, "donors"));
-        const requestCountSnap = await getCountFromServer(collection(db, "requests"));
-        const fulfilledCountSnap = await getCountFromServer(query(collection(db, "requests"), where("status", "==", "Fulfilled")));
+        const donorCountSnap = await getDocs(collection(db, "donors"));
+        const requestCountSnap = await getDocs(collection(db, "requests"));
+        const fulfilledCountSnap = await getDocs(query(collection(db, "requests"), where("status", "==", "Fulfilled")));
         const stats = {
-            totalDonors: donorCountSnap.data().count,
-            totalRequests: requestCountSnap.data().count,
-            donationsFulfilled: fulfilledCountSnap.data().count,
+            totalDonors: donorCountSnap.size,
+            totalRequests: requestCountSnap.size,
+            donationsFulfilled: fulfilledCountSnap.size,
         };
 
         // Fetch Director
@@ -134,7 +134,7 @@ async function getHomepageData() {
           stats: { totalDonors: 0, totalRequests: 0, donationsFulfilled: 0 }, 
           director: null, 
           galleryImages: [], 
-          error: "Failed to load page data. Please try again later."
+          error: "Failed to load page data. Please check Firestore security rules and try again later."
         };
       }
 }
@@ -152,13 +152,13 @@ export default async function Home() {
        <section className="w-full bg-primary/5">
         <div className="container mx-auto flex flex-col items-center text-center py-20 md:py-32 px-4">
             <div className="space-y-6 max-w-3xl">
-              <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-primary font-headline animate-fade-in-up">
+              <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-primary font-headline">
                 🩸 “আপনার রক্তে বাঁচবে অন্যের স্বপ্ন!”
               </h1>
-              <p className="text-lg text-muted-foreground animate-fade-in-up [animation-delay:200ms] max-w-2xl mx-auto">
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                 জরুরী মুহূর্তে রক্ত খুঁজে পেতে বা রক্তদানের মাধ্যমে জীবন বাঁচাতে আমাদের প্ল্যাটফর্মে যোগ দিন। আপনার সামান্য ত্যাগই পারে অন্যের জীবনে বিশাল পরিবর্তন আনতে।
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up [animation-delay:400ms]">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground">
                       <Link href="/signup"><Heart className="mr-2" /> রক্ত দিতে চাই</Link>
                   </Button>
@@ -167,7 +167,7 @@ export default async function Home() {
                   </Button>
               </div>
             </div>
-            <div className="flex items-center gap-8 pt-12 animate-fade-in-up [animation-delay:600ms]">
+            <div className="flex items-center gap-8 pt-12">
               <div className="text-center">
                 <p className="text-3xl font-bold">{stats.totalDonors.toLocaleString()}+</p>
                 <p className="text-sm text-muted-foreground">নিবন্ধিত ডোনার</p>
