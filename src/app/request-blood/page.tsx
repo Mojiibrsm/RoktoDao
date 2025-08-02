@@ -18,11 +18,11 @@ import { CalendarIcon, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { bloodGroups, locations, hospitalsByDistrict } from '@/lib/location-data';
-import { collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import { Checkbox } from '@/components/ui/checkbox';
-import type { BloodRequest } from '@/lib/types';
+import type { BloodRequest, Donor } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 import RequestCard from '@/components/request-card';
 
@@ -116,12 +116,36 @@ export default function RequestBloodPage() {
         }))
     ).sort((a, b) => a.label.localeCompare(b.label, 'bn'));
 
+    const sendSmsToDonors = async (request: Omit<BloodRequest, 'id'>) => {
+        // Find available donors in the same district and with the same blood group
+        const donorsRef = collection(db, 'donors');
+        const q = query(
+            donorsRef,
+            where('isAvailable', '==', true),
+            where('bloodGroup', '==', request.bloodGroup),
+            where('address.district', '==', request.district)
+        );
+
+        const querySnapshot = await getDocs(q);
+        const donors = querySnapshot.docs.map(doc => doc.data() as Donor);
+
+        const message = `জরুরী রক্তের আবেদন: ${request.district}-এ ${request.bloodGroup} রক্তের প্রয়োজন। রোগীর নাম: ${request.patientName}, যোগাযোগ: ${request.contactPhone}`;
+
+        for (const donor of donors) {
+            await fetch('/api/send-sms', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ number: donor.phoneNumber, message }),
+            });
+        }
+    };
+
   const onSubmit = async (values: z.infer<typeof requestSchema>) => {
     setIsSubmitting(true);
     
     const finalHospitalName = values.hospitalLocation === 'Other' ? values.otherHospital : values.hospitalLocation;
 
-    const requestData = {
+    const requestData: Omit<BloodRequest, 'id'> = {
       patientName: values.patientName,
       bloodGroup: values.bloodGroup,
       numberOfBags: values.numberOfBags,
@@ -132,13 +156,15 @@ export default function RequestBloodPage() {
       uid: user?.uid,
       isEmergency: values.isEmergency,
       status: 'Approved',
-      createdAt: serverTimestamp(),
+      createdAt: new Date().toISOString(), // Use client-side timestamp for immediate use
     };
 
     try {
-      await addDoc(collection(db, 'requests'), requestData);
+      await addDoc(collection(db, 'requests'), { ...requestData, createdAt: serverTimestamp() });
+      
+      // Send notifications
+      await sendSmsToDonors(requestData);
 
-      // Send email notification
       try {
         await fetch('/api/send-email', {
           method: 'POST',

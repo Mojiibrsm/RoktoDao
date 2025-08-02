@@ -18,6 +18,7 @@ export type BloodRequest = {
 export type Donor = {
   uid: string;
   fullName: string;
+  email?: string | null;
   bloodGroup: string;
   phoneNumber: string;
   address: {

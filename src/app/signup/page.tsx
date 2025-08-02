@@ -31,7 +31,7 @@ import IK from 'imagekit-javascript';
 
 const signupSchema = z.object({
   fullName: z.string().min(3, { message: 'Full name is required.' }),
-  email: z.string().email({ message: 'Invalid email address.' }),
+  email: z.string().email({ message: 'Invalid email address.' }).optional().or(z.literal('')),
   bloodGroup: z.string({ required_error: 'Blood group is required.' }).min(1, 'Blood group is required.'),
   phoneNumber: z.string().min(11, { message: 'A valid phone number is required.' }),
   division: z.string({ required_error: 'Division is required.' }).min(1, 'Division is required.'),
@@ -133,11 +133,11 @@ export default function SignupPage() {
     setIsLoading(true);
     let finalProfilePictureUrl = '';
 
-    // Generate a random password
     const generatedPassword = Math.random().toString(36).slice(-8);
+    // If email is not provided, create a dummy one for Firebase Auth
+    const emailForAuth = values.email || `${values.phoneNumber}@rokto.dao`;
 
     try {
-      // Upload image first if selected
       if (profileImageFile) {
         try {
             const authResponse = await fetch('/api/imagekit-auth');
@@ -164,14 +164,13 @@ export default function SignupPage() {
         }
       }
 
-      // 1. Create user in Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(auth, values.email, generatedPassword);
+      const userCredential = await createUserWithEmailAndPassword(auth, emailForAuth, generatedPassword);
       const user = userCredential.user;
 
-      // 2. Create donor profile in Firestore
       const donorData: Omit<Donor, 'id'> = {
         uid: user.uid,
         fullName: values.fullName,
+        email: values.email || null, // Store null if not provided
         bloodGroup: values.bloodGroup,
         phoneNumber: values.phoneNumber,
         address: {
@@ -192,34 +191,41 @@ export default function SignupPage() {
 
       await setDoc(doc(db, 'donors', user.uid), donorData);
 
-      // 3. Send credentials and welcome email
-      try {
-        await fetch('/api/send-email', {
+      // --- Send Notifications ---
+
+      // 1. Send password via SMS
+      const smsMessage = `Welcome to RoktoDao! Your password is: ${generatedPassword}`;
+      await fetch('/api/send-sms', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            type: 'send_credentials',
-            data: {
-              fullName: values.fullName,
-              email: values.email,
-              password: generatedPassword,
-            },
-          }),
-        });
-      } catch (emailError) {
-        console.error("Could not send credentials email:", emailError);
-        // Don't block signup flow, but maybe log this
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ number: values.phoneNumber, message: smsMessage }),
+      });
+
+      // 2. Send password via Email if provided
+      if (values.email) {
+        try {
+          await fetch('/api/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'send_credentials',
+              data: {
+                fullName: values.fullName,
+                email: values.email,
+                password: generatedPassword,
+              },
+            }),
+          });
+        } catch (emailError) {
+          console.error("Could not send credentials email:", emailError);
+        }
       }
 
-      // 4. Send new donor notification to admin
+      // 3. Send new donor notification to admin
       try {
         await fetch('/api/send-email', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'new_donor',
             data: {
@@ -239,7 +245,7 @@ export default function SignupPage() {
 
       toast({
         title: 'Account Created Successfully!',
-        description: "Welcome to RoktoDao. Please check your email for your password.",
+        description: "Welcome to RoktoDao. Please check your SMS for your password.",
       });
       router.push('/profile');
 
@@ -247,7 +253,7 @@ export default function SignupPage() {
       const errorCode = error.code;
       let errorMessage = 'An unknown error occurred.';
       if (errorCode === 'auth/email-already-in-use') {
-        errorMessage = 'This email address is already in use. Please use a different email.';
+        errorMessage = 'This phone number is already registered. Please try logging in.';
       } else {
         errorMessage = error.message;
       }
@@ -326,7 +332,7 @@ export default function SignupPage() {
                         name="email"
                         render={({ field }) => (
                         <FormItem>
-                            <FormLabel>ইমেইল</FormLabel>
+                            <FormLabel>ইমেইল (ঐচ্ছিক)</FormLabel>
                             <FormControl>
                             <Input placeholder="you@example.com" {...field} />
                             </FormControl>

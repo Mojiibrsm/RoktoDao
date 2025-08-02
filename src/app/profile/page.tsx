@@ -19,9 +19,9 @@ import { CalendarIcon, User, Upload, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { bloodGroups, locations, upazilas } from '@/lib/location-data';
-import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, serverTimestamp, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { Donor } from '@/lib/types';
+import type { Donor, BloodRequest } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import IK from 'imagekit-javascript';
@@ -175,6 +175,35 @@ function ProfilePageComponent() {
     }
   };
 
+  const sendAvailabilitySms = async (donor: Donor) => {
+    // Find active requests matching the donor's location and blood group
+    const requestsRef = collection(db, "requests");
+    const q = query(
+      requestsRef,
+      where("status", "in", ["Pending", "Approved"]),
+      where("bloodGroup", "==", donor.bloodGroup),
+      where("district", "==", donor.address.district)
+    );
+
+    const querySnapshot = await getDocs(q);
+    const requests = querySnapshot.docs.map(doc => doc.data() as BloodRequest);
+    
+    if (requests.length > 0) {
+        const message = `Good news! A donor (${donor.fullName}) with your required blood group (${donor.bloodGroup}) in your area (${donor.address.district}) is now available. Contact: ${donor.phoneNumber}`;
+        
+        // Use a Set to avoid sending duplicate SMS to the same number
+        const uniquePhoneNumbers = new Set(requests.map(req => req.contactPhone));
+
+        for (const number of uniquePhoneNumbers) {
+            await fetch('/api/send-sms', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ number, message }),
+            });
+        }
+    }
+  };
+
 
   const onSubmit = async (values: z.infer<typeof profileSchema>) => {
     if (!targetUid) {
@@ -182,6 +211,8 @@ function ProfilePageComponent() {
         return;
     }
     setIsSubmitting(true);
+
+    const previousAvailability = profileToEdit?.isAvailable;
 
     let finalProfilePictureUrl = values.profilePictureUrl || '';
 
@@ -237,6 +268,12 @@ function ProfilePageComponent() {
         } as Omit<Donor, 'id'>;
         await setDoc(donorRef, newDonorData);
       }
+
+      // Check if availability changed to true
+      if (values.isAvailable && !previousAvailability) {
+        await sendAvailabilitySms(donorDataToSave as Donor);
+      }
+
 
       toast({
         title: 'Profile Updated',

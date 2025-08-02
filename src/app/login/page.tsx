@@ -8,18 +8,18 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
+import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Droplet, Info } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Droplet } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 
 const loginSchema = z.object({
-  email: z.string().email({ message: 'Invalid email address.' }),
+  identifier: z.string().min(1, { message: 'Phone number or email is required.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
 });
 
@@ -35,19 +35,36 @@ export default function LoginPage() {
     }
   }, [user, loading, router]);
 
-
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: '',
+      identifier: '',
       password: '',
     },
   });
 
   const onSubmit = async (values: z.infer<typeof loginSchema>) => {
     setIsLoading(true);
+    let emailToLogin = values.identifier;
+
     try {
-      await signInWithEmailAndPassword(auth, values.email, values.password);
+      // Check if the identifier is a phone number
+      if (/^\d{11,}$/.test(values.identifier)) {
+        const donorsRef = collection(db, 'donors');
+        const q = query(donorsRef, where('phoneNumber', '==', values.identifier), limit(1));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+          throw new Error('User with this phone number not found.');
+        }
+        const userDoc = querySnapshot.docs[0].data();
+        if (!userDoc.email) {
+          throw new Error('No email associated with this phone number. Cannot log in.');
+        }
+        emailToLogin = userDoc.email;
+      }
+
+      await signInWithEmailAndPassword(auth, emailToLogin, values.password);
       toast({
         title: 'Login Successful',
         description: 'Welcome back!',
@@ -55,8 +72,8 @@ export default function LoginPage() {
       router.push('/profile');
     } catch (error: any) {
       let description = 'An unknown error occurred.';
-      if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
-        description = 'ভুল ইমেল বা পাসওয়ার্ড। অনুগ্রহ করে আবার চেষ্টা করুন।';
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.message.includes('not found')) {
+        description = 'ভুল ফোন নম্বর/ইমেল বা পাসওয়ার্ড। অনুগ্রহ করে আবার চেষ্টা করুন।';
       }
       toast({
         variant: 'destructive',
@@ -89,12 +106,12 @@ export default function LoginPage() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
-                name="email"
+                name="identifier"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>Phone Number or Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="you@example.com" {...field} />
+                      <Input placeholder="01XXXXXXXXX or you@example.com" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
