@@ -1,11 +1,11 @@
 
+import 'server-only';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { db } from '@/lib/firebase';
+import { dbAdmin } from '@/lib/firebase-admin';
 import type { BloodRequest, Donor } from '@/lib/types';
-import { collection, getDocs, limit, orderBy, query, where, Timestamp } from 'firebase/firestore';
 import { Droplet, MapPin, Calendar, Syringe, Search, Heart, Phone, LifeBuoy, HeartPulse, ShieldCheck, Stethoscope, LocateFixed, MessageCircle, Newspaper, Github, Linkedin, Twitter, Users, Globe, HandHeart, ListChecks, AlertTriangle, ArrowRight, Pin } from 'lucide-react';
 import {
   Accordion,
@@ -16,6 +16,8 @@ import {
 import Image from 'next/image';
 import DonorCard from '@/components/donor-card';
 import RequestCard from '@/components/request-card';
+import { Timestamp } from 'firebase-admin/firestore';
+
 
 interface GalleryImage {
     id: string;
@@ -51,20 +53,17 @@ const faqs = [
 
 async function getHomepageData() {
     try {
-        const requestsRef = collection(db, 'requests');
-        const donorsRef = collection(db, 'donors');
-        const modsCollection = collection(db, 'moderators');
-        const imagesRef = collection(db, 'gallery');
+        const requestsRef = dbAdmin.collection('requests');
+        const donorsRef = dbAdmin.collection('donors');
+        const modsCollection = dbAdmin.collection('moderators');
+        const imagesRef = dbAdmin.collection('gallery');
 
         // Define all queries
-        const reqQuery = query(requestsRef, where('status', '==', 'Approved'), orderBy('neededDate', 'asc'), limit(6));
-        const pinnedDonorsQuery = query(donorsRef, where('isPinned', '==', true), where('isAvailable', '==', true), limit(6));
-        const otherDonorsQuery = query(donorsRef, where('isAvailable', '==', true), limit(12));
-        const donorCountQuery = query(collection(db, "donors"));
-        const requestCountQuery = query(collection(db, "requests"));
-        const fulfilledCountQuery = query(collection(db, "requests"), where("status", "==", "Fulfilled"));
-        const directorQuery = query(modsCollection, where('role', '==', 'প্রধান পরিচালক'), limit(1));
-        const galleryQuery = query(imagesRef, where('status', '==', 'approved'), orderBy('createdAt', 'desc'), limit(8));
+        const reqQuery = requestsRef.where('status', '==', 'Approved').orderBy('neededDate', 'asc').limit(6);
+        const pinnedDonorsQuery = donorsRef.where('isPinned', '==', true).where('isAvailable', '==', true).limit(6);
+        const otherDonorsQuery = donorsRef.where('isAvailable', '==', true).limit(12);
+        const directorQuery = modsCollection.where('role', '==', 'প্রধান পরিচালক').limit(1);
+        const galleryQuery = imagesRef.where('status', '==', 'approved').orderBy('createdAt', 'desc').limit(8);
 
         // Fetch all data in parallel
         const [
@@ -77,14 +76,14 @@ async function getHomepageData() {
             directorSnapshot,
             gallerySnapshot
         ] = await Promise.all([
-            getDocs(reqQuery),
-            getDocs(pinnedDonorsQuery),
-            getDocs(otherDonorsQuery),
-            getDocs(donorCountQuery),
-            getDocs(requestCountQuery),
-            getDocs(fulfilledCountQuery),
-            getDocs(directorQuery),
-            getDocs(galleryQuery),
+            reqQuery.get(),
+            pinnedDonorsQuery.get(),
+            otherDonorsQuery.get(),
+            donorsRef.count().get(),
+            requestsRef.count().get(),
+            requestsRef.where("status", "==", "Fulfilled").count().get(),
+            directorQuery.get(),
+            galleryQuery.get(),
         ]);
 
         // Process Urgent Requests
@@ -93,7 +92,7 @@ async function getHomepageData() {
             return {
                 id: doc.id,
                 ...data,
-                neededDate: data.neededDate instanceof Timestamp ? data.neededDate.toDate().toISOString() : data.neededDate,
+                neededDate: data.neededDate, // No conversion needed for server components if passed as string
                 createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString()),
             } as BloodRequest;
         });
@@ -104,7 +103,7 @@ async function getHomepageData() {
             return { 
                 id: doc.id, 
                 ...data,
-                lastDonationDate: data.lastDonationDate instanceof Timestamp ? data.lastDonationDate.toDate().toISOString() : data.lastDonationDate,
+                lastDonationDate: data.lastDonationDate,
                 createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString()),
             } as Donor;
         });
@@ -116,7 +115,7 @@ async function getHomepageData() {
               return { 
                 id: doc.id, 
                 ...data,
-                lastDonationDate: data.lastDonationDate instanceof Timestamp ? data.lastDonationDate.toDate().toISOString() : data.lastDonationDate,
+                lastDonationDate: data.lastDonationDate,
                 createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString()),
               } as Donor
           });
@@ -126,9 +125,9 @@ async function getHomepageData() {
 
         // Process Stats
         const stats = {
-            totalDonors: donorCountSnap.size,
-            totalRequests: requestCountSnap.size,
-            donationsFulfilled: fulfilledCountSnap.size,
+            totalDonors: donorCountSnap.data().count,
+            totalRequests: requestCountSnap.data().count,
+            donationsFulfilled: fulfilledCountSnap.data().count,
         };
 
         // Process Director
