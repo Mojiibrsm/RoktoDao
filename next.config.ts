@@ -38,6 +38,9 @@ const nextConfig: NextConfig = {
     ],
     unoptimized: true
   },
+  serverRuntimeConfig: {
+    FIREBASE_SERVICE_ACCOUNT: process.env.FIREBASE_SERVICE_ACCOUNT,
+  },
 };
 
 export default nextConfig;
