@@ -1,5 +1,4 @@
 
-
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -52,10 +51,43 @@ const faqs = [
 
 async function getHomepageData() {
     try {
-        // Fetch Urgent Requests
         const requestsRef = collection(db, 'requests');
+        const donorsRef = collection(db, 'donors');
+        const modsCollection = collection(db, 'moderators');
+        const imagesRef = collection(db, 'gallery');
+
+        // Define all queries
         const reqQuery = query(requestsRef, where('status', '==', 'Approved'), orderBy('neededDate', 'asc'), limit(6));
-        const reqSnapshot = await getDocs(reqQuery);
+        const pinnedDonorsQuery = query(donorsRef, where('isPinned', '==', true), where('isAvailable', '==', true), limit(6));
+        const otherDonorsQuery = query(donorsRef, where('isAvailable', '==', true), limit(12));
+        const donorCountQuery = query(collection(db, "donors"));
+        const requestCountQuery = query(collection(db, "requests"));
+        const fulfilledCountQuery = query(collection(db, "requests"), where("status", "==", "Fulfilled"));
+        const directorQuery = query(modsCollection, where('role', '==', 'প্রধান পরিচালক'), limit(1));
+        const galleryQuery = query(imagesRef, where('status', '==', 'approved'), orderBy('createdAt', 'desc'), limit(8));
+
+        // Fetch all data in parallel
+        const [
+            reqSnapshot,
+            pinnedSnapshot,
+            otherSnapshot,
+            donorCountSnap,
+            requestCountSnap,
+            fulfilledCountSnap,
+            directorSnapshot,
+            gallerySnapshot
+        ] = await Promise.all([
+            getDocs(reqQuery),
+            getDocs(pinnedDonorsQuery),
+            getDocs(otherDonorsQuery),
+            getDocs(donorCountQuery),
+            getDocs(requestCountQuery),
+            getDocs(fulfilledCountQuery),
+            getDocs(directorQuery),
+            getDocs(galleryQuery),
+        ]);
+
+        // Process Urgent Requests
         const urgentRequests = reqSnapshot.docs.map(doc => {
             const data = doc.data();
             return {
@@ -65,11 +97,8 @@ async function getHomepageData() {
                 createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString()),
             } as BloodRequest;
         });
-
-        // Fetch Donors
-        const donorsRef = collection(db, 'donors');
-        const pinnedQuery = query(donorsRef, where('isPinned', '==', true), where('isAvailable', '==', true), limit(6));
-        const pinnedSnapshot = await getDocs(pinnedQuery);
+        
+        // Process Donors
         const pinnedDonors = pinnedSnapshot.docs.map(doc => {
             const data = doc.data();
             return { 
@@ -79,11 +108,9 @@ async function getHomepageData() {
                 createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString()),
             } as Donor;
         });
-        
+
         let donors: Donor[] = [...pinnedDonors];
         if (donors.length < 6) {
-          const otherQuery = query(donorsRef, where('isAvailable', '==', true), limit(12));
-          const otherSnapshot = await getDocs(otherQuery);
           const otherDonors = otherSnapshot.docs.map(doc => {
               const data = doc.data();
               return { 
@@ -97,32 +124,22 @@ async function getHomepageData() {
           donors = [...donors, ...nonPinnedDonors].slice(0, 6);
         }
 
-        // Fetch Stats
-        const donorCountSnap = await getDocs(collection(db, "donors"));
-        const requestCountSnap = await getDocs(collection(db, "requests"));
-        const fulfilledCountSnap = await getDocs(query(collection(db, "requests"), where("status", "==", "Fulfilled")));
+        // Process Stats
         const stats = {
             totalDonors: donorCountSnap.size,
             totalRequests: requestCountSnap.size,
             donationsFulfilled: fulfilledCountSnap.size,
         };
 
-        // Fetch Director
-        const modsCollection = collection(db, 'moderators');
-        const directorQuery = query(modsCollection, where('role', '==', 'প্রধান পরিচালক'), limit(1));
-        const directorSnapshot = await getDocs(directorQuery);
+        // Process Director
         let director: Member | null = null;
         if (!directorSnapshot.empty) {
             const directorDoc = directorSnapshot.docs[0];
             director = { id: directorDoc.id, ...directorDoc.data() } as Member;
         }
 
-        // Fetch Gallery Images
-        const imagesRef = collection(db, 'gallery');
-        const galleryQuery = query(imagesRef, where('status', '==', 'approved'), orderBy('createdAt', 'desc'), limit(8));
-        const gallerySnapshot = await getDocs(galleryQuery);
-        const galleryImages = gallerySnapshot.docs
-            .map(doc => ({ id: doc.id, ...doc.data() } as GalleryImage));
+        // Process Gallery Images
+        const galleryImages = gallerySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GalleryImage));
         
         return { urgentRequests, donors, stats, director, galleryImages, error: null };
 
