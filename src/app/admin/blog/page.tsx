@@ -1,14 +1,14 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { collection, getDocs, doc, deleteDoc, updateDoc, addDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { BlogPost as BlogPostType } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { MoreHorizontal, Edit, Trash2, PlusCircle } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, PlusCircle, Upload, Loader2, Image as ImageIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -37,6 +37,8 @@ import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import Image from 'next/image';
+import IK from 'imagekit-javascript';
 
 interface BlogPost extends BlogPostType {
     id: string;
@@ -48,13 +50,56 @@ const blogPostSchema = z.object({
   author: z.string().min(3, { message: 'Author name is required.' }),
   excerpt: z.string().min(10, { message: 'Excerpt is required.' }),
   content: z.string().min(20, { message: 'Content is required.' }),
-  image: z.string().url({ message: 'A valid image URL is required.' }),
+  image: z.string().url({ message: 'An image is required.' }),
   hint: z.string().optional(),
 });
 
 type BlogPostFormValues = z.infer<typeof blogPostSchema>;
 
+const imagekit = new IK({
+    publicKey: process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY || 'public_mZ0R0Fsxxuu72DflLr4kGejkwrE=',
+    urlEndpoint: process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT || 'https://ik.imagekit.io/uekohag7w',
+    authenticationEndpoint: '/api/imagekit-auth',
+});
+
+
 const BlogPostForm = ({ form, onSubmit, isSubmitting, submitText }: { form: UseFormReturn<BlogPostFormValues>, onSubmit: (values: BlogPostFormValues) => void, isSubmitting: boolean, submitText: string }) => {
+    const { toast } = useToast();
+    const [uploading, setUploading] = useState(false);
+    const [imagePreview, setImagePreview] = useState(form.getValues('image') || '');
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+        if (event.target.files && event.target.files[0]) {
+            const file = event.target.files[0];
+            setImagePreview(URL.createObjectURL(file));
+            setUploading(true);
+
+            try {
+                const authResponse = await fetch('/api/imagekit-auth');
+                 if (!authResponse.ok) throw new Error('Failed to authenticate with ImageKit.');
+                const authParams = await authResponse.json();
+
+                const response = await imagekit.upload({
+                    ...authParams,
+                    file: file,
+                    fileName: file.name,
+                    useUniqueFileName: true,
+                    folder: '/roktodao/blogs/',
+                });
+                form.setValue('image', response.url, { shouldValidate: true });
+                setImagePreview(response.url);
+                toast({ title: 'Image Uploaded', description: 'The image has been successfully uploaded.' });
+            } catch (error: any) {
+                toast({ variant: 'destructive', title: 'Upload Failed', description: error.message });
+                setImagePreview(form.getValues('image')); // Revert on failure
+            } finally {
+                setUploading(false);
+            }
+        }
+    };
+
+
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-6">
@@ -73,15 +118,32 @@ const BlogPostForm = ({ form, onSubmit, isSubmitting, submitText }: { form: UseF
                  <FormField control={form.control} name="content" render={({ field }) => (
                     <FormItem><FormLabel>Content (HTML)</FormLabel><FormControl><Textarea placeholder="<h2>Title</h2><p>Paragraph...</p>" rows={8} {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
-                 <FormField control={form.control} name="image" render={({ field }) => (
-                    <FormItem><FormLabel>Image URL</FormLabel><FormControl><Input placeholder="https://placehold.co/600x400.png" {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
+                 <FormItem>
+                    <FormLabel>Featured Image</FormLabel>
+                    <FormControl>
+                        <div className="flex items-center gap-4">
+                            <div className="w-32 h-32 rounded-md border flex items-center justify-center bg-muted overflow-hidden">
+                                {imagePreview ? (
+                                    <Image src={imagePreview} alt="Preview" width={128} height={128} className="object-cover h-full w-full" />
+                                ) : (
+                                    <ImageIcon className="h-10 w-10 text-muted-foreground" />
+                                )}
+                            </div>
+                            <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+                                {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                                Upload Image
+                            </Button>
+                            <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
+                        </div>
+                    </FormControl>
+                    <FormMessage>{form.formState.errors.image?.message}</FormMessage>
+                </FormItem>
                 <FormField control={form.control} name="hint" render={({ field }) => (
                     <FormItem><FormLabel>Image AI Hint (Optional)</FormLabel><FormControl><Input placeholder="e.g., medical checkup" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
                 <DialogFooter>
                     <DialogClose asChild><Button type="button" variant="secondary">Cancel</Button></DialogClose>
-                    <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Saving...' : submitText}</Button>
+                    <Button type="submit" disabled={isSubmitting || uploading}>{isSubmitting ? 'Saving...' : submitText}</Button>
                 </DialogFooter>
             </form>
         </Form>
@@ -108,7 +170,7 @@ export default function BlogManagementPage() {
             author: 'RoktoDao Team',
             excerpt: '',
             content: '',
-            image: 'https://placehold.co/600x400.png',
+            image: '',
             hint: 'blood donation',
         },
     });
@@ -141,7 +203,9 @@ export default function BlogManagementPage() {
             });
             toast({ title: 'Post Added', description: 'The new blog post has been added successfully.' });
             fetchPosts();
-            form.reset();
+            form.reset({
+                title: '', slug: '', author: 'RoktoDao Team', excerpt: '', content: '', image: '', hint: 'blood donation',
+            });
             setIsAddDialogOpen(false);
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Could not add the post.' });
@@ -198,7 +262,7 @@ export default function BlogManagementPage() {
                 </div>
                  <Dialog open={isAddDialogOpen} onOpenChange={(isOpen) => {
                     setIsAddDialogOpen(isOpen);
-                    if (!isOpen) form.reset();
+                     if (!isOpen) form.reset({ title: '', slug: '', author: 'RoktoDao Team', excerpt: '', content: '', image: '', hint: 'blood donation' });
                 }}>
                     <DialogTrigger asChild>
                         <Button><PlusCircle className="mr-2 h-4 w-4" /> Add Post</Button>

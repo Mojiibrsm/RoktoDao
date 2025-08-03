@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { db } from '@/lib/firebase';
-import type { BloodRequest, Donor } from '@/lib/types';
+import type { BloodRequest, Donor, BlogPost } from '@/lib/types';
 import { Droplet, MapPin, Calendar, Syringe, Search, Heart, Phone, LifeBuoy, HeartPulse, ShieldCheck, Stethoscope, LocateFixed, MessageCircle, Newspaper, Github, Linkedin, Twitter, Users, Globe, HandHeart, ListChecks, AlertTriangle, ArrowRight, Pin } from 'lucide-react';
 import {
   Accordion,
@@ -62,6 +62,7 @@ export default function Home() {
   const [stats, setStats] = useState<Stats>({ totalDonors: 0, totalRequests: 0, donationsFulfilled: 0 });
   const [director, setDirector] = useState<Member | null>(null);
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -72,6 +73,7 @@ export default function Home() {
         const donorsRef = collection(db, 'donors');
         const modsCollection = collection(db, 'moderators');
         const imagesRef = collection(db, 'gallery');
+        const blogsRef = collection(db, 'blogs');
 
         // Define all queries
         const reqQuery = query(requestsRef, where('status', '==', 'Approved'), orderBy('neededDate', 'asc'), limit(6));
@@ -79,6 +81,8 @@ export default function Home() {
         const otherDonorsQuery = query(donorsRef, where('isAvailable', '==', true), limit(12));
         const directorQuery = query(modsCollection, where('role', '==', 'প্রধান পরিচালক'), limit(1));
         const galleryQuery = query(imagesRef, where('status', '==', 'approved'), orderBy('createdAt', 'desc'), limit(8));
+        const blogQuery = query(blogsRef, orderBy('createdAt', 'desc'), limit(3));
+
 
         // Fetch all data in parallel for better performance
         const [
@@ -89,7 +93,8 @@ export default function Home() {
             requestCountSnap,
             fulfilledCountSnap,
             directorSnapshot,
-            gallerySnapshot
+            gallerySnapshot,
+            blogSnapshot,
         ] = await Promise.all([
             getDocs(reqQuery),
             getDocs(pinnedDonorsQuery),
@@ -99,6 +104,7 @@ export default function Home() {
             getCountFromServer(query(requestsRef, where("status", "==", "Fulfilled"))),
             getDocs(directorQuery),
             getDocs(galleryQuery),
+            getDocs(blogQuery),
         ]);
 
         // Process Urgent Requests
@@ -156,6 +162,18 @@ export default function Home() {
         // Process Gallery Images
         const fetchedGalleryImages = gallerySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GalleryImage));
         setGalleryImages(fetchedGalleryImages);
+
+         // Process Blog Posts
+        const fetchedBlogPosts = blogSnapshot.docs.map(doc => {
+            const data = doc.data();
+            return { 
+                id: doc.id, 
+                ...data,
+                date: data.date instanceof Timestamp ? data.date.toDate().toISOString() : data.date,
+                createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString()),
+            } as BlogPost;
+        });
+        setBlogPosts(fetchedBlogPosts);
         
       } catch (error) {
         console.error("Error fetching homepage data:", error);
@@ -441,77 +459,43 @@ export default function Home() {
             <p className="mt-2 text-lg text-muted-foreground">Stay informed with our latest articles</p>
           </div>
           <Separator className="my-8" />
-           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-              <Card className="flex flex-col overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
-                <Image
-                    src="https://placehold.co/600x400.png"
-                    alt="রক্তদানের যোগ্যতা"
-                    width={600}
-                    height={400}
-                    className="w-full h-48 object-cover"
-                    data-ai-hint="medical check"
-                  />
-                <CardHeader>
-                  <CardTitle>রক্তদানের যোগ্যতা</CardTitle>
-                </CardHeader>
-                <CardContent className="flex-grow">
-                  <p className="text-muted-foreground">রক্তদানের আগে আপনার কী কী যোগ্যতা থাকা প্রয়োজন সে সম্পর্কে বিস্তারিত জানুন।</p>
-                </CardContent>
-                <CardFooter>
-                  <Button asChild variant="link" className="pl-0">
-                    <Link href="/why-donate-blood">
-                      বিস্তারিত পড়ুন <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                  </Button>
-                </CardFooter>
-              </Card>
-              <Card className="flex flex-col overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
-                <Image
-                    src="https://placehold.co/600x400.png"
-                    alt="রক্তদানের উপকারিতা"
-                    width={600}
-                    height={400}
-                    className="w-full h-48 object-cover"
-                    data-ai-hint="health benefit"
-                  />
-                <CardHeader>
-                  <CardTitle>রক্তদানের উপকারিতা</CardTitle>
-                </CardHeader>
-                <CardContent className="flex-grow">
-                  <p className="text-muted-foreground">রক্তদান শুধু অন্যের জীবন বাঁচায় না, আপনার নিজের স্বাস্থ্যের জন্যও এটি অত্যন্ত উপকারী।</p>
-                </CardContent>
-                <CardFooter>
-                  <Button asChild variant="link" className="pl-0">
-                    <Link href="/why-donate-blood">
-                      বিস্তারিত পড়ুন <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                  </Button>
-                </CardFooter>
-              </Card>
-              <Link href="/team" className="flex flex-col overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-lg no-underline">
-               <Card className="flex flex-col flex-grow">
-                <Image
-                    src="https://placehold.co/600x400.png"
-                    alt="আমাদের টিম"
-                    width={600}
-                    height={400}
-                    className="w-full h-48 object-cover"
-                    data-ai-hint="team photo"
-                  />
-                <CardHeader>
-                  <CardTitle>আমাদের টিম</CardTitle>
-                </CardHeader>
-                <CardContent className="flex-grow">
-                  <p className="text-muted-foreground">আমাদের নিবেদিতপ্রাণ টিম সম্পর্কে জানুন যারা এই প্ল্যাটফর্মটি পরিচালনা করছেন।</p>
-                </CardContent>
-                <CardFooter>
-                  <p className="text-sm font-medium text-primary hover:underline flex items-center">
-                      বিস্তারিত পড়ুন <ArrowRight className="ml-2 h-4 w-4" />
-                  </p>
-                </CardFooter>
-              </Card>
-              </Link>
+           {loading ? (
+             <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+              {[...Array(3)].map((_, i) => (
+                  <Card key={i} className="animate-pulse p-6"><div className="h-64 w-full bg-muted rounded"></div></Card>
+              ))}
             </div>
+           ) : blogPosts.length > 0 ? (
+            <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+              {blogPosts.map((post) => (
+                <Link key={post.id} href={`/blog/${post.slug}`} className="flex flex-col no-underline group">
+                    <Card className="flex flex-col flex-grow overflow-hidden shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                    <Image
+                        src={post.image}
+                        alt={post.title}
+                        width={600}
+                        height={400}
+                        className="w-full h-48 object-cover"
+                        data-ai-hint={post.hint}
+                        />
+                    <CardHeader>
+                        <CardTitle>{post.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex-grow">
+                        <p className="text-muted-foreground line-clamp-3">{post.excerpt}</p>
+                    </CardContent>
+                    <CardFooter>
+                        <p className="text-sm font-medium text-primary group-hover:underline flex items-center">
+                        বিস্তারিত পড়ুন <ArrowRight className="ml-2 h-4 w-4" />
+                        </p>
+                    </CardFooter>
+                    </Card>
+                </Link>
+              ))}
+            </div>
+           ) : (
+            <p className="col-span-full text-center text-muted-foreground py-10">No blog posts found.</p>
+           )}
 
            <div className="mt-12 text-center">
             <Button asChild>
