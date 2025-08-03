@@ -3,121 +3,74 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
-    // Helper functions
-    function isSignedIn() {
-      return request.auth != null;
-    }
     
+    // Helper function to check if a user is an admin
+    function isAdmin() {
+      return get(/databases/$(database)/documents/donors/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    // Helper function to check if a user is the owner of a document
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
-    
-    function getDonorData(userId) {
-      return get(/databases/$(database)/documents/donors/$(userId)).data;
-    }
-    
-    function isAdmin(userId) {
-      return isSignedIn() && getDonorData(userId).isAdmin == true;
-    }
 
-    // Donors Collection
+    // Donors collection (also serves as users collection)
     match /donors/{userId} {
-      // Anyone can create their own donor profile during signup
-      allow create: if isSignedIn() && isOwner(userId);
-      
-      // Anyone can read a donor's public profile info
-      allow get: if true;
-      
-      // Logged-in users can see all donor profiles
-      allow list: if isSignedIn();
-
-      // Only the owner or an admin can update a donor's profile
-      allow update: if isSignedIn() && (isOwner(userId) || isAdmin(request.auth.uid));
-
-      // Only an admin can delete a donor profile
-      allow delete: if isAdmin(request.auth.uid);
+      allow read; // Anyone can read donor profiles for search functionality
+      allow create: if isOwner(userId); // Anyone can sign up and create their own profile
+      allow update: if isOwner(userId) || isAdmin(); // Users can update their own profile, admins can update any
+      allow delete: if isAdmin(); // Only admins can delete users
     }
 
-    // Requests Collection
+    // Blood Requests collection
     match /requests/{requestId} {
-      // Any signed-in user can create a blood request
-      allow create: if isSignedIn();
-
-      // Anyone can view blood requests
-      allow get, list: if true;
-
-      // Only the request creator or an admin can update/delete it
-      // Donors can update the 'responders' field
-      allow update: if isSignedIn() && 
-                       (isOwner(resource.data.uid) || isAdmin(request.auth.uid) || 
-                        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['responders'])));
-      
-      allow delete: if isSignedIn() && (isOwner(resource.data.uid) || isAdmin(request.auth.uid));
+      allow read; // Anyone can read blood requests
+      allow create: if request.auth != null; // Any authenticated user can create a request
+      allow update: if isAdmin() || (request.auth != null && request.resource.data.responders.hasAny([request.auth.uid])) || (get(/databases/$(database)/documents/requests/$(requestId)).data.uid == request.auth.uid); // Admins, responders, or the creator can update
+      allow delete: if isAdmin() || isOwner(resource.data.uid); // Admins or the creator can delete
     }
 
-    // Blogs Collection
-    match /blogs/{blogId} {
-      // Anyone can read blog posts
-      allow get, list: if true;
+    // Settings collection
+    match /settings/global {
+      allow read; // Anyone can read settings
+      allow write: if isAdmin(); // Only admins can change settings
+    }
 
-      // Only admins can create, update, or delete blog posts
-      allow create, update, delete: if isAdmin(request.auth.uid);
-    }
-    
-    // Moderators Collection
-    match /moderators/{modId} {
-      // Anyone can read moderator info (for the team page)
-      allow get, list: if true;
-
-      // Only admins can add, update, or remove moderators
-      allow create, update, delete: if isAdmin(request.auth.uid);
-    }
-    
-    // Gallery Collection
-    match /gallery/{imageId} {
-       // Anyone can view approved gallery images
-      allow get, list: if true;
-      
-      // Any signed-in user can create an image (upload), which will be pending
-      allow create: if isSignedIn();
-      
-      // Only admins can update (approve) or delete images
-      allow update, delete: if isAdmin(request.auth.uid);
-    }
-    
-    // Marquee Notices Collection
+    // Marquee Notices collection
     match /marquee-notices/{noticeId} {
-      // Anyone can read notices
-      allow get, list: if true;
-      
-      // Only admins can create, update, delete notices
-      allow create, update, delete: if isAdmin(request.auth.uid);
+      allow read; // Publicly readable
+      allow write: if isAdmin(); // Only admins can manage notices
     }
     
-    // Settings Collection
-    match /settings/{docId} {
-       // Anyone can read settings (for site name, etc.)
-       allow get: if true;
-       
-       // Only admins can update settings
-       allow create, update, delete: if isAdmin(request.auth.uid);
+    // Moderators collection
+    match /moderators/{modId} {
+      allow read; // Publicly readable
+      allow write: if isAdmin(); // Only admins can manage moderators
+    }
+
+    // Blog Posts collection
+    match /blogs/{blogId} {
+      allow read; // Publicly readable
+      allow write: if isAdmin(); // Only admins can manage blog posts
     }
     
-    // Feedback Collection
+    // Gallery Images collection
+    match /gallery/{imageId} {
+      allow read; // Publicly readable (we filter for 'approved' on the client)
+      allow create: if request.auth != null; // Any logged-in user can submit an image
+      allow update, delete: if isAdmin(); // Only admins can approve/delete images
+    }
+
+    // Feedback collection
     match /feedback/{feedbackId} {
-        // Only admins can see feedback
-       allow get, list, update, delete: if isAdmin(request.auth.uid);
-       
-       // Anyone can create (submit) feedback
-       allow create: if true;
+      allow create; // Anyone can submit feedback
+      allow read, update, delete: if isAdmin(); // Only admins can manage feedback
     }
-    
-    // SMS Logs Collection
+
+    // SMS Logs collection
     match /sms_logs/{logId} {
-      // No one can read SMS logs from the client-side for security.
-      // SMS logs are created via backend/server-side logic (Firebase Functions or API route).
-      allow read, write: if false; 
+      allow create; // The backend service can create logs
+      allow read, update, delete: if isAdmin(); // Only admins can manage logs
     }
   }
 }
