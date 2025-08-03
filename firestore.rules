@@ -10,54 +10,82 @@ service cloud.firestore {
              get(/databases/$(database)/documents/donors/$(request.auth.uid)).data.isAdmin == true;
     }
 
-    // Donors collection: Public can read, users can create/update their own profile, admins can do anything.
+    // Donors Collection
+    // - Users can create their own profile.
+    // - Users can read and update their own profile.
+    // - Admins can do anything.
+    // - Authenticated users can read public donor info.
     match /donors/{userId} {
-      allow read: if true;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.uid;
-      allow update: if (request.auth != null && request.auth.uid == userId) || isAdmin();
+      allow create: if request.auth.uid == userId;
+      allow read: if request.auth != null;
+      allow update: if request.auth.uid == userId || isAdmin();
       allow delete: if isAdmin();
     }
 
-    // Requests collection: Public can read, authenticated users can create, admins can update/delete.
+    // Blood Requests Collection
+    // - Any authenticated user can create a request.
+    // - Public can read requests.
+    // - Admins can update/delete requests.
     match /requests/{requestId} {
-      allow read: if true;
       allow create: if request.auth != null;
+      allow read: if true;
       allow update, delete: if isAdmin();
     }
-
-    // Blogs collection: Public can read, only admins can write.
+    
+    // Blogs Collection
+    // - Public can read.
+    // - Admins can write/delete.
     match /blogs/{blogId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write, delete: if isAdmin();
     }
 
-    // Gallery collection: Public can read approved images, authenticated users can submit pending images, admins can manage all.
+    // Gallery Collection
+    // - Authenticated users can create new 'pending' images.
+    // - Public can read 'approved' images.
+    // - Admins can update (approve) and delete.
     match /gallery/{imageId} {
-      allow read: if resource.data.status == 'approved' || isAdmin();
       allow create: if request.auth != null && request.resource.data.status == 'pending';
+      allow read: if resource.data.status == 'approved';
       allow update, delete: if isAdmin();
     }
-    
-    // Feedback collection: Only admins can read/write.
-    match /feedback/{feedbackId} {
-      allow read, write: if isAdmin();
-    }
 
-    // Marquee Notices: Public can read, admins can write.
+    // Marquee Notices Collection
+    // - Public can read.
+    // - Admins can write/delete.
     match /marquee-notices/{noticeId} {
         allow read: if true;
-        allow write: if isAdmin();
+        allow write, delete: if isAdmin();
     }
-    
-    // Moderators: Public can read, admins can write.
+
+    // Moderators Collection
+    // - Public can read.
+    // - Admins can write/delete.
     match /moderators/{modId} {
         allow read: if true;
-        allow write: if isAdmin();
+        allow write, delete: if isAdmin();
+    }
+
+    // Feedback Collection
+    // - Anyone can create feedback (via contact form).
+    // - Only admins can read/update/delete.
+    match /feedback/{feedbackId} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Settings Collection
+    // - Only admins can read/write.
+    match /settings/global {
+      allow read, write: if isAdmin();
     }
     
-    // Settings: Only admins can read/write.
-    match /settings/{settingId} {
-      allow read, write: if isAdmin();
+    // SMS Logs Collection
+    // - Only admins can read.
+    // - No one can write/delete directly (only via backend function).
+    match /sms_logs/{logId} {
+        allow read: if isAdmin();
+        allow write, delete: if false;
     }
   }
 }
