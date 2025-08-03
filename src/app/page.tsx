@@ -404,10 +404,12 @@ export default function Home() {
               </Button>
             </div>
             <div>
-              <img
-                src="/files/blood_donation_info.png"
+              <Image
+                src="https://ik.imagekit.io/uekohag7w/roktodao/gallery/blood_donation_info.png"
                 alt="Blood donation information infographic"
                 data-ai-hint="infographic blood donation"
+                width={600}
+                height={400}
                 className="rounded-lg object-cover w-full h-full shadow-xl"
               />
             </div>
@@ -468,7 +470,7 @@ export default function Home() {
            ) : blogPosts.length > 0 ? (
             <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
               {blogPosts.map((post) => (
-                <Link key={post.id} href={`/blog/${post.slug}`} className="flex flex-col no-underline group">
+                <a key={post.id} href={post.link} target="_blank" rel="noopener noreferrer" className="flex flex-col no-underline group">
                     <Card className="flex flex-col flex-grow overflow-hidden shadow-lg group-hover:shadow-xl transition-shadow duration-300">
                     <Image
                         src={post.image}
@@ -490,7 +492,7 @@ export default function Home() {
                         </p>
                     </CardFooter>
                     </Card>
-                </Link>
+                </a>
               ))}
             </div>
            ) : (

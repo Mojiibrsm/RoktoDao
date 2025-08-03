@@ -13,7 +13,7 @@ const ptSans = PT_Sans({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://roktodao.web.app'), // Replace with your actual domain
+  metadataBase: new URL('https://roktodao.bartanow.com'), // Updated domain
   title: {
     default: 'RoktoDao - রক্ত দিন, জীবন বাঁচান',
     template: '%s | RoktoDao',
@@ -26,11 +26,11 @@ export const metadata: Metadata = {
    openGraph: {
     title: 'RoktoDao - রক্ত দিন, জীবন বাঁচান',
     description: 'জরুরী মুহূর্তে রক্ত খুঁজে পেতে এবং রক্তদানের মাধ্যমে জীবন বাঁচাতে সাহায্য করার জন্য একটি অনলাইন প্ল্যাটফর্ম।',
-    url: 'https://roktodao.web.app',
+    url: 'https://roktodao.bartanow.com', // Updated domain
     siteName: 'RoktoDao',
     images: [
       {
-        url: 'https://ik.imagekit.io/uekohag7w/roktodao/gallery/About%20us%20page%20Roktodao', // Replace with a link to your OG image
+        url: 'https://ik.imagekit.io/uekohag7w/roktodao/gallery/About%20us%20page%20Roktodao',
         width: 1200,
         height: 630,
       },
@@ -53,7 +53,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'RoktoDao - রক্ত দিন, জীবন বাঁচান',
     description: 'জরুরী মুহূর্তে রক্ত খুঁজে পেতে এবং রক্তদানের মাধ্যমে জীবন বাঁচাতে সাহায্য করার জন্য একটি অনলাইন প্ল্যাটফর্ম।',
-    images: ['https://ik.imagekit.io/uekohag7w/roktodao/gallery/About%20us%20page%20Roktodao'], // Replace with your Twitter image
+    images: ['https://ik.imagekit.io/uekohag7w/roktodao/gallery/About%20us%20page%20Roktodao'],
   },
 };
 
