@@ -14,12 +14,9 @@ try {
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
       });
-      dbAdmin = admin.firestore();
-      adminAuth = admin.auth();
-    } else {
-      dbAdmin = admin.app().firestore();
-      adminAuth = admin.app().auth();
     }
+    dbAdmin = admin.firestore();
+    adminAuth = admin.auth();
   } else {
     console.warn('Firebase Admin SDK: FIREBASE_SERVICE_ACCOUNT environment variable is not set.');
   }
