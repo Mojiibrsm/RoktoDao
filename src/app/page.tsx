@@ -55,13 +55,14 @@ const faqs = [
 async function getHomepageData() {
     // This check is crucial to prevent crashes when the Admin SDK is not initialized.
     if (!dbAdmin) {
+      console.error("CRITICAL: Firebase Admin SDK not initialized. Homepage data will be empty. Please ensure the FIREBASE_SERVICE_ACCOUNT environment variable is correctly set in your deployment settings.");
       return { 
           urgentRequests: [], 
           donors: [], 
           stats: { totalDonors: 0, totalRequests: 0, donationsFulfilled: 0 }, 
           director: null, 
           galleryImages: [], 
-          error: "Server configuration error: Firebase Admin SDK not initialized. Please ensure the FIREBASE_SERVICE_ACCOUNT environment variable is correctly set in your deployment settings."
+          error: null // Suppress the error message from showing on the UI as requested.
       };
     }
 
