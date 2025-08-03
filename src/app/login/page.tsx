@@ -48,8 +48,8 @@ export default function LoginPage() {
     let emailToLogin = values.identifier;
 
     try {
-      // Check if the identifier is a phone number
-      if (/^\d{11,}$/.test(values.identifier)) {
+      // Check if the identifier is a phone number and not an email
+      if (/^\d{11,}$/.test(values.identifier) && !values.identifier.includes('@')) {
         const donorsRef = collection(db, 'donors');
         const q = query(donorsRef, where('phoneNumber', '==', values.identifier), limit(1));
         const querySnapshot = await getDocs(q);
@@ -58,10 +58,8 @@ export default function LoginPage() {
           throw new Error('User with this phone number not found.');
         }
         const userDoc = querySnapshot.docs[0].data();
-        if (!userDoc.email) {
-          throw new Error('No email associated with this phone number. Cannot log in.');
-        }
-        emailToLogin = userDoc.email;
+        // If the user registered with a phone number but no email, we use the dummy email.
+        emailToLogin = userDoc.email || `${values.identifier}@rokto.dao`;
       }
 
       await signInWithEmailAndPassword(auth, emailToLogin, values.password);
