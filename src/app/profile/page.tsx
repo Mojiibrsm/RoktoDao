@@ -147,8 +147,8 @@ function ProfilePageComponent() {
         
         // Fetch related requests and donations for the target user
         const [requestsSnap, donationsSnap] = await Promise.all([
-          getDocs(query(collection(db, 'requests'), where('uid', '==', targetUid), orderBy('createdAt', 'desc'))),
-          getDocs(query(collection(db, 'requests'), where('responders', 'array-contains', targetUid), orderBy('createdAt', 'desc')))
+          getDocs(query(collection(db, 'requests'), where('uid', '==', targetUid))),
+          getDocs(query(collection(db, 'requests'), where('responders', 'array-contains', targetUid)))
         ]);
         
         setMyRequests(requestsSnap.docs.map(d => ({id: d.id, ...d.data()}) as BloodRequest));
@@ -326,3 +326,5 @@ export default function ProfilePage() {
         </Suspense>
     )
 }
+
+    
