@@ -79,3 +79,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: 'SMS API failed to send the message.' }, { status: 500 });
   }
 }
+
