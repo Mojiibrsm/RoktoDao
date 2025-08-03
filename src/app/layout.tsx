@@ -13,8 +13,48 @@ const ptSans = PT_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'RoktoDao',
-  description: 'রক্ত দিন, জীবন বাঁচান — এখন আরও সহজে!',
+  metadataBase: new URL('https://roktodao.web.app'), // Replace with your actual domain
+  title: {
+    default: 'RoktoDao - রক্ত দিন, জীবন বাঁচান',
+    template: '%s | RoktoDao',
+  },
+  description: 'জরুরী মুহূর্তে রক্ত খুঁজে পেতে এবং রক্তদানের মাধ্যমে জীবন বাঁচাতে সাহায্য করার জন্য একটি অনলাইন প্ল্যাটফর্ম। RoktoDao is a platform to find blood in emergency and save lives through blood donation.',
+  keywords: ['blood donation', 'RoktoDao', 'emergency blood', 'find donor', 'রক্তদান', 'রক্ত দাও', 'জরুরী রক্ত'],
+  verification: {
+    google: 'yGV1imhGb0CJC_-2MdC_9fjNYb1E86Vaitrywhojj2o',
+  },
+   openGraph: {
+    title: 'RoktoDao - রক্ত দিন, জীবন বাঁচান',
+    description: 'জরুরী মুহূর্তে রক্ত খুঁজে পেতে এবং রক্তদানের মাধ্যমে জীবন বাঁচাতে সাহায্য করার জন্য একটি অনলাইন প্ল্যাটফর্ম।',
+    url: 'https://roktodao.web.app',
+    siteName: 'RoktoDao',
+    images: [
+      {
+        url: 'https://ik.imagekit.io/uekohag7w/roktodao/gallery/About%20us%20page%20Roktodao', // Replace with a link to your OG image
+        width: 1200,
+        height: 630,
+      },
+    ],
+    locale: 'bn_BD',
+    type: 'website',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+   twitter: {
+    card: 'summary_large_image',
+    title: 'RoktoDao - রক্ত দিন, জীবন বাঁচান',
+    description: 'জরুরী মুহূর্তে রক্ত খুঁজে পেতে এবং রক্তদানের মাধ্যমে জীবন বাঁচাতে সাহায্য করার জন্য একটি অনলাইন প্ল্যাটফর্ম।',
+    images: ['https://ik.imagekit.io/uekohag7w/roktodao/gallery/About%20us%20page%20Roktodao'], // Replace with your Twitter image
+  },
 };
 
 export default function RootLayout({

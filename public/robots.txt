@@ -1,0 +1,10 @@
+# Allow all user agents to crawl the site
+User-agent: *
+Allow: /
+
+# Disallow crawling of specific directories
+Disallow: /admin/
+Disallow: /api/
+
+# Specify the location of the sitemap
+Sitemap: https://roktodao.web.app/sitemap.xml
