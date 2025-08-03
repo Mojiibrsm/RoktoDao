@@ -14,7 +14,7 @@ const ptSans = PT_Sans({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://roktodao.com'),
+  metadataBase: new URL('https://roktodao.bartanow.com'),
   title: {
     default: 'RoktoDao - রক্ত দিন, জীবন বাঁচান',
     template: '%s | RoktoDao',
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
    openGraph: {
     title: 'RoktoDao - রক্ত দিন, জীবন বাঁচান',
     description: 'জরুরী মুহূর্তে রক্ত খুঁজে পেতে এবং রক্তদানের মাধ্যমে জীবন বাঁচাতে সাহায্য করার জন্য একটি অনলাইন প্ল্যাটফর্ম।',
-    url: 'https://roktodao.com',
+    url: 'https://roktodao.bartanow.com',
     siteName: 'RoktoDao',
     images: [
       {

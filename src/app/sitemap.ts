@@ -1,6 +1,6 @@
 import { MetadataRoute } from 'next';
 
-const URL = 'https://roktodao.bartanow.com'; // Updated domain
+const URL = 'https://roktodao.bartanow.com';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const staticRoutes = [
