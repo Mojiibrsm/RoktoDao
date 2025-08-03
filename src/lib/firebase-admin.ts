@@ -10,13 +10,20 @@ try {
   
   if (serviceAccountString) {
     if (admin.apps.length === 0) {
-      const serviceAccount = JSON.parse(serviceAccountString) as ServiceAccount;
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-      });
+      try {
+        const serviceAccount = JSON.parse(serviceAccountString) as ServiceAccount;
+        admin.initializeApp({
+          credential: admin.credential.cert(serviceAccount),
+        });
+        dbAdmin = admin.firestore();
+        adminAuth = admin.auth();
+      } catch (parseError) {
+         console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT. Make sure it is a valid JSON string.', parseError);
+      }
+    } else {
+        dbAdmin = admin.firestore();
+        adminAuth = admin.auth();
     }
-    dbAdmin = admin.firestore();
-    adminAuth = admin.auth();
   } else {
     console.warn('Firebase Admin SDK: FIREBASE_SERVICE_ACCOUNT environment variable is not set.');
   }
