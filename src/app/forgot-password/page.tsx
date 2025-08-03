@@ -75,9 +75,9 @@ export default function ForgotPasswordPage() {
             message: `Your RoktoDao OTP is: ${otp}`,
             }),
         });
-
-        if (!response.ok) {
-            throw new Error('Failed to send OTP.');
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || 'Failed to send OTP.');
         }
 
         setStep('otp');
@@ -87,7 +87,7 @@ export default function ForgotPasswordPage() {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Could not send OTP. Please check the phone number and try again.',
+        description: error.message || 'Could not send OTP. Please check the phone number and try again.',
       });
     } finally {
       setIsLoading(false);
