@@ -16,13 +16,14 @@ async function logSms(logData: Omit<SmsLog, 'id' | 'createdAt'>) {
 }
 
 async function sendSmsWithBulkSmsBd(number: string, message: string): Promise<boolean> {
-  const apiKey = process.env.BULKSMSBD_API_KEY;
-  const senderId = process.env.BULKSMSBD_SENDER_ID;
+  const apiKey = process.env.BULKSMSBD_API_KEY || "LkcuBmpXSgO77LgytC9w";
+  const senderId = process.env.BULKSMSBD_SENDER_ID || "8809617614208";
 
   if (!apiKey || !senderId) {
     console.error('BulkSMSBD API Key or Sender ID is not configured.');
     return false;
   }
+  // Use HTTPS to avoid mixed content issues on deployed environments
   const url = `https://bulksmsbd.net/api/smsapi?api_key=${apiKey}&type=text&number=${number}&senderid=${senderId}&message=${encodeURIComponent(message)}`;
   
   try {
