@@ -9,7 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, query, where, getDocs, or } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -64,7 +64,7 @@ export default function SignupPage() {
 
   useEffect(() => {
     if (!loading && user) {
-      router.replace('/profile');
+      router.push('/profile');
     }
   }, [user, loading, router]);
 
@@ -130,122 +130,143 @@ export default function SignupPage() {
 
   const onSubmit = async (values: z.infer<typeof signupSchema>) => {
     setIsLoading(true);
-    let finalProfilePictureUrl = '';
-
-    const generatedPassword = Math.random().toString(36).slice(-8);
-    const emailForAuth = values.email || `${values.phoneNumber}@rokto.dao`;
 
     try {
-      if (profileImageFile) {
-        const authResponse = await fetch('/api/imagekit-auth');
-        if (!authResponse.ok) {
-          throw new Error('Authentication failed for image upload.');
-        }
-        const authParams = await authResponse.json();
-        const response = await imagekit.upload({
-          ...authParams,
-          file: profileImageFile,
-          fileName: profileImageFile.name,
-          useUniqueFileName: true,
-          folder: '/roktodao/avatars/',
-        });
-        finalProfilePictureUrl = response.url;
-      }
-
-      const userCredential = await createUserWithEmailAndPassword(auth, emailForAuth, generatedPassword);
-      const user = userCredential.user;
-
-      const donorData: Omit<Donor, 'id'> = {
-        uid: user.uid,
-        fullName: values.fullName,
-        email: values.email || null,
-        bloodGroup: values.bloodGroup,
-        phoneNumber: values.phoneNumber,
-        address: {
-          division: values.division,
-          district: values.district,
-          upazila: values.upazila,
-        },
-        lastDonationDate: values.lastDonationDate ? values.lastDonationDate.toISOString() : null,
-        isAvailable: values.isAvailable,
-        dateOfBirth: values.dateOfBirth?.toISOString(),
-        gender: values.gender,
-        donationCount: values.donationCount,
-        profilePictureUrl: finalProfilePictureUrl,
-        isVerified: false,
-        isAdmin: false,
-        createdAt: serverTimestamp(),
-      };
-
-      await setDoc(doc(db, 'donors', user.uid), donorData);
-
-      // --- Send Notifications ---
-      try {
-        const smsMessage = `Welcome to RoktoDao! Your password is: ${generatedPassword}`;
-        fetch('/api/send-sms', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ number: values.phoneNumber, message: smsMessage }),
-        });
-
+        // Step 1: Check if phone number or email already exists in Firestore
+        const donorsRef = collection(db, 'donors');
+        const queryConstraints = [];
         if (values.email) {
-          fetch('/api/send-email', {
+            queryConstraints.push(where('email', '==', values.email));
+        }
+        queryConstraints.push(where('phoneNumber', '==', values.phoneNumber));
+
+        const q = query(donorsRef, or(...queryConstraints));
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+            toast({
+                variant: 'destructive',
+                title: 'Signup Failed',
+                description: 'This phone number or email is already registered. Please try logging in.',
+            });
+            setIsLoading(false);
+            return;
+        }
+
+        // --- If not exists, proceed with signup ---
+        let finalProfilePictureUrl = '';
+        const generatedPassword = Math.random().toString(36).slice(-8);
+        const emailForAuth = values.email || `${values.phoneNumber}@rokto.dao`;
+
+
+        if (profileImageFile) {
+            const authResponse = await fetch('/api/imagekit-auth');
+            if (!authResponse.ok) {
+                throw new Error('Authentication failed for image upload.');
+            }
+            const authParams = await authResponse.json();
+            const response = await imagekit.upload({
+            ...authParams,
+            file: profileImageFile,
+            fileName: profileImageFile.name,
+            useUniqueFileName: true,
+            folder: '/roktodao/avatars/',
+            });
+            finalProfilePictureUrl = response.url;
+        }
+
+        const userCredential = await createUserWithEmailAndPassword(auth, emailForAuth, generatedPassword);
+        const user = userCredential.user;
+
+        const donorData: Omit<Donor, 'id'> = {
+            uid: user.uid,
+            fullName: values.fullName,
+            email: values.email || null,
+            bloodGroup: values.bloodGroup,
+            phoneNumber: values.phoneNumber,
+            address: {
+            division: values.division,
+            district: values.district,
+            upazila: values.upazila,
+            },
+            lastDonationDate: values.lastDonationDate ? values.lastDonationDate.toISOString() : null,
+            isAvailable: values.isAvailable,
+            dateOfBirth: values.dateOfBirth?.toISOString(),
+            gender: values.gender,
+            donationCount: values.donationCount,
+            profilePictureUrl: finalProfilePictureUrl,
+            isVerified: false,
+            isAdmin: false,
+            createdAt: serverTimestamp(),
+        };
+
+        await setDoc(doc(db, 'donors', user.uid), donorData);
+
+        // --- Send Notifications ---
+        try {
+            const smsMessage = `Welcome to RoktoDao! Your password is: ${generatedPassword}`;
+            fetch('/api/send-sms', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ number: values.phoneNumber, message: smsMessage }),
+            });
+
+            if (values.email) {
+            fetch('/api/send-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                type: 'send_credentials',
+                data: {
+                    fullName: values.fullName,
+                    email: values.email,
+                    password: generatedPassword,
+                },
+                }),
+            });
+            }
+
+            fetch('/api/send-email', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              type: 'send_credentials',
-              data: {
+                type: 'new_donor',
+                data: {
                 fullName: values.fullName,
-                email: values.email,
-                password: generatedPassword,
-              },
+                bloodGroup: values.bloodGroup,
+                phoneNumber: values.phoneNumber,
+                division: values.division,
+                district: values.district,
+                upazila: values.upazila,
+                },
             }),
-          });
+            });
+        } catch (notificationError) {
+            console.error("Failed to send notifications:", notificationError);
+            // Don't block user creation for notification failure
         }
 
-        fetch('/api/send-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'new_donor',
-            data: {
-              fullName: values.fullName,
-              bloodGroup: values.bloodGroup,
-              phoneNumber: values.phoneNumber,
-              division: values.division,
-              district: values.district,
-              upazila: values.upazila,
-            },
-          }),
+
+        toast({
+            title: 'Account Created Successfully!',
+            description: "Welcome to RoktoDao. Please check your SMS for your password.",
         });
-      } catch (notificationError) {
-          console.error("Failed to send notifications:", notificationError);
-          // Don't block user creation for notification failure
-      }
-
-
-      toast({
-        title: 'Account Created Successfully!',
-        description: "Welcome to RoktoDao. Please check your SMS for your password.",
-      });
-      // Don't redirect here. Let the AuthProvider handle the redirect
-      // to ensure profile data is loaded before the profile page renders.
-
+        // Let AuthProvider handle redirect
     } catch (error: any) {
-      const errorCode = error.code;
-      let errorMessage = 'An unknown error occurred. Please try again.';
-      if (errorCode === 'auth/email-already-in-use') {
-        errorMessage = 'This phone number or email is already registered. Please try logging in.';
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      toast({
-        variant: 'destructive',
-        title: 'Signup Failed',
-        description: errorMessage,
-      });
+        const errorCode = error.code;
+        let errorMessage = 'An unknown error occurred. Please try again.';
+        if (errorCode === 'auth/email-already-in-use') {
+            errorMessage = 'This phone number or email is already registered. Please try logging in.';
+        } else if (error.message) {
+            errorMessage = error.message;
+        }
+        toast({
+            variant: 'destructive',
+            title: 'Signup Failed',
+            description: errorMessage,
+        });
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
   };
   
