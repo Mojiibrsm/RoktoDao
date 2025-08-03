@@ -1,10 +1,11 @@
 
-import 'server-only';
+"use client";
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { dbAdmin } from '@/lib/firebase-admin';
+import { db } from '@/lib/firebase';
 import type { BloodRequest, Donor } from '@/lib/types';
 import { Droplet, MapPin, Calendar, Syringe, Search, Heart, Phone, LifeBuoy, HeartPulse, ShieldCheck, Stethoscope, LocateFixed, MessageCircle, Newspaper, Github, Linkedin, Twitter, Users, Globe, HandHeart, ListChecks, AlertTriangle, ArrowRight, Pin } from 'lucide-react';
 import {
@@ -16,7 +17,9 @@ import {
 import Image from 'next/image';
 import DonorCard from '@/components/donor-card';
 import RequestCard from '@/components/request-card';
-import { Timestamp } from 'firebase-admin/firestore';
+import { collection, getDocs, query, where, orderBy, limit, Timestamp, getCountFromServer } from 'firebase/firestore';
+import { useState, useEffect } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 interface GalleryImage {
@@ -52,31 +55,30 @@ const faqs = [
   },
 ];
 
-async function getHomepageData() {
-    // This check is crucial to prevent crashes when the Admin SDK is not initialized.
-    if (!dbAdmin) {
-      return { 
-          urgentRequests: [], 
-          donors: [], 
-          stats: { totalDonors: 0, totalRequests: 0, donationsFulfilled: 0 }, 
-          director: null, 
-          galleryImages: [], 
-          error: null // Suppress the error message from showing on the UI as requested.
-      };
-    }
 
-    try {
-        const requestsRef = dbAdmin.collection('requests');
-        const donorsRef = dbAdmin.collection('donors');
-        const modsCollection = dbAdmin.collection('moderators');
-        const imagesRef = dbAdmin.collection('gallery');
+export default function Home() {
+  const [urgentRequests, setUrgentRequests] = useState<BloodRequest[]>([]);
+  const [donors, setDonors] = useState<Donor[]>([]);
+  const [stats, setStats] = useState<Stats>({ totalDonors: 0, totalRequests: 0, donationsFulfilled: 0 });
+  const [director, setDirector] = useState<Member | null>(null);
+  const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const getHomepageData = async () => {
+      setLoading(true);
+      try {
+        const requestsRef = collection(db, 'requests');
+        const donorsRef = collection(db, 'donors');
+        const modsCollection = collection(db, 'moderators');
+        const imagesRef = collection(db, 'gallery');
 
         // Define all queries
-        const reqQuery = requestsRef.where('status', '==', 'Approved').orderBy('neededDate', 'asc').limit(6);
-        const pinnedDonorsQuery = donorsRef.where('isPinned', '==', true).where('isAvailable', '==', true).limit(6);
-        const otherDonorsQuery = donorsRef.where('isAvailable', '==', true).limit(12);
-        const directorQuery = modsCollection.where('role', '==', 'প্রধান পরিচালক').limit(1);
-        const galleryQuery = imagesRef.where('status', '==', 'approved').orderBy('createdAt', 'desc').limit(8);
+        const reqQuery = query(requestsRef, where('status', '==', 'Approved'), orderBy('neededDate', 'asc'), limit(6));
+        const pinnedDonorsQuery = query(donorsRef, where('isPinned', '==', true), where('isAvailable', '==', true), limit(6));
+        const otherDonorsQuery = query(donorsRef, where('isAvailable', '==', true), limit(12));
+        const directorQuery = query(modsCollection, where('role', '==', 'প্রধান পরিচালক'), limit(1));
+        const galleryQuery = query(imagesRef, where('status', '==', 'approved'), orderBy('createdAt', 'desc'), limit(8));
 
         // Fetch all data in parallel for better performance
         const [
@@ -89,18 +91,18 @@ async function getHomepageData() {
             directorSnapshot,
             gallerySnapshot
         ] = await Promise.all([
-            reqQuery.get(),
-            pinnedDonorsQuery.get(),
-            otherDonorsQuery.get(),
-            donorsRef.count().get(),
-            requestsRef.count().get(),
-            requestsRef.where("status", "==", "Fulfilled").count().get(),
-            directorQuery.get(),
-            galleryQuery.get(),
+            getDocs(reqQuery),
+            getDocs(pinnedDonorsQuery),
+            getDocs(otherDonorsQuery),
+            getCountFromServer(donorsRef),
+            getCountFromServer(requestsRef),
+            getCountFromServer(query(requestsRef, where("status", "==", "Fulfilled"))),
+            getDocs(directorQuery),
+            getDocs(galleryQuery),
         ]);
 
         // Process Urgent Requests
-        const urgentRequests = reqSnapshot.docs.map(doc => {
+        const fetchedUrgentRequests = reqSnapshot.docs.map(doc => {
             const data = doc.data();
             return {
                 id: doc.id,
@@ -109,6 +111,7 @@ async function getHomepageData() {
                 createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString()),
             } as BloodRequest;
         });
+        setUrgentRequests(fetchedUrgentRequests);
         
         // Process Donors (pinned first, then others)
         const pinnedDonors = pinnedSnapshot.docs.map(doc => {
@@ -121,8 +124,8 @@ async function getHomepageData() {
             } as Donor;
         });
 
-        let donors: Donor[] = [...pinnedDonors];
-        if (donors.length < 6) {
+        let allDonors: Donor[] = [...pinnedDonors];
+        if (allDonors.length < 6) {
           const otherDonors = otherSnapshot.docs.map(doc => {
               const data = doc.data();
               return { 
@@ -132,55 +135,36 @@ async function getHomepageData() {
                 createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString()),
               } as Donor
           });
-          // Add other donors only if they are not already pinned
-          const nonPinnedDonors = otherDonors.filter(d => !donors.some(pd => pd.uid === d.uid));
-          donors = [...donors, ...nonPinnedDonors].slice(0, 6);
+          const nonPinnedDonors = otherDonors.filter(d => !allDonors.some(pd => pd.uid === d.uid));
+          allDonors = [...allDonors, ...nonPinnedDonors].slice(0, 6);
         }
+        setDonors(allDonors);
 
         // Process Stats
-        const stats = {
+        setStats({
             totalDonors: donorCountSnap.data().count,
             totalRequests: requestCountSnap.data().count,
             donationsFulfilled: fulfilledCountSnap.data().count,
-        };
+        });
 
         // Process Director
-        let director: Member | null = null;
         if (!directorSnapshot.empty) {
             const directorDoc = directorSnapshot.docs[0];
-            director = { id: directorDoc.id, ...directorDoc.data() } as Member;
+            setDirector({ id: directorDoc.id, ...directorDoc.data() } as Member);
         }
 
         // Process Gallery Images
-        const galleryImages = gallerySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GalleryImage));
+        const fetchedGalleryImages = gallerySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GalleryImage));
+        setGalleryImages(fetchedGalleryImages);
         
-        return { urgentRequests, donors, stats, director, galleryImages, error: null };
-
       } catch (error) {
         console.error("Error fetching homepage data:", error);
-        return { 
-          urgentRequests: [], 
-          donors: [], 
-          stats: { totalDonors: 0, totalRequests: 0, donationsFulfilled: 0 }, 
-          director: null, 
-          galleryImages: [], 
-          error: "Failed to load page data. This might be due to a database connection or permission issue. Please try again later."
-        };
+      } finally {
+        setLoading(false);
       }
-}
-
-
-export default async function Home() {
-  const { urgentRequests, donors, stats, director, galleryImages, error } = await getHomepageData();
-
-  if(error) {
-    return (
-        <div className="container mx-auto py-20 text-center">
-            <h2 className="text-2xl font-bold text-destructive">একটি সমস্যা হয়েছে</h2>
-            <p className="text-muted-foreground mt-2">{error}</p>
-        </div>
-    );
-  }
+    };
+    getHomepageData();
+  }, []);
 
   return (
     <div className="flex flex-col items-center">
@@ -204,11 +188,11 @@ export default async function Home() {
             </div>
             <div className="flex items-center gap-8 pt-12">
               <div className="text-center">
-                <p className="text-3xl font-bold">{stats.totalDonors.toLocaleString()}+</p>
+                 {loading ? <Skeleton className="h-8 w-20 mb-1" /> : <p className="text-3xl font-bold">{stats.totalDonors.toLocaleString()}+</p>}
                 <p className="text-sm text-muted-foreground">নিবন্ধিত ডোনার</p>
               </div>
                 <div className="text-center">
-                <p className="text-3xl font-bold">{stats.donationsFulfilled.toLocaleString()}+</p>
+                 {loading ? <Skeleton className="h-8 w-20 mb-1" /> : <p className="text-3xl font-bold">{stats.donationsFulfilled.toLocaleString()}+</p>}
                 <p className="text-sm text-muted-foreground">সফল ডোনেশন</p>
               </div>
             </div>
@@ -258,7 +242,13 @@ export default async function Home() {
             <p className="mt-2 text-lg text-muted-foreground">Our active and available donors</p>
           </div>
           <Separator className="my-8" />
-          {donors.length > 0 ? (
+          {loading ? (
+             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {[...Array(3)].map((_, i) => (
+                  <Card key={i} className="animate-pulse p-6"><div className="h-24 w-full bg-muted rounded"></div></Card>
+              ))}
+            </div>
+          ) : donors.length > 0 ? (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {donors.map((donor) => (
                 <DonorCard key={donor.uid} donor={donor} />
@@ -284,7 +274,13 @@ export default async function Home() {
             <p className="mt-2 text-lg text-muted-foreground">Live urgent blood requests</p>
           </div>
           <Separator className="my-8" />
-          {urgentRequests.length > 0 ? (
+          {loading ? (
+             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {[...Array(3)].map((_, i) => (
+                  <Card key={i} className="animate-pulse p-6"><div className="h-24 w-full bg-muted rounded"></div></Card>
+              ))}
+            </div>
+          ) : urgentRequests.length > 0 ? (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {urgentRequests.map((req) => (
                 <RequestCard key={req.id} req={req} />
@@ -313,17 +309,17 @@ export default async function Home() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="flex flex-col items-center gap-2">
                     <Users className="h-12 w-12 text-primary" />
-                    <p className="text-4xl font-bold">{stats.totalDonors.toLocaleString()}+</p>
+                     {loading ? <Skeleton className="h-8 w-20 mt-1" /> : <p className="text-4xl font-bold">{stats.totalDonors.toLocaleString()}+</p>}
                     <p className="text-muted-foreground">মোট ডোনার</p>
                 </div>
                 <div className="flex flex-col items-center gap-2">
                     <ListChecks className="h-12 w-12 text-primary" />
-                    <p className="text-4xl font-bold">{stats.totalRequests.toLocaleString()}+</p>
+                    {loading ? <Skeleton className="h-8 w-20 mt-1" /> : <p className="text-4xl font-bold">{stats.totalRequests.toLocaleString()}+</p>}
                     <p className="text-muted-foreground">মোট রিকোয়েস্ট</p>
                 </div>
                 <div className="flex flex-col items-center gap-2">
                     <HandHeart className="h-12 w-12 text-primary" />
-                    <p className="text-4xl font-bold">{stats.donationsFulfilled.toLocaleString()}+</p>
+                    {loading ? <Skeleton className="h-8 w-20 mt-1" /> : <p className="text-4xl font-bold">{stats.donationsFulfilled.toLocaleString()}+</p>}
                     <p className="text-muted-foreground">সফল ডোনেশন</p>
                 </div>
             </div>
@@ -558,7 +554,13 @@ export default async function Home() {
             আমাদের রক্তযোদ্ধাদের কিছু অনুপ্রেরণামূলক মুহূর্ত।
           </p>
           <Separator className="my-8" />
-          {galleryImages.length > 0 ? (
+          {loading ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {[...Array(8)].map((_, i) => (
+                  <Card key={i} className="animate-pulse aspect-square"><div className="h-full w-full bg-muted rounded-lg"></div></Card>
+              ))}
+            </div>
+          ) : galleryImages.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {galleryImages.map(image => (
                   <div key={image.id} className="overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
