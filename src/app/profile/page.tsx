@@ -187,11 +187,20 @@ function ProfilePageComponent() {
       }
       const donorRef = doc(db, 'donors', targetUid);
       const donorData: Partial<Donor> = {
-        fullName: values.fullName, bloodGroup: values.bloodGroup, phoneNumber: values.phoneNumber,
-        address: { division: values.division, district: values.district, upazila: values.upazila },
-        isAvailable: values.isAvailable, lastDonationDate: values.lastDonationDate?.toISOString(),
-        dateOfBirth: values.dateOfBirth?.toISOString(), gender: values.gender,
-        donationCount: values.donationCount, profilePictureUrl: finalProfilePictureUrl,
+        fullName: values.fullName,
+        bloodGroup: values.bloodGroup,
+        phoneNumber: values.phoneNumber,
+        address: {
+          division: values.division,
+          district: values.district,
+          upazila: values.upazila,
+        },
+        isAvailable: values.isAvailable,
+        lastDonationDate: values.lastDonationDate ? values.lastDonationDate.toISOString() : null,
+        dateOfBirth: values.dateOfBirth ? values.dateOfBirth.toISOString() : null,
+        gender: values.gender,
+        donationCount: values.donationCount,
+        profilePictureUrl: finalProfilePictureUrl,
       };
       await setDoc(donorRef, donorData, { merge: true });
       toast({ title: 'Profile Updated', description: 'Your information saved successfully.' });
