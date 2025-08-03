@@ -6,17 +6,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { bloodGroups, locations, upazilas } from '@/lib/location-data';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Donor } from '@/lib/types';
 import DonorCard from '@/components/donor-card';
+import { Search } from 'lucide-react';
 
 export default function SearchDonorsPage() {
   const [bloodGroup, setBloodGroup] = useState('any');
   const [division, setDivision] = useState('any');
   const [district, setDistrict] = useState('any');
   const [upazila, setUpazila] = useState('any');
+  const [name, setName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  
   const [donors, setDonors] = useState<Donor[]>([]);
   const [isPending, startTransition] = useTransition();
   const [isClient, setIsClient] = useState(false);
@@ -42,12 +47,18 @@ export default function SearchDonorsPage() {
       if (upazila && upazila !== 'any') {
         q = query(q, where('address.upazila', '==', upazila));
       }
+      if (name) {
+        q = query(q, where('fullName', '==', name));
+      }
+      if (phoneNumber) {
+        q = query(q, where('phoneNumber', '==', phoneNumber));
+      }
 
       const querySnapshot = await getDocs(q);
       const fetchedDonors = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Donor[];
       setDonors(fetchedDonors);
     });
-  }, [bloodGroup, division, district, upazila]);
+  }, [bloodGroup, division, district, upazila, name, phoneNumber]);
 
   useEffect(() => {
     if (isClient) {
@@ -82,7 +93,15 @@ export default function SearchDonorsPage() {
           <CardDescription>Find available blood donors in your area.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input id="name" placeholder="Donor's name" value={name} onChange={e => setName(e.target.value)} />
+            </div>
+             <div className="space-y-2">
+              <Label htmlFor="phone-number">Phone Number</Label>
+              <Input id="phone-number" placeholder="01XXXXXXXXX" value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="blood-group">Blood Group</Label>
               <Select value={bloodGroup} onValueChange={setBloodGroup}>
@@ -123,15 +142,18 @@ export default function SearchDonorsPage() {
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={handleSearch} disabled={isPending} className="w-full">
-              {isPending ? 'Searching...' : 'Search'}
-            </Button>
+             <div className="lg:col-span-2 flex justify-end">
+                <Button onClick={handleSearch} disabled={isPending} className="w-full lg:w-auto">
+                    <Search className="mr-2 h-4 w-4" />
+                    {isPending ? 'Searching...' : 'Search'}
+                </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
       
       <div>
-        <h3 className="text-2xl font-bold mb-6">Search Results</h3>
+        <h3 className="text-2xl font-bold mb-6">Search Results ({donors.length})</h3>
         {isPending ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[...Array(3)].map((_, i) => (
