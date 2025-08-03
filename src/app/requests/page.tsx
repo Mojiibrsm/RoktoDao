@@ -1,16 +1,18 @@
 
 "use client";
 
-import { collection, getDocs, orderBy, query, Timestamp } from 'firebase/firestore';
+import { collection, getDocs, orderBy, query, Timestamp, doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { BloodRequest } from '@/lib/types';
 import { useEffect, useState } from 'react';
 import RequestCard from '@/components/request-card';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
 
 async function getAllRequests(): Promise<BloodRequest[]> {
   try {
     const requestsRef = collection(db, 'requests');
-    const q = query(requestsRef, orderBy('neededDate', 'asc'));
+    const q = query(requestsRef, orderBy('createdAt', 'desc'));
     const querySnapshot = await getDocs(q);
     const requests = querySnapshot.docs.map(doc => {
       const data = doc.data();
@@ -31,16 +33,35 @@ async function getAllRequests(): Promise<BloodRequest[]> {
 export default function AllRequestsPage() {
   const [allRequests, setAllRequests] = useState<BloodRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+  const { user } = useAuth();
+
+  const fetchRequests = async () => {
+      setLoading(true);
+      const requests = await getAllRequests();
+      setAllRequests(requests);
+      setLoading(false);
+  }
 
   useEffect(() => {
-    const fetchRequests = async () => {
-        setLoading(true);
-        const requests = await getAllRequests();
-        setAllRequests(requests);
-        setLoading(false);
-    }
     fetchRequests();
   }, [])
+
+  const handleCanDonate = async (requestId: string) => {
+    if (!user) {
+      toast({ variant: 'destructive', title: 'Please log in to respond.' });
+      return;
+    }
+    try {
+      const requestRef = doc(db, 'requests', requestId);
+      await updateDoc(requestRef, {
+        responders: arrayUnion(user.uid)
+      });
+      toast({ title: 'Thank you!', description: 'Your response has been recorded. The patient may contact you.' });
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not record your response.' });
+    }
+  };
 
   return (
     <div className="bg-background">
@@ -64,7 +85,7 @@ export default function AllRequestsPage() {
         ) : allRequests.length > 0 ? (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {allRequests.map((req) => (
-              <RequestCard key={req.id} req={req} />
+              <RequestCard key={req.id} req={req} onRespond={handleCanDonate} showRespondButton={true} />
             ))}
           </div>
         ) : (

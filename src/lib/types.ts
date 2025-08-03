@@ -11,7 +11,9 @@ export type BloodRequest = {
   status: 'Pending' | 'Approved' | 'Fulfilled' | 'Rejected';
   isEmergency?: boolean;
   district: string;
-  createdAt?: string;
+  createdAt?: any;
+  responders?: string[]; // Array of UIDs of donors who responded
+  fulfilledBy?: string; // UID of the donor who fulfilled the request
 };
 
 export type Donor = {

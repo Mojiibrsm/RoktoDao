@@ -195,52 +195,44 @@ export default function SignupPage() {
 
       // 1. Send password via SMS
       const smsMessage = `Welcome to RoktoDao! Your password is: ${generatedPassword}`;
-      await fetch('/api/send-sms', {
+      fetch('/api/send-sms', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ number: values.phoneNumber, message: smsMessage }),
-      });
+      }).catch(e => console.error("SMS sending failed silently:", e));
 
       // 2. Send password via Email if provided
       if (values.email) {
-        try {
-          await fetch('/api/send-email', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              type: 'send_credentials',
-              data: {
-                fullName: values.fullName,
-                email: values.email,
-                password: generatedPassword,
-              },
-            }),
-          });
-        } catch (emailError) {
-          console.error("Could not send credentials email:", emailError);
-        }
-      }
-
-      // 3. Send new donor notification to admin
-      try {
-        await fetch('/api/send-email', {
+        fetch('/api/send-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            type: 'new_donor',
+            type: 'send_credentials',
             data: {
               fullName: values.fullName,
-              bloodGroup: values.bloodGroup,
-              phoneNumber: values.phoneNumber,
-              division: values.division,
-              district: values.district,
-              upazila: values.upazila,
+              email: values.email,
+              password: generatedPassword,
             },
           }),
-        });
-      } catch (emailError) {
-        console.error("Could not send notification email to admin:", emailError);
+        }).catch(e => console.error("Credentials email sending failed silently:", e));
       }
+
+      // 3. Send new donor notification to admin
+      fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'new_donor',
+          data: {
+            fullName: values.fullName,
+            bloodGroup: values.bloodGroup,
+            phoneNumber: values.phoneNumber,
+            division: values.division,
+            district: values.district,
+            upazila: values.upazila,
+          },
+        }),
+      }).catch(e => console.error("Admin notification email failed silently:", e));
 
 
       toast({

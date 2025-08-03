@@ -15,21 +15,7 @@ async function logSms(logData: Omit<SmsLog, 'id' | 'createdAt'>) {
     }
 }
 
-async function sendSmsApi1(number: string, message: string): Promise<boolean> {
-  const url = `http://209.145.55.60:8000/send?number=${number}&sms=${encodeURIComponent(message)}`;
-  try {
-    const response = await fetch(url, {
-        method: 'GET',
-        signal: AbortSignal.timeout(5000)
-    });
-    return response.ok;
-  } catch (error) {
-    console.error('SMS API 1 (Custom) failed:', error);
-    return false;
-  }
-}
-
-async function sendSmsApi2(number: string, message: string): Promise<boolean> {
+async function sendSmsWithBulkSmsBd(number: string, message: string): Promise<boolean> {
   const apiKey = process.env.BULKSMSBD_API_KEY;
   const senderId = process.env.BULKSMSBD_SENDER_ID;
 
@@ -38,14 +24,16 @@ async function sendSmsApi2(number: string, message: string): Promise<boolean> {
     return false;
   }
   const url = `https://bulksmsbd.net/api/smsapi?api_key=${apiKey}&type=text&number=${number}&senderid=${senderId}&message=${encodeURIComponent(message)}`;
+  
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, { signal: AbortSignal.timeout(10000) }); // 10s timeout
     const result = await response.json();
+    
     if (result.response_code === 202) {
       console.log('SMS sent successfully via BulkSMSBD.');
       return true;
     } else {
-      console.error('BulkSMSBD API Error:', result);
+      console.error('BulkSMSBD API Error:', result.response_msg, 'Code:', result.response_code);
       return false;
     }
   } catch (error) {
@@ -53,6 +41,7 @@ async function sendSmsApi2(number: string, message: string): Promise<boolean> {
     return false;
   }
 }
+
 
 async function sendFailureReport(number: string, message: string) {
     // This is an internal call, so we construct the full URL
@@ -78,24 +67,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: 'Missing number or message.' }, { status: 400 });
   }
 
-  // Try the first API
-  const successApi1 = await sendSmsApi1(number, message);
-  if (successApi1) {
-    await logSms({ number, message, status: 'success', apiUsed: 'API 1' });
-    return NextResponse.json({ success: true, message: 'SMS sent successfully via API 1.' });
+  const success = await sendSmsWithBulkSmsBd(number, message);
+  
+  if (success) {
+    await logSms({ number, message, status: 'success', apiUsed: 'API 2' }); // Log as API 2 for consistency
+    return NextResponse.json({ success: true, message: 'SMS sent successfully.' });
+  } else {
+    console.error(`SMS API failed for number: ${number}`);
+    await logSms({ number, message, status: 'failure', apiUsed: 'API 2' });
+    await sendFailureReport(number, message);
+    return NextResponse.json({ success: false, error: 'SMS API failed to send the message.' }, { status: 500 });
   }
-
-  // If the first API fails, fall back to the second one
-  console.warn('SMS API 1 failed, falling back to API 2 (BulkSMSBD).');
-  const successApi2 = await sendSmsApi2(number, message);
-  if (successApi2) {
-    await logSms({ number, message, status: 'success', apiUsed: 'API 2' });
-    return NextResponse.json({ success: true, message: 'SMS sent successfully via fallback API 2.' });
-  }
-
-  // If both APIs fail
-  console.error(`Both SMS APIs failed for number: ${number}`);
-  await logSms({ number, message, status: 'failure', apiUsed: 'Both Failed' });
-  await sendFailureReport(number, message);
-  return NextResponse.json({ success: false, error: 'Both SMS APIs failed to send the message.' }, { status: 500 });
 }

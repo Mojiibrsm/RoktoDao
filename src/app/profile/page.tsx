@@ -15,16 +15,19 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, User, Upload, Loader2 } from 'lucide-react';
+import { CalendarIcon, User, Upload, Loader2, KeyRound, Droplet, List, ShieldCheck } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { bloodGroups, locations, upazilas } from '@/lib/location-data';
-import { doc, setDoc, getDoc, updateDoc, serverTimestamp, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { doc, setDoc, getDoc, updateDoc, serverTimestamp, collection, query, where, getDocs, writeBatch, orderBy } from 'firebase/firestore';
+import { db, auth } from '@/lib/firebase';
 import type { Donor, BloodRequest } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import IK from 'imagekit-javascript';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import RequestCard from '@/components/request-card';
+import { updatePassword } from 'firebase/auth';
 
 const profileSchema = z.object({
   fullName: z.string().min(3, { message: 'Full name is required.' }),
@@ -40,6 +43,15 @@ const profileSchema = z.object({
   donationCount: z.coerce.number().optional(),
   profilePictureUrl: z.string().optional(),
 });
+
+const passwordSchema = z.object({
+    newPassword: z.string().min(6, { message: "Password must be at least 6 characters." }),
+    confirmPassword: z.string(),
+}).refine(data => data.newPassword === data.confirmPassword, {
+    message: "Passwords do not match.",
+    path: ["confirmPassword"],
+});
+
 
 const imagekit = new IK({
     publicKey: process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY || 'public_mZ0R0Fsxxuu72DflLr4kGejkwrE=',
@@ -61,429 +73,230 @@ function ProfilePageComponent() {
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
   const [profileImageUrl, setProfileImageUrl] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const [myRequests, setMyRequests] = useState<BloodRequest[]>([]);
+  const [myDonations, setMyDonations] = useState<BloodRequest[]>([]);
 
   const userIdToEdit = searchParams.get('userId');
 
-  const form = useForm<z.infer<typeof profileSchema>>({
+  const profileForm = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      fullName: '',
-      bloodGroup: '',
-      phoneNumber: '',
-      division: '',
-      district: '',
-      upazila: '',
-      isAvailable: true,
-      lastDonationDate: undefined,
-      dateOfBirth: undefined,
-      gender: undefined,
-      donationCount: 0,
-      profilePictureUrl: '',
+      fullName: '', bloodGroup: '', phoneNumber: '', division: '', district: '', upazila: '',
+      isAvailable: true, lastDonationDate: undefined, dateOfBirth: undefined, gender: undefined,
+      donationCount: 0, profilePictureUrl: '',
     },
   });
 
-  const selectedDivision = form.watch('division');
-  const selectedDistrict = form.watch('district');
+  const passwordForm = useForm<z.infer<typeof passwordSchema>>({
+      resolver: zodResolver(passwordSchema),
+      defaultValues: { newPassword: '', confirmPassword: '' },
+  });
+
+
+  const selectedDivision = profileForm.watch('division');
+  const selectedDistrict = profileForm.watch('district');
 
   const districtOptions = useMemo(() => {
-    if (!selectedDivision || !locations[selectedDivision as keyof typeof locations]) {
-      return [];
-    }
-    return locations[selectedDivision as keyof typeof locations].districts
-      .map(district => ({
-        value: district,
-        label: district,
-      }))
-      .sort((a, b) => a.label.localeCompare(b.label, 'bn'));
+    if (!selectedDivision || !locations[selectedDivision as keyof typeof locations]) return [];
+    return locations[selectedDivision as keyof typeof locations].districts.map(d => ({ value: d, label: d })).sort((a, b) => a.label.localeCompare(b.label, 'bn'));
   }, [selectedDivision]);
 
   const upazilaOptions = useMemo(() => {
-    if (!selectedDistrict || !upazilas[selectedDistrict as keyof typeof upazilas]) {
-      return [];
-    }
-    return upazilas[selectedDistrict as keyof typeof upazilas]
-      .map(upazila => ({
-        value: upazila,
-        label: upazila,
-      }))
-      .sort((a, b) => a.label.localeCompare(b.label, 'bn'));
+    if (!selectedDistrict || !upazilas[selectedDistrict as keyof typeof upazilas]) return [];
+    return upazilas[selectedDistrict as keyof typeof upazilas].map(u => ({ value: u, label: u })).sort((a, b) => a.label.localeCompare(b.label, 'bn'));
   }, [selectedDistrict]);
 
-  const targetUid = useMemo(() => {
-    return userIdToEdit && isAdmin ? userIdToEdit : user?.uid;
-  }, [userIdToEdit, isAdmin, user]);
+  const targetUid = useMemo(() => userIdToEdit && isAdmin ? userIdToEdit : user?.uid, [userIdToEdit, isAdmin, user]);
 
   useEffect(() => {
-    const loadProfile = async () => {
-      if (loading) return;
-      if (!user) {
-        router.push('/login');
-        return;
-      }
-
+    const loadProfileData = async () => {
+      if (!targetUid) return;
       setPageLoading(true);
-      
-      if(targetUid) {
-         try {
-          const donorRef = doc(db, 'donors', targetUid);
-          const docSnap = await getDoc(donorRef);
-          
-          if (docSnap.exists()) {
-            const targetProfile = { id: docSnap.id, ...docSnap.data() } as Donor;
-            setProfileToEdit(targetProfile);
-            setProfileImageUrl(targetProfile.profilePictureUrl || '');
-
-            form.reset({
-                fullName: targetProfile.fullName || '',
-                phoneNumber: targetProfile.phoneNumber || '',
-                bloodGroup: targetProfile.bloodGroup || '',
-                division: targetProfile.address?.division || '',
-                district: targetProfile.address?.district || '',
-                upazila: targetProfile.address?.upazila || '',
-                lastDonationDate: targetProfile.lastDonationDate ? new Date(targetProfile.lastDonationDate) : undefined,
-                isAvailable: targetProfile.isAvailable,
-                dateOfBirth: targetProfile.dateOfBirth ? new Date(targetProfile.dateOfBirth) : undefined,
-                gender: targetProfile.gender || undefined,
-                donationCount: targetProfile.donationCount || 0,
-                profilePictureUrl: targetProfile.profilePictureUrl || '',
-            });
-          } else if(userIdToEdit) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Donor profile not found.' });
-            router.push('/admin/donors');
-          }
-        } catch (e) {
-          toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch donor profile.' });
-          if(userIdToEdit) router.push('/admin/donors');
+      try {
+        const donorRef = doc(db, 'donors', targetUid);
+        const [docSnap, requestsSnap, donationsSnap] = await Promise.all([
+          getDoc(donorRef),
+          getDocs(query(collection(db, 'requests'), where('uid', '==', targetUid), orderBy('createdAt', 'desc'))),
+          getDocs(query(collection(db, 'requests'), where('responders', 'array-contains', targetUid), orderBy('createdAt', 'desc')))
+        ]);
+        
+        if (docSnap.exists()) {
+          const profile = { id: docSnap.id, ...docSnap.data() } as Donor;
+          setProfileToEdit(profile);
+          setProfileImageUrl(profile.profilePictureUrl || '');
+          profileForm.reset({
+            fullName: profile.fullName || '', phoneNumber: profile.phoneNumber || '', bloodGroup: profile.bloodGroup || '',
+            division: profile.address?.division || '', district: profile.address?.district || '', upazila: profile.address?.upazila || '',
+            lastDonationDate: profile.lastDonationDate ? new Date(profile.lastDonationDate) : undefined,
+            isAvailable: profile.isAvailable, dateOfBirth: profile.dateOfBirth ? new Date(profile.dateOfBirth) : undefined,
+            gender: profile.gender || undefined, donationCount: profile.donationCount || 0, profilePictureUrl: profile.profilePictureUrl || '',
+          });
         }
+        
+        setMyRequests(requestsSnap.docs.map(d => ({id: d.id, ...d.data()}) as BloodRequest));
+        setMyDonations(donationsSnap.docs.map(d => ({id: d.id, ...d.data()}) as BloodRequest));
+
+      } catch (e) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch profile data.' });
+      } finally {
+        setPageLoading(false);
       }
-
-      setPageLoading(false);
     };
-
-    loadProfile();
-  }, [user, loading, router, form, userIdToEdit, isAdmin, toast, targetUid]);
+    if (!loading && user) {
+        loadProfileData();
+    } else if (!loading && !user) {
+        router.push('/login');
+    }
+  }, [user, loading, router, targetUid, toast]);
   
   const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
+    if (e.target.files?.[0]) {
       const file = e.target.files[0];
       setProfileImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfileImageUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      setProfileImageUrl(URL.createObjectURL(file));
     }
   };
 
-  const sendAvailabilitySms = async (donor: Donor) => {
-    // Find active requests matching the donor's location and blood group
-    const requestsRef = collection(db, "requests");
-    const q = query(
-      requestsRef,
-      where("status", "in", ["Pending", "Approved"]),
-      where("bloodGroup", "==", donor.bloodGroup),
-      where("district", "==", donor.address.district)
-    );
-
-    const querySnapshot = await getDocs(q);
-    const requests = querySnapshot.docs.map(doc => doc.data() as BloodRequest);
-    
-    if (requests.length > 0) {
-        const message = `Good news! A donor (${donor.fullName}) with your required blood group (${donor.bloodGroup}) in your area (${donor.address.district}) is now available. Contact: ${donor.phoneNumber}`;
-        
-        // Use a Set to avoid sending duplicate SMS to the same number
-        const uniquePhoneNumbers = new Set(requests.map(req => req.contactPhone));
-
-        for (const number of uniquePhoneNumbers) {
-            await fetch('/api/send-sms', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ number, message }),
-            });
-        }
-    }
-  };
-
-
-  const onSubmit = async (values: z.infer<typeof profileSchema>) => {
-    if (!targetUid) {
-        toast({ variant: 'destructive', title: 'Authentication Error', description: 'Could not determine user to update.' });
-        return;
-    }
+  const onProfileSubmit = async (values: z.infer<typeof profileSchema>) => {
+    if (!targetUid) return;
     setIsSubmitting(true);
-
-    const previousAvailability = profileToEdit?.isAvailable;
-
     let finalProfilePictureUrl = values.profilePictureUrl || '';
-
     try {
-        if (profileImageFile) {
-            const authResponse = await fetch('/api/imagekit-auth');
-            if (!authResponse.ok) {
-                throw new Error('Failed to get authentication parameters');
-            }
-            const authParams = await authResponse.json();
-
-            const response = await imagekit.upload({
-                ...authParams,
-                file: profileImageFile,
-                fileName: profileImageFile.name,
-                useUniqueFileName: true,
-                folder: '/roktodao/avatars/',
-            });
-            finalProfilePictureUrl = response.url;
-        }
-
+      if (profileImageFile) {
+        const authParams = await (await fetch('/api/imagekit-auth')).json();
+        const response = await imagekit.upload({ ...authParams, file: profileImageFile, fileName: profileImageFile.name, useUniqueFileName: true, folder: '/roktodao/avatars/' });
+        finalProfilePictureUrl = response.url;
+      }
       const donorRef = doc(db, 'donors', targetUid);
-      const docSnap = await getDoc(donorRef);
-
-      const donorDataToSave: Partial<Donor> = {
-        fullName: values.fullName,
-        bloodGroup: values.bloodGroup,
-        phoneNumber: values.phoneNumber,
-        address: {
-          division: values.division,
-          district: values.district,
-          upazila: values.upazila,
-        },
-        isAvailable: values.isAvailable,
-        lastDonationDate: values.lastDonationDate ? values.lastDonationDate.toISOString() : null,
-        dateOfBirth: values.dateOfBirth ? values.dateOfBirth.toISOString() : null,
-        gender: values.gender,
-        donationCount: values.donationCount,
-        profilePictureUrl: finalProfilePictureUrl,
+      const donorData: Partial<Donor> = {
+        fullName: values.fullName, bloodGroup: values.bloodGroup, phoneNumber: values.phoneNumber,
+        address: { division: values.division, district: values.district, upazila: values.upazila },
+        isAvailable: values.isAvailable, lastDonationDate: values.lastDonationDate?.toISOString(),
+        dateOfBirth: values.dateOfBirth?.toISOString(), gender: values.gender,
+        donationCount: values.donationCount, profilePictureUrl: finalProfilePictureUrl,
       };
-
-      if (docSnap.exists()) {
-        await updateDoc(donorRef, {
-            ...donorDataToSave
-        });
-      } else {
-         const newDonorData: Omit<Donor, 'id'> = {
-            uid: targetUid,
-            ...donorDataToSave,
-            isVerified: false, 
-            isAdmin: false,
-            createdAt: serverTimestamp(),
-        } as Omit<Donor, 'id'>;
-        await setDoc(donorRef, newDonorData);
-      }
-
-      // Check if availability changed to true
-      if (values.isAvailable && !previousAvailability) {
-        await sendAvailabilitySms(donorDataToSave as Donor);
-      }
-
-
-      toast({
-        title: 'Profile Updated',
-        description: 'Your information has been saved successfully.',
-      });
-      if (isAdmin && userIdToEdit) {
-         router.push('/admin/donors');
-      }
-    } catch (error: any) {
-       console.error("Update failed:", error);
-       toast({
-        variant: 'destructive',
-        title: 'Update Failed',
-        description: 'Something went wrong. Please try again.',
-      });
+      await setDoc(donorRef, donorData, { merge: true });
+      toast({ title: 'Profile Updated', description: 'Your information saved successfully.' });
+      if (isAdmin && userIdToEdit) router.push('/admin/donors');
+    } catch (error) {
+       toast({ variant: 'destructive', title: 'Update Failed', description: 'Something went wrong.' });
     } finally {
         setIsSubmitting(false);
     }
   };
   
+  const onPasswordSubmit = async (values: z.infer<typeof passwordSchema>) => {
+      if (!user) {
+          toast({ variant: "destructive", title: "You must be logged in." });
+          return;
+      }
+      setIsSubmitting(true);
+      try {
+          await updatePassword(user, values.newPassword);
+          toast({ title: "Password Updated", description: "Your password has been changed successfully." });
+          passwordForm.reset();
+      } catch (error: any) {
+          toast({ variant: "destructive", title: "Update Failed", description: error.message });
+      } finally {
+          setIsSubmitting(false);
+      }
+  };
+  
   if (loading || pageLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      </div>
-    );
+    return <div className="flex h-screen items-center justify-center"><div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>;
   }
 
   return (
-    <div className="container mx-auto max-w-4xl py-12 px-4">
-      <Card className="shadow-lg">
-        <CardHeader>
-          <div className="flex flex-col md:flex-row items-center gap-6">
-             <div className="relative">
-                <Avatar className="h-32 w-32 border-4 border-muted">
-                    <AvatarImage src={profileImageUrl || undefined} alt={form.watch('fullName')} />
-                    <AvatarFallback>
-                        <User className="h-16 w-16 text-muted-foreground" />
-                    </AvatarFallback>
-                </Avatar>
-                <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="absolute inset-0 bg-black/50 flex items-center justify-center text-white rounded-full opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
-                    disabled={isSubmitting}
-                >
-                    <Upload className="h-8 w-8" />
-                </button>
-                <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" className="hidden" />
-            </div>
-            <div>
-              <CardTitle className="text-3xl font-headline text-primary">
-                {userIdToEdit && isAdmin ? `Editing ${profileToEdit?.fullName || 'Donor'}` : 'Update Profile'}
-              </CardTitle>
-              <CardDescription>
-                {userIdToEdit && isAdmin ? 'Update donor information below.' : 'Keep your information up to date.'}
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 <FormField control={form.control} name="fullName" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Full Name</FormLabel>
-                    <FormControl><Input placeholder="John Doe" {...field} value={field.value ?? ''} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="phoneNumber" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Phone Number</FormLabel>
-                    <FormControl><Input placeholder="01XXXXXXXXX" {...field} value={field.value ?? ''} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="bloodGroup" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Blood Group</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Select blood group" /></SelectTrigger></FormControl>
-                      <SelectContent>{bloodGroups.map(group => <SelectItem key={group} value={group}>{group}</SelectItem>)}</SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                  <FormField control={form.control} name="dateOfBirth" render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                      <FormLabel>Date of Birth</FormLabel>
-                      <Popover>
-                          <PopoverTrigger asChild>
-                          <FormControl>
-                              <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                              {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                          </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar mode="single" selected={field.value} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={1950} toYear={new Date().getFullYear()} disabled={(date) => date > new Date() || date.getFullYear() < 1920} initialFocus />
-                          </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                      </FormItem>
-                  )} />
+    <div className="container mx-auto max-w-5xl py-12 px-4">
+      <Tabs defaultValue="profile" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+            <TabsTrigger value="profile"><User className="mr-2 h-4 w-4" />Profile</TabsTrigger>
+            <TabsTrigger value="donations"><Droplet className="mr-2 h-4 w-4" />My Donations</TabsTrigger>
+            <TabsTrigger value="requests"><List className="mr-2 h-4 w-4" />My Requests</TabsTrigger>
+            <TabsTrigger value="security"><ShieldCheck className="mr-2 h-4 w-4" />Security</TabsTrigger>
+        </TabsList>
 
-                <FormField control={form.control} name="lastDonationDate" render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Last Donation Date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={1950} toYear={new Date().getFullYear()} disabled={(date) => date > new Date()} initialFocus />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-              
-              <FormField control={form.control} name="gender" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Gender</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger></FormControl>
-                      <SelectContent>{['Male', 'Female', 'Other'].map(gender => <SelectItem key={gender} value={gender}>{gender}</SelectItem>)}</SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="division" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Division</FormLabel>
-                    <Select onValueChange={(value) => { field.onChange(value); form.setValue('district', ''); form.setValue('upazila', ''); }} value={field.value}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Select division" /></SelectTrigger></FormControl>
-                      <SelectContent>{Object.keys(locations).map(div => <SelectItem key={div} value={div}>{div}</SelectItem>)}</SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField
-                  control={form.control}
-                  name="district"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>District</FormLabel>
-                      <Select onValueChange={(value) => { field.onChange(value); form.setValue('upazila', ''); }} value={field.value} disabled={!selectedDivision}>
-                          <FormControl><SelectTrigger><SelectValue placeholder="Select district" /></SelectTrigger></FormControl>
-                          <SelectContent>
-                              {districtOptions.map(district => (
-                                  <SelectItem key={district.value} value={district.value}>{district.label}</SelectItem>
-                              ))}
-                          </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField control={form.control} name="upazila" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Upazila / Area</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={!selectedDistrict}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Select upazila" /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        {upazilaOptions.map(up => <SelectItem key={up.value} value={up.value}>{up.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                  <FormField control={form.control} name="donationCount" render={({ field }) => (
-                      <FormItem>
-                      <FormLabel>Previous Donation Count</FormLabel>
-                      <FormControl><Input type="number" min="0" placeholder="e.g., 5" {...field} value={field.value ?? ''} /></FormControl>
-                      <FormMessage />
-                      </FormItem>
-                  )} />
+        <TabsContent value="profile">
+          <Card className="shadow-lg mt-6">
+            <CardHeader>
+              <div className="flex flex-col md:flex-row items-center gap-6">
+                <div className="relative">
+                    <Avatar className="h-32 w-32 border-4 border-muted">
+                        <AvatarImage src={profileImageUrl || undefined} alt={profileForm.watch('fullName')} />
+                        <AvatarFallback><User className="h-16 w-16 text-muted-foreground" /></AvatarFallback>
+                    </Avatar>
+                    <button type="button" onClick={() => fileInputRef.current?.click()} className="absolute inset-0 bg-black/50 flex items-center justify-center text-white rounded-full opacity-0 hover:opacity-100 transition-opacity cursor-pointer" disabled={isSubmitting}>
+                        <Upload className="h-8 w-8" />
+                    </button>
+                    <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" className="hidden" />
+                </div>
+                <div>
+                  <CardTitle className="text-3xl font-headline text-primary">{isAdmin && userIdToEdit ? `Editing ${profileToEdit?.fullName || 'Donor'}` : 'Update Profile'}</CardTitle>
+                  <CardDescription>{isAdmin && userIdToEdit ? 'Update donor information below.' : 'Keep your information up to date.'}</CardDescription>
+                </div>
               </div>
+            </CardHeader>
+            <CardContent>
+              <Form {...profileForm}>
+                <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                     <FormField control={profileForm.control} name="fullName" render={({ field }) => ( <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                     <FormField control={profileForm.control} name="phoneNumber" render={({ field }) => ( <FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                     <FormField control={profileForm.control} name="bloodGroup" render={({ field }) => ( <FormItem><FormLabel>Blood Group</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{bloodGroups.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
+                     <FormField control={profileForm.control} name="dateOfBirth" render={({ field }) => ( <FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn(!field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick date</span>}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={field.value} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={1950} toYear={new Date().getFullYear()} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
+                     <FormField control={profileForm.control} name="lastDonationDate" render={({ field }) => ( <FormItem className="flex flex-col"><FormLabel>Last Donation Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn(!field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick date</span>}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={field.value} onSelect={field.onChange} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
+                     <FormField control={profileForm.control} name="gender" render={({ field }) => ( <FormItem><FormLabel>Gender</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{['Male', 'Female', 'Other'].map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
+                     <FormField control={profileForm.control} name="division" render={({ field }) => ( <FormItem><FormLabel>Division</FormLabel><Select onValueChange={v => {field.onChange(v); profileForm.setValue('district',''); profileForm.setValue('upazila','')}} value={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{Object.keys(locations).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
+                     <FormField control={profileForm.control} name="district" render={({ field }) => ( <FormItem><FormLabel>District</FormLabel><Select onValueChange={v => {field.onChange(v); profileForm.setValue('upazila','')}} value={field.value} disabled={!selectedDivision}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{districtOptions.map(d => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
+                     <FormField control={profileForm.control} name="upazila" render={({ field }) => ( <FormItem><FormLabel>Upazila</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={!selectedDistrict}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{upazilaOptions.map(u => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
+                     <FormField control={profileForm.control} name="donationCount" render={({ field }) => ( <FormItem><FormLabel>Donation Count</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                  </div>
+                  <FormField control={profileForm.control} name="isAvailable" render={({ field }) => ( <FormItem className="flex items-center space-x-3 space-y-0 pt-4"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Available to Donate</FormLabel><FormMessage /></FormItem> )} />
+                  <div className="text-right"><Button type="submit" size="lg" disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save Profile'}</Button></div>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-               <FormField control={form.control} name="isAvailable" render={({ field }) => (
-                  <FormItem className="md:col-span-2 flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
-                      <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                      <div className="space-y-1 leading-none">
-                          <FormLabel>Available to Donate</FormLabel>
-                          <FormMessage />
-                      </div>
-                  </FormItem>
-              )} />
-              <div className="md:col-span-2 text-right">
-                <Button type="submit" size="lg" disabled={isSubmitting}>
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Saving...
-                      </>
-                    ) : 'Save Profile'}
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+        <TabsContent value="donations">
+            <Card className="mt-6"><CardHeader><CardTitle>My Donations</CardTitle><CardDescription>Blood requests you have responded to.</CardDescription></CardHeader>
+                <CardContent>
+                    {myDonations.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {myDonations.map(req => <RequestCard key={req.id} req={req} />)}
+                        </div>
+                    ) : <p className="text-muted-foreground">You have not responded to any requests yet.</p>}
+                </CardContent>
+            </Card>
+        </TabsContent>
+        <TabsContent value="requests">
+            <Card className="mt-6"><CardHeader><CardTitle>My Requests</CardTitle><CardDescription>Blood requests you have created.</CardDescription></CardHeader>
+                <CardContent>
+                     {myRequests.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {myRequests.map(req => <RequestCard key={req.id} req={req} />)}
+                        </div>
+                    ) : <p className="text-muted-foreground">You have not created any requests yet.</p>}
+                </CardContent>
+            </Card>
+        </TabsContent>
+        <TabsContent value="security">
+             <Card className="mt-6"><CardHeader><CardTitle>Security Settings</CardTitle><CardDescription>Manage your account password.</CardDescription></CardHeader>
+                <CardContent>
+                    <Form {...passwordForm}>
+                        <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-6 max-w-md">
+                           <FormField control={passwordForm.control} name="newPassword" render={({ field }) => ( <FormItem><FormLabel>New Password</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                           <FormField control={passwordForm.control} name="confirmPassword" render={({ field }) => ( <FormItem><FormLabel>Confirm New Password</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                           <div><Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Updating...' : 'Update Password'}</Button></div>
+                        </form>
+                    </Form>
+                </CardContent>
+            </Card>
+        </TabsContent>
+
+      </Tabs>
     </div>
   );
 }

@@ -21,7 +21,7 @@ export default function AdminSettingsPage() {
     const [tagline, setTagline] = useState("রক্ত দিন, জীবন বাঁচান — এখন আরও সহজে!");
     const [adminEmail, setAdminEmail] = useState("mojibrsm@gmail.com");
     const [notifyNewDonor, setNotifyNewDonor] = useState(true);
-    const [notifyNewRequest, setNotifyNewRequest] = useState(false);
+    const [notifyNewRequest, setNotifyNewRequest] = useState(true); // Changed to true by default
 
     useEffect(() => {
         const fetchSettings = async () => {
@@ -35,7 +35,7 @@ export default function AdminSettingsPage() {
                     setTagline(data.tagline || "রক্ত দিন, জীবন বাঁচান — এখন আরও সহজে!");
                     setAdminEmail(data.adminEmail || "mojibrsm@gmail.com");
                     setNotifyNewDonor(data.notifyNewDonor !== false); // default to true
-                    setNotifyNewRequest(data.notifyNewRequest === true); // default to false
+                    setNotifyNewRequest(data.notifyNewRequest !== false); // default to true
                 }
             } catch (error) {
                 console.error("Error fetching settings:", error);
@@ -61,7 +61,7 @@ export default function AdminSettingsPage() {
                 adminEmail,
                 notifyNewDonor,
                 notifyNewRequest
-            });
+            }, { merge: true });
             toast({
                 title: "Settings Saved",
                 description: "Your changes have been successfully saved.",
