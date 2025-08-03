@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -120,7 +119,12 @@ export default function LoginPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
+                    <div className="flex items-center justify-between">
+                        <FormLabel>Password</FormLabel>
+                        <Link href="/forgot-password" passHref>
+                           <p className="text-sm underline hover:text-primary">Forgot Password?</p>
+                        </Link>
+                    </div>
                     <FormControl>
                       <Input type="password" placeholder="••••••••" {...field} />
                     </FormControl>
