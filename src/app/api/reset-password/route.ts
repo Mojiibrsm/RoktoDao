@@ -16,7 +16,9 @@ export async function POST(request: NextRequest) {
 
     // Find the user by phone number in Firestore first
     const donorsRef = dbAdmin.collection('donors');
-    const querySnapshot = await donorsRef.where('phoneNumber', '==', phoneNumber.substring(3)).limit(1).get(); // remove +88
+    // Ensure we query with the 11-digit number format stored in Firestore
+    const elevenDigitNumber = phoneNumber.startsWith('+88') ? phoneNumber.substring(3) : phoneNumber;
+    const querySnapshot = await donorsRef.where('phoneNumber', '==', elevenDigitNumber).limit(1).get();
 
     if (querySnapshot.empty) {
       return NextResponse.json({ error: 'User with this phone number not found.' }, { status: 404 });

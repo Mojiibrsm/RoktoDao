@@ -6,8 +6,6 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -25,17 +23,13 @@ const otpSchema = z.object({
   newPassword: z.string().min(6, { message: "Password must be at least 6 characters." }),
 });
 
-declare global {
-  interface Window {
-    confirmationResult: ConfirmationResult;
-  }
-}
 
 export default function ForgotPasswordPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [generatedOtp, setGeneratedOtp] = useState('');
 
   const phoneForm = useForm<z.infer<typeof phoneSchema>>({
     resolver: zodResolver(phoneSchema),
@@ -49,14 +43,24 @@ export default function ForgotPasswordPage() {
   
   const onPhoneSubmit = async (values: z.infer<typeof phoneSchema>) => {
     setIsLoading(true);
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    setGeneratedOtp(otp);
+    
     try {
-      const formattedPhoneNumber = `+88${values.phoneNumber}`;
-      setPhoneNumber(formattedPhoneNumber);
+      setPhoneNumber(values.phoneNumber);
       
-      // Since there's no reCAPTCHA, Firebase might block this on a live domain.
-      // This is a simplified approach as requested.
-      const confirmationResult = await signInWithPhoneNumber(auth, formattedPhoneNumber);
-      window.confirmationResult = confirmationResult;
+      const response = await fetch('/api/send-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          number: values.phoneNumber, // Send 11-digit number
+          message: `Your RoktoDao OTP is: ${otp}`,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send OTP.');
+      }
 
       setStep('otp');
       toast({ title: 'OTP Sent', description: `An OTP has been sent to ${values.phoneNumber}.` });
@@ -65,7 +69,7 @@ export default function ForgotPasswordPage() {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Could not send OTP. Please check the phone number and try again. This might be due to missing security verification on a live domain.',
+        description: 'Could not send OTP. Please check the phone number and try again.',
       });
     } finally {
       setIsLoading(false);
@@ -74,9 +78,13 @@ export default function ForgotPasswordPage() {
 
   const onOtpSubmit = async (values: z.infer<typeof otpSchema>) => {
     setIsLoading(true);
+    if (values.otp !== generatedOtp) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Invalid OTP. Please try again.' });
+        setIsLoading(false);
+        return;
+    }
+
     try {
-        await window.confirmationResult.confirm(values.otp);
-        // OTP is correct, now call our secure backend to reset the password
         const response = await fetch('/api/reset-password', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -98,7 +106,7 @@ export default function ForgotPasswordPage() {
          toast({
             variant: 'destructive',
             title: 'Error',
-            description: error.message || 'Invalid OTP or failed to reset password. Please try again.',
+            description: error.message || 'Failed to reset password. Please try again.',
         });
     } finally {
         setIsLoading(false);
