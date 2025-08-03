@@ -71,7 +71,7 @@ export default function ForgotPasswordPage() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-            number: values.phoneNumber,
+            number: `+88${values.phoneNumber}`, // Send with country code
             message: `Your RoktoDao OTP is: ${otp}`,
             }),
         });
@@ -81,6 +81,7 @@ export default function ForgotPasswordPage() {
         }
 
         setStep('otp');
+        otpForm.reset();
         toast({ title: 'OTP Sent', description: `An OTP has been sent to ${values.phoneNumber}.` });
     } catch (error: any) {
       console.error("OTP sending error:", error);
