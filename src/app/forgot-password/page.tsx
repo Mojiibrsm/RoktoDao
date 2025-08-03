@@ -13,6 +13,8 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { KeyRound, Loader2 } from 'lucide-react';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+import { collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const phoneSchema = z.object({
   phoneNumber: z.string().min(11, { message: 'Please enter a valid 11-digit phone number.' }).max(11),
@@ -43,27 +45,43 @@ export default function ForgotPasswordPage() {
   
   const onPhoneSubmit = async (values: z.infer<typeof phoneSchema>) => {
     setIsLoading(true);
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    setGeneratedOtp(otp);
-    
+
     try {
-      setPhoneNumber(values.phoneNumber);
+        // Step 1: Check if user with phone number exists in Firestore
+        const donorsRef = collection(db, 'donors');
+        const q = query(donorsRef, where('phoneNumber', '==', values.phoneNumber), limit(1));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+            toast({
+                variant: 'destructive',
+                title: 'User Not Found',
+                description: 'No account is associated with this phone number.',
+            });
+            setIsLoading(false);
+            return;
+        }
+
+        // Step 2: If user exists, generate and send OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        setGeneratedOtp(otp);
+        setPhoneNumber(values.phoneNumber);
       
-      const response = await fetch('/api/send-sms', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          number: values.phoneNumber, // Send 11-digit number
-          message: `Your RoktoDao OTP is: ${otp}`,
-        }),
-      });
+        const response = await fetch('/api/send-sms', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+            number: values.phoneNumber,
+            message: `Your RoktoDao OTP is: ${otp}`,
+            }),
+        });
 
-      if (!response.ok) {
-        throw new Error('Failed to send OTP.');
-      }
+        if (!response.ok) {
+            throw new Error('Failed to send OTP.');
+        }
 
-      setStep('otp');
-      toast({ title: 'OTP Sent', description: `An OTP has been sent to ${values.phoneNumber}.` });
+        setStep('otp');
+        toast({ title: 'OTP Sent', description: `An OTP has been sent to ${values.phoneNumber}.` });
     } catch (error: any) {
       console.error("OTP sending error:", error);
       toast({
