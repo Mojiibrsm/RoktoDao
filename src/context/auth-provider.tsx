@@ -31,27 +31,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
-        // Delay fetching profile slightly to ensure data is available after signup
-        setTimeout(async () => {
-          try {
-            const donorRef = doc(db, 'donors', currentUser.uid);
-            const docSnap = await getDoc(donorRef);
-            if (docSnap.exists()) {
-              const donorData = { id: docSnap.id, ...docSnap.data() } as Donor;
-              setDonorProfile(donorData);
-              setIsAdmin(!!donorData.isAdmin);
-            } else {
-              setDonorProfile(null);
-              setIsAdmin(false);
-            }
-          } catch (e) {
-            console.error("Error fetching donor profile:", e);
+        try {
+          const donorRef = doc(db, 'donors', currentUser.uid);
+          const docSnap = await getDoc(donorRef);
+          if (docSnap.exists()) {
+            const donorData = { id: docSnap.id, ...docSnap.data() } as Donor;
+            setDonorProfile(donorData);
+            setIsAdmin(!!donorData.isAdmin);
+          } else {
+            console.log(`No donor profile found for UID: ${currentUser.uid}. This can happen immediately after signup before the document is created.`);
             setDonorProfile(null);
             setIsAdmin(false);
-          } finally {
-            setLoading(false);
           }
-        }, 500); // 500ms delay
+        } catch (e) {
+          console.error("Error fetching donor profile:", e);
+          setDonorProfile(null);
+          setIsAdmin(false);
+        } finally {
+          setLoading(false);
+        }
       } else {
         setDonorProfile(null);
         setIsAdmin(false);

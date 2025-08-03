@@ -61,7 +61,7 @@ const imagekit = new IK({
 
 
 function ProfilePageComponent() {
-  const { user, loading, isAdmin } = useAuth();
+  const { user, loading, isAdmin, donorProfile } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -110,29 +110,46 @@ function ProfilePageComponent() {
   const targetUid = useMemo(() => userIdToEdit && isAdmin ? userIdToEdit : user?.uid, [userIdToEdit, isAdmin, user]);
 
   useEffect(() => {
+    // If not admin editing, use the donorProfile from context
+    if (!isAdmin && donorProfile) {
+        setProfileToEdit(donorProfile);
+    }
+  }, [donorProfile, isAdmin]);
+  
+
+  useEffect(() => {
     const loadProfileData = async () => {
       if (!targetUid) return;
       setPageLoading(true);
       try {
-        const donorRef = doc(db, 'donors', targetUid);
-        const [docSnap, requestsSnap, donationsSnap] = await Promise.all([
-          getDoc(donorRef),
+        let profileToLoad = profileToEdit;
+        
+        // If admin is editing, we need to fetch the specific profile
+        if(isAdmin && userIdToEdit) {
+            const donorRef = doc(db, 'donors', userIdToEdit);
+            const docSnap = await getDoc(donorRef);
+             if (docSnap.exists()) {
+                profileToLoad = { id: docSnap.id, ...docSnap.data() } as Donor;
+                setProfileToEdit(profileToLoad);
+             }
+        }
+        
+        if (profileToLoad) {
+          setProfileImageUrl(profileToLoad.profilePictureUrl || '');
+          profileForm.reset({
+            fullName: profileToLoad.fullName || '', phoneNumber: profileToLoad.phoneNumber || '', bloodGroup: profileToLoad.bloodGroup || '',
+            division: profileToLoad.address?.division || '', district: profileToLoad.address?.district || '', upazila: profileToLoad.address?.upazila || '',
+            lastDonationDate: profileToLoad.lastDonationDate ? new Date(profileToLoad.lastDonationDate) : undefined,
+            isAvailable: profileToLoad.isAvailable, dateOfBirth: profileToLoad.dateOfBirth ? new Date(profileToLoad.dateOfBirth) : undefined,
+            gender: profileToLoad.gender || undefined, donationCount: profileToLoad.donationCount || 0, profilePictureUrl: profileToLoad.profilePictureUrl || '',
+          });
+        }
+        
+        // Fetch related requests and donations for the target user
+        const [requestsSnap, donationsSnap] = await Promise.all([
           getDocs(query(collection(db, 'requests'), where('uid', '==', targetUid), orderBy('createdAt', 'desc'))),
           getDocs(query(collection(db, 'requests'), where('responders', 'array-contains', targetUid), orderBy('createdAt', 'desc')))
         ]);
-        
-        if (docSnap.exists()) {
-          const profile = { id: docSnap.id, ...docSnap.data() } as Donor;
-          setProfileToEdit(profile);
-          setProfileImageUrl(profile.profilePictureUrl || '');
-          profileForm.reset({
-            fullName: profile.fullName || '', phoneNumber: profile.phoneNumber || '', bloodGroup: profile.bloodGroup || '',
-            division: profile.address?.division || '', district: profile.address?.district || '', upazila: profile.address?.upazila || '',
-            lastDonationDate: profile.lastDonationDate ? new Date(profile.lastDonationDate) : undefined,
-            isAvailable: profile.isAvailable, dateOfBirth: profile.dateOfBirth ? new Date(profile.dateOfBirth) : undefined,
-            gender: profile.gender || undefined, donationCount: profile.donationCount || 0, profilePictureUrl: profile.profilePictureUrl || '',
-          });
-        }
         
         setMyRequests(requestsSnap.docs.map(d => ({id: d.id, ...d.data()}) as BloodRequest));
         setMyDonations(donationsSnap.docs.map(d => ({id: d.id, ...d.data()}) as BloodRequest));
@@ -148,7 +165,7 @@ function ProfilePageComponent() {
     } else if (!loading && !user) {
         router.push('/login');
     }
-  }, [user, loading, router, targetUid, toast]);
+  }, [user, loading, router, targetUid, toast, isAdmin, userIdToEdit, profileToEdit]);
   
   const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
