@@ -62,7 +62,6 @@ export default function SignupPage() {
   const [profileImageUrl, setProfileImageUrl] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-
   useEffect(() => {
     if (!loading && user) {
       router.push('/profile');
@@ -240,8 +239,8 @@ export default function SignupPage() {
         description: "Welcome to RoktoDao. Please check your SMS for your password.",
       });
       // The onAuthStateChanged listener in AuthProvider will handle the redirect.
-      // No need to manually push, as it will cause a flicker.
-      // router.push('/profile');
+      // Manually pushing here can cause race conditions.
+      // The useEffect hook will handle the redirection safely.
 
     } catch (error: any) {
       const errorCode = error.code;
@@ -261,23 +260,14 @@ export default function SignupPage() {
     }
   };
   
-    if (loading) {
+  if (loading || (!loading && user)) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <p className="ml-4">Loading...</p>
       </div>
     );
   }
-   if (user) {
-    // This block will be hit if the user is already logged in or after successful registration
-    router.push('/profile');
-    return (
-       <div className="flex h-screen items-center justify-center">
-        <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-        <p className="ml-4">Redirecting to profile...</p>
-      </div>
-    );
-   }
 
   return (
     <div className="flex items-center justify-center bg-background p-4 py-12">
