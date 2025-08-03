@@ -39,8 +39,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import Image from 'next/image';
 import IK from 'imagekit-javascript';
-import { useDebounce } from 'use-debounce';
-import getSlug from 'speakingurl';
 
 
 interface BlogPost extends BlogPostType {
@@ -49,10 +47,9 @@ interface BlogPost extends BlogPostType {
 
 const blogPostSchema = z.object({
   title: z.string().min(5, { message: 'Title is required.' }),
-  slug: z.string().min(5, { message: 'Slug is required and must be unique.' }).regex(/^[a-z0-9-]+$/, 'Slug can only contain lowercase letters, numbers, and hyphens.'),
+  link: z.string().url({ message: 'A valid URL is required for the post link.' }),
   author: z.string().min(3, { message: 'Author name is required.' }),
   excerpt: z.string().min(10, { message: 'Excerpt is required.' }),
-  content: z.string().min(20, { message: 'Content is required.' }),
   image: z.string().url({ message: 'An image is required.' }),
   hint: z.string().optional(),
 });
@@ -71,17 +68,6 @@ const BlogPostForm = ({ form, onSubmit, isSubmitting, submitText }: { form: UseF
     const [uploading, setUploading] = useState(false);
     const [imagePreview, setImagePreview] = useState(form.getValues('image') || '');
     const fileInputRef = useRef<HTMLInputElement>(null);
-
-    const titleValue = form.watch('title');
-    const [debouncedTitle] = useDebounce(titleValue, 500);
-
-    useEffect(() => {
-        if (debouncedTitle) {
-            const slug = getSlug(debouncedTitle, { lang: 'bn' });
-            form.setValue('slug', slug, { shouldValidate: true });
-        }
-    }, [debouncedTitle, form]);
-
 
     const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
         if (event.target.files && event.target.files[0]) {
@@ -120,17 +106,14 @@ const BlogPostForm = ({ form, onSubmit, isSubmitting, submitText }: { form: UseF
                 <FormField control={form.control} name="title" render={({ field }) => (
                     <FormItem><FormLabel>Title</FormLabel><FormControl><Input placeholder="Blog Post Title" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
-                 <FormField control={form.control} name="slug" render={({ field }) => (
-                    <FormItem><FormLabel>Slug</FormLabel><FormControl><Input placeholder="unique-post-slug" {...field} /></FormControl><FormMessage /></FormItem>
+                 <FormField control={form.control} name="link" render={({ field }) => (
+                    <FormItem><FormLabel>Post Link</FormLabel><FormControl><Input placeholder="https://example.com/blog-post" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
                  <FormField control={form.control} name="author" render={({ field }) => (
                     <FormItem><FormLabel>Author</FormLabel><FormControl><Input placeholder="John Doe" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField control={form.control} name="excerpt" render={({ field }) => (
                     <FormItem><FormLabel>Excerpt</FormLabel><FormControl><Textarea placeholder="A short summary of the post..." {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
-                 <FormField control={form.control} name="content" render={({ field }) => (
-                    <FormItem><FormLabel>Content (HTML)</FormLabel><FormControl><Textarea placeholder="<h2>Title</h2><p>Paragraph...</p>" rows={8} {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
                  <FormItem>
                     <FormLabel>Featured Image</FormLabel>
@@ -180,10 +163,9 @@ export default function BlogManagementPage() {
         resolver: zodResolver(blogPostSchema),
         defaultValues: {
             title: '',
-            slug: '',
+            link: '',
             author: 'RoktoDao Team',
             excerpt: '',
-            content: '',
             image: '',
             hint: 'blood donation',
         },
@@ -218,7 +200,7 @@ export default function BlogManagementPage() {
             toast({ title: 'Post Added', description: 'The new blog post has been added successfully.' });
             fetchPosts();
             form.reset({
-                title: '', slug: '', author: 'RoktoDao Team', excerpt: '', content: '', image: '', hint: 'blood donation',
+                title: '', link: '', author: 'RoktoDao Team', excerpt: '', image: '', hint: 'blood donation',
             });
             setIsAddDialogOpen(false);
         } catch (error) {
@@ -276,7 +258,7 @@ export default function BlogManagementPage() {
                 </div>
                  <Dialog open={isAddDialogOpen} onOpenChange={(isOpen) => {
                     setIsAddDialogOpen(isOpen);
-                     if (!isOpen) form.reset({ title: '', slug: '', author: 'RoktoDao Team', excerpt: '', content: '', image: '', hint: 'blood donation' });
+                     if (!isOpen) form.reset({ title: '', link: '', author: 'RoktoDao Team', excerpt: '', image: '', hint: 'blood donation' });
                 }}>
                     <DialogTrigger asChild>
                         <Button><PlusCircle className="mr-2 h-4 w-4" /> Add Post</Button>
@@ -299,7 +281,7 @@ export default function BlogManagementPage() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Title</TableHead>
-                                <TableHead>Slug</TableHead>
+                                <TableHead>Link</TableHead>
                                 <TableHead>Author</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
@@ -313,7 +295,7 @@ export default function BlogManagementPage() {
                                 posts.map((post) => (
                                 <TableRow key={post.id}>
                                     <TableCell className="font-medium">{post.title}</TableCell>
-                                    <TableCell>{post.slug}</TableCell>
+                                    <TableCell><a href={post.link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{post.link}</a></TableCell>
                                     <TableCell>{post.author}</TableCell>
                                     <TableCell className="text-right">
                                         <DropdownMenu>

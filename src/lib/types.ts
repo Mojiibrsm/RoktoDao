@@ -1,5 +1,4 @@
 
-
 export type BloodRequest = {
   id: string;
   patientName: string;
@@ -49,12 +48,11 @@ export type Donor = {
 
 export interface BlogPost {
   id: string;
-  slug: string;
+  link: string;
   title: string;
   date: string;
   author: string;
   excerpt: string;
-  content: string;
   image: string;
   hint: string;
   createdAt: any;

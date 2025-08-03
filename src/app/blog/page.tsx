@@ -58,7 +58,7 @@ export default function BlogPage() {
         ) : posts.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {posts.map((post: BlogPost) => (
-              <Link key={post.slug} href={`/blog/${post.slug}`} className="flex flex-col no-underline">
+              <a key={post.id} href={post.link} target="_blank" rel="noopener noreferrer" className="flex flex-col no-underline">
                 <Card className="flex flex-col flex-grow overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
                   <Image
                       src={post.image}
@@ -83,7 +83,7 @@ export default function BlogPage() {
                     </p>
                   </CardFooter>
                 </Card>
-              </Link>
+              </a>
             ))}
           </div>
         ) : (
