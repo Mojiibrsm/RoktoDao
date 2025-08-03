@@ -100,6 +100,18 @@ export async function POST(request: NextRequest) {
           <p>ধন্যবাদ,</p>
           <p><strong>RoktoDao টিম</strong></p>
         `;
+    } else if (type === 'sms_failure') {
+      subject = '🚨 SMS Sending Failed on RoktoDao!';
+      htmlContent = `
+        <h1>SMS API Failure Report</h1>
+        <p>The system failed to send an SMS after trying all available APIs.</p>
+        <ul>
+          <li><strong>Recipient Number:</strong> ${data.number}</li>
+          <li><strong>Message:</strong></li>
+        </ul>
+        <blockquote style="padding: 10px; border-left: 4px solid #ccc; margin: 10px 0;">${data.message}</blockquote>
+        <p>Please check the SMS API provider statuses and server logs for more details.</p>
+      `;
     } else {
         return NextResponse.json({ success: false, error: 'Invalid notification type.' }, { status: 400 });
     }

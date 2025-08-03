@@ -78,3 +78,12 @@ export type FeedbackType = {
   status: 'New' | 'In Progress' | 'Resolved' | 'Ignored';
   createdAt?: any;
 };
+
+export type SmsLog = {
+  id: string;
+  number: string;
+  message: string;
+  status: 'success' | 'failure';
+  apiUsed: 'API 1' | 'API 2' | 'Both Failed';
+  createdAt: any;
+};
