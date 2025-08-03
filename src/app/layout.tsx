@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import { PT_Sans } from 'next/font/google';
 import { Toaster } from '@/components/ui/toaster';
@@ -13,7 +14,7 @@ const ptSans = PT_Sans({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://roktodao.bartanow.com'), // Updated domain
+  metadataBase: new URL('https://roktodao.com'),
   title: {
     default: 'RoktoDao - রক্ত দিন, জীবন বাঁচান',
     template: '%s | RoktoDao',
@@ -26,7 +27,7 @@ export const metadata: Metadata = {
    openGraph: {
     title: 'RoktoDao - রক্ত দিন, জীবন বাঁচান',
     description: 'জরুরী মুহূর্তে রক্ত খুঁজে পেতে এবং রক্তদানের মাধ্যমে জীবন বাঁচাতে সাহায্য করার জন্য একটি অনলাইন প্ল্যাটফর্ম।',
-    url: 'https://roktodao.bartanow.com', // Updated domain
+    url: 'https://roktodao.com',
     siteName: 'RoktoDao',
     images: [
       {

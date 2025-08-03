@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
+import { signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,7 +27,6 @@ const otpSchema = z.object({
 
 declare global {
   interface Window {
-    recaptchaVerifier: RecaptchaVerifier;
     confirmationResult: ConfirmationResult;
   }
 }
@@ -48,25 +47,17 @@ export default function ForgotPasswordPage() {
     defaultValues: { otp: '', newPassword: '' },
   });
   
-  useEffect(() => {
-    if (step === 'phone' && !window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        'size': 'invisible',
-        'callback': (response: any) => {
-          // reCAPTCHA solved, allow signInWithPhoneNumber.
-        }
-      });
-    }
-  }, [step]);
-
-
   const onPhoneSubmit = async (values: z.infer<typeof phoneSchema>) => {
     setIsLoading(true);
     try {
       const formattedPhoneNumber = `+88${values.phoneNumber}`;
       setPhoneNumber(formattedPhoneNumber);
-      const confirmationResult = await signInWithPhoneNumber(auth, formattedPhoneNumber, window.recaptchaVerifier);
+      
+      // Since there's no reCAPTCHA, Firebase might block this on a live domain.
+      // This is a simplified approach as requested.
+      const confirmationResult = await signInWithPhoneNumber(auth, formattedPhoneNumber);
       window.confirmationResult = confirmationResult;
+
       setStep('otp');
       toast({ title: 'OTP Sent', description: `An OTP has been sent to ${values.phoneNumber}.` });
     } catch (error: any) {
@@ -74,7 +65,7 @@ export default function ForgotPasswordPage() {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Could not send OTP. Please check the phone number and try again.',
+        description: 'Could not send OTP. Please check the phone number and try again. This might be due to missing security verification on a live domain.',
       });
     } finally {
       setIsLoading(false);
@@ -116,7 +107,6 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center bg-background p-4">
-       <div id="recaptcha-container"></div>
       <Card className="w-full max-w-sm shadow-xl">
         <CardHeader className="text-center">
           <KeyRound className="mx-auto h-12 w-12 text-primary" />
