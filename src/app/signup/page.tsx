@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
@@ -64,7 +64,7 @@ export default function SignupPage() {
 
   useEffect(() => {
     if (!loading && user) {
-      router.push('/profile');
+      router.replace('/profile');
     }
   }, [user, loading, router]);
 
@@ -180,82 +180,70 @@ export default function SignupPage() {
       await setDoc(doc(db, 'donors', user.uid), donorData);
 
       // --- Send Notifications ---
-      const smsMessage = `Welcome to RoktoDao! Your password is: ${generatedPassword}`;
-      fetch('/api/send-sms', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ number: values.phoneNumber, message: smsMessage }),
-      }).catch(e => console.error("SMS sending failed silently:", e));
+      try {
+        const smsMessage = `Welcome to RoktoDao! Your password is: ${generatedPassword}`;
+        fetch('/api/send-sms', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ number: values.phoneNumber, message: smsMessage }),
+        });
 
-      if (values.email) {
+        if (values.email) {
+          fetch('/api/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'send_credentials',
+              data: {
+                fullName: values.fullName,
+                email: values.email,
+                password: generatedPassword,
+              },
+            }),
+          });
+        }
+
         fetch('/api/send-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            type: 'send_credentials',
+            type: 'new_donor',
             data: {
               fullName: values.fullName,
-              email: values.email,
-              password: generatedPassword,
+              bloodGroup: values.bloodGroup,
+              phoneNumber: values.phoneNumber,
+              division: values.division,
+              district: values.district,
+              upazila: values.upazila,
             },
           }),
-        }).catch(e => console.error("Credentials email sending failed silently:", e));
+        });
+      } catch (notificationError) {
+          console.error("Failed to send notifications:", notificationError);
+          // Don't block user creation for notification failure
       }
-
-      fetch('/api/send-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'new_donor',
-          data: {
-            fullName: values.fullName,
-            bloodGroup: values.bloodGroup,
-            phoneNumber: values.phoneNumber,
-            division: values.division,
-            district: values.district,
-            upazila: values.upazila,
-          },
-        }),
-      }).catch(e => console.error("Admin notification email failed silently:", e));
 
 
       toast({
         title: 'Account Created Successfully!',
         description: "Welcome to RoktoDao. Please check your SMS for your password.",
       });
+      // Don't redirect here. Let the AuthProvider handle the redirect
+      // to ensure profile data is loaded before the profile page renders.
 
     } catch (error: any) {
       const errorCode = error.code;
-      if (errorCode === 'auth/email-already-in-use' && !values.email) {
-        // This is the edge case: phone number exists with a dummy email.
-        // Try to sign them in instead.
-        try {
-          await signInWithEmailAndPassword(auth, emailForAuth, generatedPassword);
-          toast({
-            title: 'Welcome Back!',
-            description: "You're already registered. We've logged you in.",
-          });
-          // AuthProvider will handle the redirect.
-        } catch (signInError) {
-           toast({
-            variant: 'destructive',
-            title: 'Login Failed',
-            description: 'This phone number is already registered. Please try logging in with your password.',
-          });
-        }
-      } else {
-         let errorMessage = 'An unknown error occurred.';
-          if (errorCode === 'auth/email-already-in-use') {
-            errorMessage = 'This phone number or email is already registered. Please try logging in.';
-          } else {
-            errorMessage = error.message;
-          }
-          toast({
-            variant: 'destructive',
-            title: 'Signup Failed',
-            description: errorMessage,
-          });
+      let errorMessage = 'An unknown error occurred. Please try again.';
+      if (errorCode === 'auth/email-already-in-use') {
+        errorMessage = 'This phone number or email is already registered. Please try logging in.';
+      } else if (error.message) {
+        errorMessage = error.message;
       }
+      toast({
+        variant: 'destructive',
+        title: 'Signup Failed',
+        description: errorMessage,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -478,5 +466,3 @@ export default function SignupPage() {
     </div>
   );
 }
-
-    

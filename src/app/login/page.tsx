@@ -30,8 +30,9 @@ export default function LoginPage() {
   const { user, loading } = useAuth();
 
   useEffect(() => {
+    // AuthProvider will handle the redirect, this is a fallback.
     if (!loading && user) {
-      router.push('/profile');
+      router.replace('/profile');
     }
   }, [user, loading, router]);
 
@@ -67,7 +68,8 @@ export default function LoginPage() {
         title: 'Login Successful',
         description: 'Welcome back!',
       });
-      router.push('/profile');
+      // Let the AuthProvider handle the redirect by detecting the user state change.
+      // router.push('/profile');
     } catch (error: any) {
       let description = 'An unknown error occurred.';
       if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.message.includes('not found')) {
