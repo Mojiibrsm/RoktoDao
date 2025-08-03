@@ -34,6 +34,7 @@ interface Member {
   name: string;
   role: string;
   avatar: string;
+  avatarHint?: string;
 }
 
 const faqs = [
@@ -52,16 +53,18 @@ const faqs = [
 ];
 
 async function getHomepageData() {
+    // This check is crucial to prevent crashes when the Admin SDK is not initialized.
     if (!dbAdmin) {
-    return { 
-        urgentRequests: [], 
-        donors: [], 
-        stats: { totalDonors: 0, totalRequests: 0, donationsFulfilled: 0 }, 
-        director: null, 
-        galleryImages: [], 
-        error: "Server configuration error: Firebase Admin SDK not initialized. Please set the FIREBASE_SERVICE_ACCOUNT environment variable in your deployment settings."
-    };
+      return { 
+          urgentRequests: [], 
+          donors: [], 
+          stats: { totalDonors: 0, totalRequests: 0, donationsFulfilled: 0 }, 
+          director: null, 
+          galleryImages: [], 
+          error: "Server configuration error: Firebase Admin SDK not initialized. Please ensure the FIREBASE_SERVICE_ACCOUNT environment variable is correctly set in your deployment settings."
+      };
     }
+
     try {
         const requestsRef = dbAdmin.collection('requests');
         const donorsRef = dbAdmin.collection('donors');
@@ -75,7 +78,7 @@ async function getHomepageData() {
         const directorQuery = modsCollection.where('role', '==', 'প্রধান পরিচালক').limit(1);
         const galleryQuery = imagesRef.where('status', '==', 'approved').orderBy('createdAt', 'desc').limit(8);
 
-        // Fetch all data in parallel
+        // Fetch all data in parallel for better performance
         const [
             reqSnapshot,
             pinnedSnapshot,
@@ -102,18 +105,18 @@ async function getHomepageData() {
             return {
                 id: doc.id,
                 ...data,
-                neededDate: (data.neededDate as any)?.toDate ? (data.neededDate as any).toDate().toISOString() : data.neededDate,
+                neededDate: data.neededDate instanceof Timestamp ? data.neededDate.toDate().toISOString() : data.neededDate,
                 createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString()),
             } as BloodRequest;
         });
         
-        // Process Donors
+        // Process Donors (pinned first, then others)
         const pinnedDonors = pinnedSnapshot.docs.map(doc => {
             const data = doc.data();
             return { 
                 id: doc.id, 
                 ...data,
-                lastDonationDate: (data.lastDonationDate as any)?.toDate ? (data.lastDonationDate as any).toDate().toISOString() : data.lastDonationDate,
+                lastDonationDate: data.lastDonationDate instanceof Timestamp ? data.lastDonationDate.toDate().toISOString() : data.lastDonationDate,
                 createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString()),
             } as Donor;
         });
@@ -125,10 +128,11 @@ async function getHomepageData() {
               return { 
                 id: doc.id, 
                 ...data,
-                lastDonationDate: (data.lastDonationDate as any)?.toDate ? (data.lastDonationDate as any).toDate().toISOString() : data.lastDonationDate,
+                lastDonationDate: data.lastDonationDate instanceof Timestamp ? data.lastDonationDate.toDate().toISOString() : data.lastDonationDate,
                 createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString()),
               } as Donor
           });
+          // Add other donors only if they are not already pinned
           const nonPinnedDonors = otherDonors.filter(d => !donors.some(pd => pd.uid === d.uid));
           donors = [...donors, ...nonPinnedDonors].slice(0, 6);
         }
@@ -160,7 +164,7 @@ async function getHomepageData() {
           stats: { totalDonors: 0, totalRequests: 0, donationsFulfilled: 0 }, 
           director: null, 
           galleryImages: [], 
-          error: "Failed to load page data. Please check Firestore security rules and try again later."
+          error: "Failed to load page data. This might be due to a database connection or permission issue. Please try again later."
         };
       }
 }
@@ -170,7 +174,12 @@ export default async function Home() {
   const { urgentRequests, donors, stats, director, galleryImages, error } = await getHomepageData();
 
   if(error) {
-    return <div className="container mx-auto py-20 text-center text-destructive">{error}</div>
+    return (
+        <div className="container mx-auto py-20 text-center">
+            <h2 className="text-2xl font-bold text-destructive">একটি সমস্যা হয়েছে</h2>
+            <p className="text-muted-foreground mt-2">{error}</p>
+        </div>
+    );
   }
 
   return (
