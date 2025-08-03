@@ -1,24 +1,44 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth, dbAdmin } from '@/lib/firebase-admin';
+import { adminAuth, adminDb } from '@/lib/firebase-admin';
+import { doc, getDoc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 export async function POST(request: NextRequest) {
-  if (!adminAuth || !dbAdmin) {
+  if (!adminAuth || !adminDb) {
     return NextResponse.json({ error: 'Admin SDK not initialized.' }, { status: 500 });
   }
 
   try {
-    const { phoneNumber, newPassword } = await request.json();
+    const { phoneNumber, otp, newPassword } = await request.json();
 
-    if (!phoneNumber || !newPassword) {
-      return NextResponse.json({ error: 'Phone number and new password are required.' }, { status: 400 });
+    if (!phoneNumber || !otp || !newPassword) {
+      return NextResponse.json({ error: 'Phone number, OTP, and new password are required.' }, { status: 400 });
     }
 
-    // Find the user by phone number in Firestore first
-    const donorsRef = dbAdmin.collection('donors');
-    // Ensure we query with the 11-digit number format stored in Firestore
-    const elevenDigitNumber = phoneNumber.startsWith('+88') ? phoneNumber.substring(3) : phoneNumber;
-    const querySnapshot = await donorsRef.where('phoneNumber', '==', elevenDigitNumber).limit(1).get();
+    // 1. Verify the OTP
+    const otpRef = doc(adminDb, 'otp_codes', phoneNumber);
+    const otpSnap = await getDoc(otpRef);
+
+    if (!otpSnap.exists()) {
+      return NextResponse.json({ error: 'Invalid or expired OTP. Please try again.' }, { status: 400 });
+    }
+
+    const otpData = otpSnap.data();
+    if (otpData.code !== otp) {
+      return NextResponse.json({ error: 'Invalid OTP. Please check the code and try again.' }, { status: 400 });
+    }
+
+    const expires = new Date(otpData.expires);
+    if (expires < new Date()) {
+      await deleteDoc(otpRef);
+      return NextResponse.json({ error: 'OTP has expired. Please request a new one.' }, { status: 400 });
+    }
+
+    // OTP is valid, proceed to reset password
+    // 2. Find the user by phone number in Firestore to get their UID
+    const donorsRef = collection(adminDb, 'donors');
+    const q = query(donorsRef, where('phoneNumber', '==', phoneNumber));
+    const querySnapshot = await getDocs(q);
 
     if (querySnapshot.empty) {
       return NextResponse.json({ error: 'User with this phone number not found.' }, { status: 404 });
@@ -27,10 +47,13 @@ export async function POST(request: NextRequest) {
     const userDoc = querySnapshot.docs[0];
     const uid = userDoc.id; // The UID is the document ID
 
-    // Use the UID to update the password in Firebase Auth
+    // 3. Use the UID to update the password in Firebase Auth
     await adminAuth.updateUser(uid, {
       password: newPassword,
     });
+
+    // 4. Delete the used OTP
+    await deleteDoc(otpRef);
 
     return NextResponse.json({ success: true, message: 'Password has been reset successfully.' });
 
@@ -38,9 +61,8 @@ export async function POST(request: NextRequest) {
     console.error('Error resetting password:', error);
     let errorMessage = 'An internal server error occurred.';
     if (error.code === 'auth/user-not-found') {
-        errorMessage = 'User not found.';
+        errorMessage = 'User not found in Firebase Authentication.';
     }
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
-

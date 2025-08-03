@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -13,8 +13,6 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { KeyRound, Loader2 } from 'lucide-react';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
-import { collection, query, where, getDocs, limit } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 
 const phoneSchema = z.object({
   phoneNumber: z.string().min(11, { message: 'Please enter a valid 11-digit phone number.' }).max(11),
@@ -31,7 +29,6 @@ export default function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [generatedOtp, setGeneratedOtp] = useState('');
 
   const phoneForm = useForm<z.infer<typeof phoneSchema>>({
     resolver: zodResolver(phoneSchema),
@@ -45,43 +42,23 @@ export default function ForgotPasswordPage() {
   
   const onPhoneSubmit = async (values: z.infer<typeof phoneSchema>) => {
     setIsLoading(true);
-
     try {
-        const donorsRef = collection(db, 'donors');
-        const q = query(donorsRef, where('phoneNumber', '==', values.phoneNumber), limit(1));
-        const querySnapshot = await getDocs(q);
-
-        if (querySnapshot.empty) {
-            toast({
-                variant: 'destructive',
-                title: 'User Not Found',
-                description: 'No account is associated with this phone number.',
-            });
-            setIsLoading(false);
-            return;
-        }
-
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        setGeneratedOtp(otp);
-        setPhoneNumber(values.phoneNumber);
-      
-        const response = await fetch('/api/send-sms', {
+        const response = await fetch('/api/generate-otp', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              number: values.phoneNumber,
-              message: `Your RoktoDao OTP is: ${otp}`,
-            }),
+            body: JSON.stringify({ phoneNumber: values.phoneNumber }),
         });
+
         const result = await response.json();
         if (!response.ok || !result.success) {
             throw new Error(result.error || 'Failed to send OTP.');
         }
         
+        setPhoneNumber(values.phoneNumber);
         setStep('otp');
-        // Explicitly reset the form state for the next step to prevent value bleeding
         otpForm.reset({ otp: '', newPassword: '' });
         toast({ title: 'OTP Sent', description: `An OTP has been sent to ${values.phoneNumber}.` });
+
     } catch (error: any) {
       console.error("OTP sending error:", error);
       toast({
@@ -96,17 +73,15 @@ export default function ForgotPasswordPage() {
 
   const onOtpSubmit = async (values: z.infer<typeof otpSchema>) => {
     setIsLoading(true);
-    if (values.otp !== generatedOtp) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Invalid OTP. Please try again.' });
-        setIsLoading(false);
-        return;
-    }
-
     try {
         const response = await fetch('/api/reset-password', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ phoneNumber: phoneNumber, newPassword: values.newPassword }),
+            body: JSON.stringify({ 
+                phoneNumber: phoneNumber, 
+                otp: values.otp,
+                newPassword: values.newPassword 
+            }),
         });
 
         const result = await response.json();
