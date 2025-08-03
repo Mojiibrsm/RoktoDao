@@ -39,6 +39,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import Image from 'next/image';
 import IK from 'imagekit-javascript';
+import { useDebounce } from 'use-debounce';
+import getSlug from 'speakingurl';
+
 
 interface BlogPost extends BlogPostType {
     id: string;
@@ -68,6 +71,17 @@ const BlogPostForm = ({ form, onSubmit, isSubmitting, submitText }: { form: UseF
     const [uploading, setUploading] = useState(false);
     const [imagePreview, setImagePreview] = useState(form.getValues('image') || '');
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const titleValue = form.watch('title');
+    const [debouncedTitle] = useDebounce(titleValue, 500);
+
+    useEffect(() => {
+        if (debouncedTitle) {
+            const slug = getSlug(debouncedTitle, { lang: 'bn' });
+            form.setValue('slug', slug, { shouldValidate: true });
+        }
+    }, [debouncedTitle, form]);
+
 
     const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
         if (event.target.files && event.target.files[0]) {
@@ -360,3 +374,5 @@ export default function BlogManagementPage() {
         </div>
     );
 }
+
+    
