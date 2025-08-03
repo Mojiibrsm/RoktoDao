@@ -32,6 +32,8 @@ import IK from 'imagekit-javascript';
 const signupSchema = z.object({
   fullName: z.string().min(3, { message: 'Full name is required.' }),
   email: z.string().email({ message: 'Invalid email address.' }).optional().or(z.literal('')),
+  password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+  confirmPassword: z.string().min(6, { message: 'Please confirm your password.' }),
   bloodGroup: z.string({ required_error: 'Blood group is required.' }).min(1, 'Blood group is required.'),
   phoneNumber: z.string().min(11, { message: 'A valid phone number is required.' }),
   division: z.string({ required_error: 'Division is required.' }).min(1, 'Division is required.'),
@@ -43,6 +45,9 @@ const signupSchema = z.object({
   gender: z.enum(['Male', 'Female', 'Other'], {required_error: 'Gender is required.'}),
   donationCount: z.coerce.number().optional(),
   profilePictureUrl: z.string().optional(),
+}).refine(data => data.password === data.confirmPassword, {
+  message: "Passwords do not match.",
+  path: ["confirmPassword"],
 });
 
 const imagekit = new IK({
@@ -74,6 +79,8 @@ export default function SignupPage() {
     defaultValues: {
       fullName: '',
       email: '',
+      password: '',
+      confirmPassword: '',
       bloodGroup: '',
       phoneNumber: '',
       division: '',
@@ -155,7 +162,6 @@ export default function SignupPage() {
 
         // --- If not exists, proceed with signup ---
         let finalProfilePictureUrl = '';
-        const generatedPassword = Math.random().toString(36).slice(-8);
         const emailForAuth = values.email || `${values.phoneNumber}@rokto.dao`;
 
 
@@ -175,7 +181,7 @@ export default function SignupPage() {
             finalProfilePictureUrl = response.url;
         }
 
-        const userCredential = await createUserWithEmailAndPassword(auth, emailForAuth, generatedPassword);
+        const userCredential = await createUserWithEmailAndPassword(auth, emailForAuth, values.password);
         const user = userCredential.user;
 
         const donorData: Omit<Donor, 'id'> = {
@@ -202,30 +208,8 @@ export default function SignupPage() {
 
         await setDoc(doc(db, 'donors', user.uid), donorData);
 
-        // --- Send Notifications ---
+        // --- Send Admin Notification ---
         try {
-            const smsMessage = `Welcome to RoktoDao! Your password is: ${generatedPassword}`;
-            fetch('/api/send-sms', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ number: values.phoneNumber, message: smsMessage }),
-            });
-
-            if (values.email) {
-            fetch('/api/send-email', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                type: 'send_credentials',
-                data: {
-                    fullName: values.fullName,
-                    email: values.email,
-                    password: generatedPassword,
-                },
-                }),
-            });
-            }
-
             fetch('/api/send-email', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -242,14 +226,14 @@ export default function SignupPage() {
             }),
             });
         } catch (notificationError) {
-            console.error("Failed to send notifications:", notificationError);
+            console.error("Failed to send admin notification:", notificationError);
             // Don't block user creation for notification failure
         }
 
 
         toast({
             title: 'Account Created Successfully!',
-            description: "Welcome to RoktoDao. Please check your SMS for your password.",
+            description: "Welcome to RoktoDao. Please log in to continue.",
         });
         // Let AuthProvider handle redirect
     } catch (error: any) {
@@ -345,6 +329,22 @@ export default function SignupPage() {
                         )}
                     />
                     
+                     <FormField control={form.control} name="password" render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>পাসওয়ার্ড</FormLabel>
+                        <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )} />
+                     <FormField control={form.control} name="confirmPassword" render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>পাসওয়ার্ড নিশ্চিত করুন</FormLabel>
+                        <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )} />
+
+
                     <FormField control={form.control} name="bloodGroup" render={({ field }) => (
                         <FormItem>
                         <FormLabel>রক্তের গ্রুপ</FormLabel>
