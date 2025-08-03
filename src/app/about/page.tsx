@@ -32,9 +32,9 @@ export default function AboutPage() {
             <Card className="shadow-xl">
               <CardContent className="p-8">
                 <img
-                  src="https://ik.imagekit.io/uekohag7w/roktodao/gallery/community-people.jpg"
-                  alt="Community of donors"
-                  data-ai-hint="community people"
+                  src="http://tools.bartanow.com/img/blood-donation-info.png"
+                  alt="Blood donation information infographic"
+                  data-ai-hint="infographic blood"
                   className="rounded-lg object-cover w-full h-full"
                 />
               </CardContent>
