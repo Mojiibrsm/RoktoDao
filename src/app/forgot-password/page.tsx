@@ -47,7 +47,6 @@ export default function ForgotPasswordPage() {
     setIsLoading(true);
 
     try {
-        // Step 1: Check if user with phone number exists in Firestore
         const donorsRef = collection(db, 'donors');
         const q = query(donorsRef, where('phoneNumber', '==', values.phoneNumber), limit(1));
         const querySnapshot = await getDocs(q);
@@ -62,7 +61,6 @@ export default function ForgotPasswordPage() {
             return;
         }
 
-        // Step 2: If user exists, generate and send OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         setGeneratedOtp(otp);
         setPhoneNumber(values.phoneNumber);
@@ -71,17 +69,18 @@ export default function ForgotPasswordPage() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-            number: `+88${values.phoneNumber}`, // Send with country code
-            message: `Your RoktoDao OTP is: ${otp}`,
+              number: values.phoneNumber,
+              message: `Your RoktoDao OTP is: ${otp}`,
             }),
         });
         const result = await response.json();
         if (!response.ok || !result.success) {
             throw new Error(result.error || 'Failed to send OTP.');
         }
-
+        
         setStep('otp');
-        otpForm.reset();
+        // Explicitly reset the form state for the next step to prevent value bleeding
+        otpForm.reset({ otp: '', newPassword: '' });
         toast({ title: 'OTP Sent', description: `An OTP has been sent to ${values.phoneNumber}.` });
     } catch (error: any) {
       console.error("OTP sending error:", error);
