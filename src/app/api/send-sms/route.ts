@@ -23,7 +23,7 @@ async function sendSmsWithBulkSmsBd(number: string, message: string): Promise<bo
     console.error('BulkSMSBD API Key or Sender ID is not configured.');
     return false;
   }
-  // Use HTTPS to avoid mixed content issues on deployed environments
+  
   const url = `https://bulksmsbd.net/api/smsapi?api_key=${apiKey}&type=text&number=${number}&senderid=${senderId}&message=${encodeURIComponent(message)}`;
   
   try {
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
   const success = await sendSmsWithBulkSmsBd(number, message);
   
   if (success) {
-    await logSms({ number, message, status: 'success', apiUsed: 'API 2' }); // Log as API 2 for consistency
+    await logSms({ number, message, status: 'success', apiUsed: 'API 2' }); 
     return NextResponse.json({ success: true, message: 'SMS sent successfully.' });
   } else {
     console.error(`SMS API failed for number: ${number}`);
@@ -80,4 +80,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: 'SMS API failed to send the message.' }, { status: 500 });
   }
 }
-
