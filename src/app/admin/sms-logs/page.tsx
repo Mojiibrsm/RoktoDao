@@ -64,7 +64,7 @@ export default function SmsLogsPage() {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Date & Time</TableHead>
+                                <TableHead className="w-[200px]">Date & Time</TableHead>
                                 <TableHead>Recipient</TableHead>
                                 <TableHead className="w-[40%]">Message</TableHead>
                                 <TableHead>Status</TableHead>

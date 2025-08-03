@@ -71,11 +71,11 @@ export async function POST(request: NextRequest) {
   const success = await sendSmsWithBulkSmsBd(number, message);
   
   if (success) {
-    await logSms({ number, message, status: 'success', apiUsed: 'API 2' }); 
+    await logSms({ number, message, status: 'success', apiUsed: 'BulkSMSBD' }); 
     return NextResponse.json({ success: true, message: 'SMS sent successfully.' });
   } else {
     console.error(`SMS API failed for number: ${number}`);
-    await logSms({ number, message, status: 'failure', apiUsed: 'API 2' });
+    await logSms({ number, message, status: 'failure', apiUsed: 'BulkSMSBD' });
     await sendFailureReport(number, message);
     return NextResponse.json({ success: false, error: 'SMS API failed to send the message.' }, { status: 500 });
   }
