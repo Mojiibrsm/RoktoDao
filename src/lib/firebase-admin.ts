@@ -7,13 +7,23 @@ import type { ServiceAccount } from 'firebase-admin';
 const initializeFirebaseAdmin = () => {
   try {
     const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT;
-    if (!serviceAccountString) {
-      console.warn('Firebase Admin SDK: FIREBASE_SERVICE_ACCOUNT environment variable is not set.');
+    
+    // Check if the service account string is available and not empty
+    if (!serviceAccountString || serviceAccountString.trim() === '') {
+      console.warn('Firebase Admin SDK: FIREBASE_SERVICE_ACCOUNT environment variable is not set or is empty.');
       return;
     }
 
+    // Check if there are already initialized apps
     if (admin.apps.length === 0) {
-      const serviceAccount = JSON.parse(serviceAccountString) as ServiceAccount;
+      let serviceAccount: ServiceAccount;
+      try {
+        serviceAccount = JSON.parse(serviceAccountString) as ServiceAccount;
+      } catch (parseError) {
+        console.error('Firebase Admin SDK: Failed to parse FIREBASE_SERVICE_ACCOUNT string.', parseError);
+        return;
+      }
+      
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
       });
@@ -26,7 +36,7 @@ const initializeFirebaseAdmin = () => {
 // Call the initialization function.
 initializeFirebaseAdmin();
 
-// Export admin and dbAdmin. They will be null/undefined if initialization failed.
+// Export admin and dbAdmin. They will be null if initialization failed.
 // Code using these exports must handle the case where they are not available.
 const dbAdmin = admin.apps.length ? admin.firestore() : null;
 const adminAuth = admin.apps.length ? admin.auth() : null;
