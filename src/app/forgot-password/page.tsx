@@ -1,96 +1,195 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { sendPasswordResetEmail } from 'firebase/auth';
+import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { KeyRound } from 'lucide-react';
+import { KeyRound, Loader2 } from 'lucide-react';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 
-const forgotPasswordSchema = z.object({
-  email: z.string().email({ message: 'Please enter a valid email address.' }),
+const phoneSchema = z.object({
+  phoneNumber: z.string().min(11, { message: 'Please enter a valid 11-digit phone number.' }).max(11),
 });
+
+const otpSchema = z.object({
+  otp: z.string().min(6, { message: "Please enter the 6-digit OTP." }),
+  newPassword: z.string().min(6, { message: "Password must be at least 6 characters." }),
+});
+
+declare global {
+  interface Window {
+    recaptchaVerifier: RecaptchaVerifier;
+    confirmationResult: ConfirmationResult;
+  }
+}
 
 export default function ForgotPasswordPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
+  const [step, setStep] = useState<'phone' | 'otp'>('phone');
+  const [phoneNumber, setPhoneNumber] = useState('');
 
-  const form = useForm<z.infer<typeof forgotPasswordSchema>>({
-    resolver: zodResolver(forgotPasswordSchema),
-    defaultValues: {
-      email: '',
-    },
+  const phoneForm = useForm<z.infer<typeof phoneSchema>>({
+    resolver: zodResolver(phoneSchema),
+    defaultValues: { phoneNumber: '' },
   });
 
-  const onSubmit = async (values: z.infer<typeof forgotPasswordSchema>) => {
+  const otpForm = useForm<z.infer<typeof otpSchema>>({
+    resolver: zodResolver(otpSchema),
+    defaultValues: { otp: '', newPassword: '' },
+  });
+  
+  useEffect(() => {
+    if (step === 'phone' && !window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        'size': 'invisible',
+        'callback': (response: any) => {
+          // reCAPTCHA solved, allow signInWithPhoneNumber.
+        }
+      });
+    }
+  }, [step]);
+
+
+  const onPhoneSubmit = async (values: z.infer<typeof phoneSchema>) => {
     setIsLoading(true);
     try {
-      await sendPasswordResetEmail(auth, values.email);
-      setIsSuccess(true);
-      toast({
-        title: 'Check Your Email',
-        description: `A password reset link has been sent to ${values.email}.`,
-      });
+      const formattedPhoneNumber = `+88${values.phoneNumber}`;
+      setPhoneNumber(formattedPhoneNumber);
+      const confirmationResult = await signInWithPhoneNumber(auth, formattedPhoneNumber, window.recaptchaVerifier);
+      window.confirmationResult = confirmationResult;
+      setStep('otp');
+      toast({ title: 'OTP Sent', description: `An OTP has been sent to ${values.phoneNumber}.` });
     } catch (error: any) {
+      console.error("OTP sending error:", error);
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Could not send password reset email. Please ensure the email is registered.',
+        description: 'Could not send OTP. Please check the phone number and try again.',
       });
     } finally {
       setIsLoading(false);
     }
   };
 
+  const onOtpSubmit = async (values: z.infer<typeof otpSchema>) => {
+    setIsLoading(true);
+    try {
+        await window.confirmationResult.confirm(values.otp);
+        // OTP is correct, now call our secure backend to reset the password
+        const response = await fetch('/api/reset-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phoneNumber: phoneNumber, newPassword: values.newPassword }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.error || 'Failed to reset password.');
+        }
+
+        toast({ title: 'Success', description: 'Your password has been reset successfully.' });
+        setStep('phone');
+        phoneForm.reset();
+        otpForm.reset();
+
+    } catch (error: any) {
+         toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: error.message || 'Invalid OTP or failed to reset password. Please try again.',
+        });
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
   return (
     <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center bg-background p-4">
+       <div id="recaptcha-container"></div>
       <Card className="w-full max-w-sm shadow-xl">
         <CardHeader className="text-center">
           <KeyRound className="mx-auto h-12 w-12 text-primary" />
           <CardTitle className="text-2xl font-headline">Reset Password</CardTitle>
-          <CardDescription>
-            {isSuccess
-              ? 'Check your inbox for the reset link.'
-              : 'Enter your email to receive a password reset link.'}
+           <CardDescription>
+            {step === 'phone' 
+                ? 'Enter your phone number to receive an OTP.'
+                : 'Enter the OTP and your new password.'
+            }
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {isSuccess ? (
-            <div className="text-center">
-              <p className="text-muted-foreground mb-4">
-                If you don't see the email, please check your spam folder.
-              </p>
-              <Button asChild>
-                <Link href="/login">Back to Log In</Link>
-              </Button>
-            </div>
-          ) : (
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          {step === 'phone' ? (
+            <Form {...phoneForm}>
+              <form onSubmit={phoneForm.handleSubmit(onPhoneSubmit)} className="space-y-4">
                 <FormField
-                  control={form.control}
-                  name="email"
+                  control={phoneForm.control}
+                  name="phoneNumber"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email Address</FormLabel>
+                      <FormLabel>Phone Number</FormLabel>
                       <FormControl>
-                        <Input placeholder="you@example.com" {...field} />
+                        <Input placeholder="01XXXXXXXXX" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? 'Sending...' : 'Send Reset Link'}
+                  {isLoading ? <><Loader2 className="animate-spin" /> Sending OTP...</> : 'Send OTP'}
+                </Button>
+              </form>
+            </Form>
+          ) : (
+             <Form {...otpForm}>
+              <form onSubmit={otpForm.handleSubmit(onOtpSubmit)} className="space-y-6">
+                <FormField
+                  control={otpForm.control}
+                  name="otp"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Enter OTP</FormLabel>
+                      <FormControl>
+                        <InputOTP maxLength={6} {...field}>
+                            <InputOTPGroup>
+                                <InputOTPSlot index={0} />
+                                <InputOTPSlot index={1} />
+                                <InputOTPSlot index={2} />
+                                <InputOTPSlot index={3} />
+                                <InputOTPSlot index={4} />
+                                <InputOTPSlot index={5} />
+                            </InputOTPGroup>
+                        </InputOTP>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={otpForm.control}
+                  name="newPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>New Password</FormLabel>
+                      <FormControl>
+                        <Input type="password" placeholder="••••••••" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? <><Loader2 className="animate-spin" /> Resettiing...</> : 'Reset Password'}
                 </Button>
               </form>
             </Form>

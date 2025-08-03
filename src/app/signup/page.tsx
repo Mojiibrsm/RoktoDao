@@ -7,9 +7,9 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -124,7 +124,7 @@ export default function SignupPage() {
       reader.onloadend = () => {
         setProfileImageUrl(reader.result as string);
       };
-      reader.readAsDataURL(file);
+      reader.readDataURL(file);
     }
   };
 
@@ -133,34 +133,23 @@ export default function SignupPage() {
     let finalProfilePictureUrl = '';
 
     const generatedPassword = Math.random().toString(36).slice(-8);
-    // If email is not provided, create a dummy one for Firebase Auth
     const emailForAuth = values.email || `${values.phoneNumber}@rokto.dao`;
 
     try {
       if (profileImageFile) {
-        try {
-            const authResponse = await fetch('/api/imagekit-auth');
-             if (!authResponse.ok) {
-                throw new Error('Authentication failed for image upload.');
-            }
-            const authParams = await authResponse.json();
-            const response = await imagekit.upload({
-                ...authParams,
-                file: profileImageFile,
-                fileName: profileImageFile.name,
-                useUniqueFileName: true,
-                folder: '/roktodao/avatars/',
-            });
-            finalProfilePictureUrl = response.url;
-        } catch (uploadError) {
-             toast({
-                variant: 'destructive',
-                title: 'Image Upload Failed',
-                description: 'Could not upload profile picture. Please try again.',
-            });
-            setIsLoading(false);
-            return;
+        const authResponse = await fetch('/api/imagekit-auth');
+        if (!authResponse.ok) {
+          throw new Error('Authentication failed for image upload.');
         }
+        const authParams = await authResponse.json();
+        const response = await imagekit.upload({
+          ...authParams,
+          file: profileImageFile,
+          fileName: profileImageFile.name,
+          useUniqueFileName: true,
+          folder: '/roktodao/avatars/',
+        });
+        finalProfilePictureUrl = response.url;
       }
 
       const userCredential = await createUserWithEmailAndPassword(auth, emailForAuth, generatedPassword);
@@ -169,7 +158,7 @@ export default function SignupPage() {
       const donorData: Omit<Donor, 'id'> = {
         uid: user.uid,
         fullName: values.fullName,
-        email: values.email || null, // Store null if not provided
+        email: values.email || null,
         bloodGroup: values.bloodGroup,
         phoneNumber: values.phoneNumber,
         address: {
@@ -177,7 +166,7 @@ export default function SignupPage() {
           district: values.district,
           upazila: values.upazila,
         },
-        lastDonationDate: values.lastDonationDate?.toISOString() || null,
+        lastDonationDate: values.lastDonationDate ? values.lastDonationDate.toISOString() : null,
         isAvailable: values.isAvailable,
         dateOfBirth: values.dateOfBirth?.toISOString(),
         gender: values.gender,
@@ -191,8 +180,6 @@ export default function SignupPage() {
       await setDoc(doc(db, 'donors', user.uid), donorData);
 
       // --- Send Notifications ---
-
-      // 1. Send password via SMS
       const smsMessage = `Welcome to RoktoDao! Your password is: ${generatedPassword}`;
       fetch('/api/send-sms', {
           method: 'POST',
@@ -200,7 +187,6 @@ export default function SignupPage() {
           body: JSON.stringify({ number: values.phoneNumber, message: smsMessage }),
       }).catch(e => console.error("SMS sending failed silently:", e));
 
-      // 2. Send password via Email if provided
       if (values.email) {
         fetch('/api/send-email', {
           method: 'POST',
@@ -216,7 +202,6 @@ export default function SignupPage() {
         }).catch(e => console.error("Credentials email sending failed silently:", e));
       }
 
-      // 3. Send new donor notification to admin
       fetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -238,36 +223,52 @@ export default function SignupPage() {
         title: 'Account Created Successfully!',
         description: "Welcome to RoktoDao. Please check your SMS for your password.",
       });
-      // The onAuthStateChanged listener in AuthProvider will handle the redirect.
-      // Manually pushing here can cause race conditions.
-      // The useEffect hook will handle the redirection safely.
 
     } catch (error: any) {
       const errorCode = error.code;
-      let errorMessage = 'An unknown error occurred.';
-      if (errorCode === 'auth/email-already-in-use') {
-        errorMessage = 'This phone number or email is already registered. Please try logging in.';
+      if (errorCode === 'auth/email-already-in-use' && !values.email) {
+        // This is the edge case: phone number exists with a dummy email.
+        // Try to sign them in instead.
+        try {
+          await signInWithEmailAndPassword(auth, emailForAuth, generatedPassword);
+          toast({
+            title: 'Welcome Back!',
+            description: "You're already registered. We've logged you in.",
+          });
+          // AuthProvider will handle the redirect.
+        } catch (signInError) {
+           toast({
+            variant: 'destructive',
+            title: 'Login Failed',
+            description: 'This phone number is already registered. Please try logging in with your password.',
+          });
+        }
       } else {
-        errorMessage = error.message;
+         let errorMessage = 'An unknown error occurred.';
+          if (errorCode === 'auth/email-already-in-use') {
+            errorMessage = 'This phone number or email is already registered. Please try logging in.';
+          } else {
+            errorMessage = error.message;
+          }
+          toast({
+            variant: 'destructive',
+            title: 'Signup Failed',
+            description: errorMessage,
+          });
       }
-      toast({
-        variant: 'destructive',
-        title: 'Signup Failed',
-        description: errorMessage,
-      });
     } finally {
       setIsLoading(false);
     }
   };
   
-  if (loading || (!loading && user)) {
+  if (loading) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-        <p className="ml-4">Redirecting to profile...</p>
       </div>
     );
   }
+
 
   return (
     <div className="flex items-center justify-center bg-background p-4 py-12">

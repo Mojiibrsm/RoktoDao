@@ -1,6 +1,6 @@
 
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth } from 'firebase/auth';
+import { getAuth, Auth, RecaptchaVerifier } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -30,4 +30,4 @@ if (typeof window !== 'undefined') {
 }
 
 
-export { app, auth, db };
+export { app, auth, db, RecaptchaVerifier };
