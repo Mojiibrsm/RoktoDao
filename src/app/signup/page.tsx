@@ -177,7 +177,7 @@ export default function SignupPage() {
           district: values.district,
           upazila: values.upazila,
         },
-        lastDonationDate: values.lastDonationDate?.toISOString(),
+        lastDonationDate: values.lastDonationDate?.toISOString() || null,
         isAvailable: values.isAvailable,
         dateOfBirth: values.dateOfBirth?.toISOString(),
         gender: values.gender,
@@ -264,7 +264,7 @@ export default function SignupPage() {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-        <p className="ml-4">Loading...</p>
+        <p className="ml-4">Redirecting to profile...</p>
       </div>
     );
   }
