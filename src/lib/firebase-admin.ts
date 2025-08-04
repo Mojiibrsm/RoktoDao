@@ -1,33 +1,35 @@
+
 import * as admin from 'firebase-admin';
 import type { ServiceAccount } from 'firebase-admin';
 
-let app: admin.app.App;
-let db: admin.firestore.Firestore;
-let auth: admin.auth.Auth;
+// This is a singleton pattern to ensure Firebase Admin is initialized only once.
+let app: admin.app.App | undefined;
 
-if (admin.apps.length === 0) {
+function getFirebaseAdmin() {
+  if (!app) {
     const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT;
     if (!serviceAccountString) {
       throw new Error(
         'FIREBASE_SERVICE_ACCOUNT environment variable is not set. Admin features will be disabled.'
       );
     }
-    
+
     try {
-        const serviceAccount = JSON.parse(serviceAccountString) as ServiceAccount;
-        app = admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount),
-        });
+      const serviceAccount = JSON.parse(serviceAccountString) as ServiceAccount;
+      app = admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
     } catch (error: any) {
-        console.error('Firebase Admin SDK initialization failed:', error.message);
-        throw new Error(`Firebase Admin SDK initialization failed: ${error.message}`);
+      // Provide a more descriptive error to help debug the JSON parsing issue.
+      console.error('Firebase Admin SDK initialization failed:', error);
+      throw new Error(`Firebase Admin SDK initialization failed: ${error.message}. Please check if the FIREBASE_SERVICE_ACCOUNT environment variable is a valid JSON.`);
     }
-} else {
-    app = admin.app();
+  }
+
+  return {
+    db: admin.firestore(app),
+    auth: admin.auth(app),
+  };
 }
 
-db = admin.firestore(app);
-auth = admin.auth(app);
-
-export const adminDb = db;
-export const adminAuth = auth;
+export const { db: adminDb, auth: adminAuth } = getFirebaseAdmin();
