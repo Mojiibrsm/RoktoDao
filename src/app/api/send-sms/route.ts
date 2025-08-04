@@ -28,7 +28,7 @@ async function sendSmsWithBulkSmsBd(number: string, message: string): Promise<bo
   const url = `https://bulksmsbd.net/api/smsapi?api_key=${apiKey}&type=text&number=${number}&senderid=${senderId}&message=${encodeURIComponent(message)}`;
   
   try {
-    const response = await fetch(url, { signal: AbortSignal.timeout(10000) }); // 10s timeout
+    const response = await fetch(url);
     const result = await response.json();
     
     if (result.response_code === 202) {
