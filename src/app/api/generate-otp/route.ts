@@ -1,7 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { collection, query, where, getDocs, setDoc, doc, serverTimestamp } from 'firebase/firestore';
-import { getFirebaseAdmin } from '@/lib/firebase-admin';
+import { adminDb } from '@/lib/firebase-admin';
 import { db } from '@/lib/firebase';
 
 async function sendSms(number: string, message: string) {
@@ -21,7 +21,6 @@ async function sendSms(number: string, message: string) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { db: adminDb } = getFirebaseAdmin();
     const { phoneNumber } = await request.json();
 
     if (!phoneNumber) {

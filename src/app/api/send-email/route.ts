@@ -2,13 +2,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import { doc, getDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { getFirebaseAdmin } from '@/lib/firebase-admin';
+import { adminDb } from '@/lib/firebase-admin';
 import type { FeedbackType } from '@/lib/types';
 
 
 export async function POST(request: NextRequest) {
   try {
-    const { db: adminDb } = getFirebaseAdmin();
     const { type, data } = await request.json();
 
     // Fetch settings from Firestore

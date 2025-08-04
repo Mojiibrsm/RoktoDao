@@ -1,34 +1,29 @@
 
-import * as admin from 'firebase-admin';
-import type { ServiceAccount } from 'firebase-admin';
-import { serviceAccount as serviceAccountCredentials } from './firebase-service-account';
+import { getApps, initializeApp, getApp, App } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
+import { ServiceAccount, cert } from 'firebase-admin/app';
+import { serviceAccount } from './firebase-service-account';
 
-// This is a singleton pattern to ensure Firebase Admin is initialized only once.
-let app: admin.app.App | undefined;
+const serviceAccountCredentials = serviceAccount as ServiceAccount;
 
-export function getFirebaseAdmin() {
-  if (admin.apps.length > 0 && app) {
-    return {
-      db: admin.firestore(),
-      auth: admin.auth(),
-      app: app,
-    };
+function initializeAdminApp(): App {
+  if (getApps().length > 0) {
+    return getApp();
   }
-  
-  const serviceAccount = serviceAccountCredentials as ServiceAccount;
-  
+
   try {
-    app = admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
+    return initializeApp({
+      credential: cert(serviceAccountCredentials),
     });
   } catch (error: any) {
     console.error('Firebase Admin SDK initialization failed:', error.message);
     throw new Error(`Firebase Admin SDK initialization failed: ${error.message}.`);
   }
-
-  return {
-    db: admin.firestore(),
-    auth: admin.auth(),
-    app: app,
-  };
 }
+
+const adminApp = initializeAdminApp();
+const adminAuth = getAuth(adminApp);
+const adminDb = getFirestore(adminApp);
+
+export { adminApp, adminAuth, adminDb };

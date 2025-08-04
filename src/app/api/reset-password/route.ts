@@ -1,11 +1,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getFirebaseAdmin } from '@/lib/firebase-admin';
+import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { doc, getDoc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 export async function POST(request: NextRequest) {
   try {
-    const { auth: adminAuth, db: adminDb } = getFirebaseAdmin();
     const { phoneNumber, otp, newPassword } = await request.json();
 
     if (!phoneNumber || !otp || !newPassword) {
