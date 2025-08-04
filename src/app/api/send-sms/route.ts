@@ -69,15 +69,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: 'Missing number or message.' }, { status: 400 });
   }
 
+  // We only have one provider now, so we call it directly.
   const success = await sendSmsWithBulkSmsBd(number, message);
   
   if (success) {
     await logSms({ number, message, status: 'success', apiUsed: 'BulkSMSBD' }); 
     return NextResponse.json({ success: true, message: 'SMS sent successfully.' });
   } else {
+    // If the primary API fails, we log it and send a failure report.
     console.error(`SMS API failed for number: ${number}`);
     await logSms({ number, message, status: 'failure', apiUsed: 'BulkSMSBD' });
+    // Notify admin about the failure.
     await sendFailureReport(number, message);
+    // Return a server error response.
     return NextResponse.json({ success: false, error: 'SMS API failed to send the message.' }, { status: 500 });
   }
 }
