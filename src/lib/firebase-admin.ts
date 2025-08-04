@@ -1,14 +1,11 @@
 import * as admin from 'firebase-admin';
 import type { ServiceAccount } from 'firebase-admin';
 
-// This prevents re-initialization in hot-reloading environments
-let adminInstance: admin.app.App | null = null;
+let app: admin.app.App;
+let db: admin.firestore.Firestore;
+let auth: admin.auth.Auth;
 
-function initializeAdminApp(): admin.app.App {
-    if (admin.apps.length > 0) {
-        return admin.app();
-    }
-    
+if (admin.apps.length === 0) {
     const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT;
     if (!serviceAccountString) {
       throw new Error(
@@ -18,25 +15,19 @@ function initializeAdminApp(): admin.app.App {
     
     try {
         const serviceAccount = JSON.parse(serviceAccountString) as ServiceAccount;
-        return admin.initializeApp({
+        app = admin.initializeApp({
             credential: admin.credential.cert(serviceAccount),
         });
     } catch (error: any) {
         console.error('Firebase Admin SDK initialization failed:', error.message);
         throw new Error(`Firebase Admin SDK initialization failed: ${error.message}`);
     }
+} else {
+    app = admin.app();
 }
 
+db = admin.firestore(app);
+auth = admin.auth(app);
 
-function getFirebaseAdmin() {
-  if (!adminInstance) {
-    adminInstance = initializeAdminApp();
-  }
-  return {
-    app: adminInstance,
-    db: admin.firestore(adminInstance),
-    auth: admin.auth(adminInstance),
-  };
-}
-
-export const { db: adminDb, auth: adminAuth } = getFirebaseAdmin();
+export const adminDb = db;
+export const adminAuth = auth;
