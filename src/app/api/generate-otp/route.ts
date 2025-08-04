@@ -1,6 +1,7 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { collection, query, where, getDocs, setDoc, doc, serverTimestamp } from 'firebase/firestore';
-import { adminDb } from '@/lib/firebase-admin';
+import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import { db } from '@/lib/firebase';
 
 async function sendSms(number: string, message: string) {
@@ -20,6 +21,7 @@ async function sendSms(number: string, message: string) {
 
 export async function POST(request: NextRequest) {
   try {
+    const { adminDb } = getFirebaseAdmin();
     const { phoneNumber } = await request.json();
 
     if (!phoneNumber) {
@@ -60,7 +62,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, message: 'OTP has been sent to your phone number.' });
 
   } catch (error: any) {
-    console.error('Error generating OTP:', error);
+    console.error('Error in generate-otp API:', error);
+    // Specifically catch the admin SDK initialization error.
+    if (error.message.includes('Firebase Admin SDK initialization failed')) {
+        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
     return NextResponse.json({ success: false, error: error.message || 'An internal server error occurred.' }, { status: 500 });
   }
 }

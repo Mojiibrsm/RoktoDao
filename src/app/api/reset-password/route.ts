@@ -1,10 +1,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth, adminDb } from '@/lib/firebase-admin';
+import { getFirebaseAdmin } from '@/lib/firebase-admin';
 import { doc, getDoc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 export async function POST(request: NextRequest) {
   try {
+    const { adminAuth, adminDb } = getFirebaseAdmin();
     const { phoneNumber, otp, newPassword } = await request.json();
 
     if (!phoneNumber || !otp || !newPassword) {
@@ -58,6 +59,8 @@ export async function POST(request: NextRequest) {
     let errorMessage = 'An internal server error occurred.';
     if (error.code === 'auth/user-not-found') {
         errorMessage = 'User not found in Firebase Authentication.';
+    } else if (error.message.includes('Firebase Admin SDK')) {
+        errorMessage = error.message;
     }
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
