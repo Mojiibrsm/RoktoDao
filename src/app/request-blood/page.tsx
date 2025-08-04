@@ -117,13 +117,13 @@ export default function RequestBloodPage() {
     ).sort((a, b) => a.label.localeCompare(b.label, 'bn'));
 
     const sendSmsToDonors = async (request: Omit<BloodRequest, 'id'>) => {
-        // Find available donors in the same district and with the same blood group
+      try {
         const donorsRef = collection(db, 'donors');
         const q = query(
             donorsRef,
-            where('isAvailable', '==', true),
+            where('address.district', '==', request.district),
             where('bloodGroup', '==', request.bloodGroup),
-            where('address.district', '==', request.district)
+            where('isAvailable', '==', true)
         );
 
         const querySnapshot = await getDocs(q);
@@ -131,13 +131,18 @@ export default function RequestBloodPage() {
 
         const message = `জরুরী রক্তের আবেদন: ${request.district}-এ ${request.bloodGroup} রক্তের প্রয়োজন। রোগীর নাম: ${request.patientName}, যোগাযোগ: ${request.contactPhone}`;
 
-        for (const donor of donors) {
-            await fetch('/api/send-sms', {
+        // Use Promise.all to send SMS concurrently
+        await Promise.all(donors.map(donor => 
+            fetch('/api/send-sms', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ number: donor.phoneNumber, message }),
-            });
-        }
+            })
+        ));
+      } catch (error) {
+        console.error("Failed to send SMS to donors:", error);
+        // Do not block the UI, just log the error
+      }
     };
 
   const onSubmit = async (values: z.infer<typeof requestSchema>) => {
@@ -162,29 +167,24 @@ export default function RequestBloodPage() {
     try {
       await addDoc(collection(db, 'requests'), { ...requestData, createdAt: serverTimestamp() });
       
-      // Send notifications
-      await sendSmsToDonors(requestData);
+      // Send notifications (don't wait for them to complete)
+      sendSmsToDonors(requestData);
 
-      try {
-        await fetch('/api/send-email', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
+      fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'new_request',
+          data: {
+            patientName: values.patientName,
+            bloodGroup: values.bloodGroup,
+            numberOfBags: values.numberOfBags,
+            hospitalLocation: finalHospitalName,
+            contactPhone: values.contactPhone,
           },
-          body: JSON.stringify({
-            type: 'new_request',
-            data: {
-              patientName: values.patientName,
-              bloodGroup: values.bloodGroup,
-              numberOfBags: values.numberOfBags,
-              hospitalLocation: finalHospitalName,
-              contactPhone: values.contactPhone,
-            },
-          }),
-        });
-      } catch (emailError) {
-        console.error("Could not send notification email:", emailError);
-      }
+        }),
+      }).catch(emailError => console.error("Could not send notification email:", emailError));
+
 
       toast({
         title: 'ধন্যবাদ!',
@@ -392,3 +392,5 @@ export default function RequestBloodPage() {
     </div>
   );
 }
+
+    
