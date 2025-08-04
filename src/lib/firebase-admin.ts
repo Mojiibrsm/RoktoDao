@@ -23,10 +23,13 @@ export function getFirebaseAdmin() {
       console.error('Firebase Admin SDK initialization failed:', error);
       throw new Error(`Firebase Admin SDK initialization failed: ${error.message}. Please check if the FIREBASE_SERVICE_ACCOUNT environment variable is a valid JSON.`);
     }
+  } else {
+    app = admin.apps[0]!;
   }
 
   return {
     db: admin.firestore(),
     auth: admin.auth(),
+    app: app, // Return the app instance as well
   };
 }
