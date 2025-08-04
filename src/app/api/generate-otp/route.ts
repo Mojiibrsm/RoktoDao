@@ -20,18 +20,14 @@ async function sendSms(number: string, message: string) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!adminDb) {
-    return NextResponse.json({ success: false, error: 'Admin SDK not initialized.' }, { status: 500 });
-  }
-
-  const { phoneNumber } = await request.json();
-
-  if (!phoneNumber) {
-    return NextResponse.json({ success: false, error: 'Phone number is required.' }, { status: 400 });
-  }
-
   try {
-    // 1. Check if user exists
+    const { phoneNumber } = await request.json();
+
+    if (!phoneNumber) {
+      return NextResponse.json({ success: false, error: 'Phone number is required.' }, { status: 400 });
+    }
+
+    // 1. Check if user exists using the client-facing db instance
     const donorsRef = collection(db, 'donors');
     const q = query(donorsRef, where('phoneNumber', '==', phoneNumber));
     const querySnapshot = await getDocs(q);
@@ -45,7 +41,7 @@ export async function POST(request: NextRequest) {
     const expires = new Date();
     expires.setMinutes(expires.getMinutes() + 10); // OTP expires in 10 minutes
 
-    // 3. Store OTP securely in Firestore with an expiration
+    // 3. Store OTP securely in Firestore with an expiration using the Admin SDK
     const otpRef = doc(adminDb, 'otp_codes', phoneNumber);
     await setDoc(otpRef, {
       code: otp,
@@ -69,5 +65,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: error.message || 'An internal server error occurred.' }, { status: 500 });
   }
 }
-
-    

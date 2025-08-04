@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import { doc, getDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { adminDb } from '@/lib/firebase-admin';
 import type { FeedbackType } from '@/lib/types';
 
 
@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     const { type, data } = await request.json();
 
     // Fetch settings from Firestore
-    const settingsRef = doc(db, 'settings', 'global');
+    const settingsRef = doc(adminDb, 'settings', 'global');
     const docSnap = await getDoc(settingsRef);
 
     if (!docSnap.exists()) {
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
         status: 'New',
         createdAt: serverTimestamp(),
       };
-      await addDoc(collection(db, 'feedback'), feedbackData);
+      await addDoc(collection(adminDb, 'feedback'), feedbackData);
 
       subject = `📨 New Contact Message from ${data.name}`;
       htmlContent = `

@@ -4,10 +4,6 @@ import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { doc, getDoc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 export async function POST(request: NextRequest) {
-  if (!adminAuth || !adminDb) {
-    return NextResponse.json({ error: 'Admin SDK not initialized.' }, { status: 500 });
-  }
-
   try {
     const { phoneNumber, otp, newPassword } = await request.json();
 
@@ -66,5 +62,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
-
-    
