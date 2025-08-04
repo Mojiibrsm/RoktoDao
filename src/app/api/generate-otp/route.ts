@@ -2,7 +2,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { collection, query, where, getDocs, setDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { adminDb } from '@/lib/firebase-admin';
-import { db } from '@/lib/firebase';
 
 async function sendSms(number: string, message: string) {
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
@@ -27,8 +26,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Phone number is required.' }, { status: 400 });
     }
 
-    // 1. Check if user exists using the client-facing db instance
-    const donorsRef = collection(db, 'donors');
+    // 1. Check if user exists using the admin SDK
+    const donorsRef = collection(adminDb, 'donors');
     const q = query(donorsRef, where('phoneNumber', '==', phoneNumber));
     const querySnapshot = await getDocs(q);
 
