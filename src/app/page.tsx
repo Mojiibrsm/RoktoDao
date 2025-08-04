@@ -350,7 +350,7 @@ export default function Home() {
                 <div className="grid md:grid-cols-3 gap-8 items-center">
                     <div className="md:col-span-1 flex justify-center">
                         <Image
-                            src={director.avatar || "/mojibrsm.png"}
+                            src={"/files/Mojib_Rsm.jpg"}
                             alt={director.name}
                             width={200}
                             height={200}
@@ -405,7 +405,7 @@ export default function Home() {
             </div>
             <div>
               <Image
-                src="https://ik.imagekit.io/uekohag7w/roktodao/gallery/blood_donation_info.png"
+                src="/files/blood_donation_info.png"
                 alt="Blood donation information infographic"
                 data-ai-hint="infographic blood donation"
                 width={600}
