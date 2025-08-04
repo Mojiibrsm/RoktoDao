@@ -5,7 +5,6 @@ import type { ServiceAccount } from 'firebase-admin';
 let adminDb: admin.firestore.Firestore | null = null;
 let adminAuth: admin.auth.Auth | null = null;
 
-// Ensure this block runs only once.
 if (admin.apps.length === 0) {
   try {
     const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT;
@@ -24,10 +23,8 @@ if (admin.apps.length === 0) {
     console.error('Firebase Admin SDK initialization failed:', error);
   }
 } else {
-    // If already initialized, get the instances
     adminDb = admin.firestore();
     adminAuth = admin.auth();
 }
-
 
 export { admin, adminDb, adminAuth };

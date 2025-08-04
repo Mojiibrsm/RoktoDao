@@ -1,8 +1,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { collection, query, where, getDocs, setDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { adminDb } from '@/lib/firebase-admin';
 import { db } from '@/lib/firebase';
-import { adminDb } from '@/lib/firebase-admin'; // Using admin for server-side operations
 
 async function sendSms(number: string, message: string) {
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
