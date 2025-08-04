@@ -5,8 +5,8 @@ import type { ServiceAccount } from 'firebase-admin';
 // This is a singleton pattern to ensure Firebase Admin is initialized only once.
 let app: admin.app.App | undefined;
 
-function getFirebaseAdmin() {
-  if (!app) {
+export function getFirebaseAdmin() {
+  if (!admin.apps.length) {
     const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT;
     if (!serviceAccountString) {
       throw new Error(
@@ -20,16 +20,13 @@ function getFirebaseAdmin() {
         credential: admin.credential.cert(serviceAccount),
       });
     } catch (error: any) {
-      // Provide a more descriptive error to help debug the JSON parsing issue.
       console.error('Firebase Admin SDK initialization failed:', error);
       throw new Error(`Firebase Admin SDK initialization failed: ${error.message}. Please check if the FIREBASE_SERVICE_ACCOUNT environment variable is a valid JSON.`);
     }
   }
 
   return {
-    db: admin.firestore(app),
-    auth: admin.auth(app),
+    db: admin.firestore(),
+    auth: admin.auth(),
   };
 }
-
-export const { db: adminDb, auth: adminAuth } = getFirebaseAdmin();

@@ -8,7 +8,7 @@ import type { FeedbackType } from '@/lib/types';
 
 export async function POST(request: NextRequest) {
   try {
-    const { adminDb } = getFirebaseAdmin();
+    const { db: adminDb } = getFirebaseAdmin();
     const { type, data } = await request.json();
 
     // Fetch settings from Firestore
@@ -123,9 +123,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('Error sending email:', error);
-    if (error.message.includes('Firebase Admin SDK initialization failed')) {
-        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-    }
     return NextResponse.json({ success: false, error: error.message || 'Failed to send email.' }, { status: 500 });
   }
 }

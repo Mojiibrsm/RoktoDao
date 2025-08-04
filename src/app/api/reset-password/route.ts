@@ -5,7 +5,7 @@ import { doc, getDoc, deleteDoc, collection, query, where, getDocs } from 'fireb
 
 export async function POST(request: NextRequest) {
   try {
-    const { adminAuth, adminDb } = getFirebaseAdmin();
+    const { auth: adminAuth, db: adminDb } = getFirebaseAdmin();
     const { phoneNumber, otp, newPassword } = await request.json();
 
     if (!phoneNumber || !otp || !newPassword) {
