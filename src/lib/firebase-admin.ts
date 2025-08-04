@@ -4,13 +4,16 @@ import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { serviceAccount } from './firebase-service-account';
 
-const apps = getApps();
+const appName = 'firebase-admin-app';
+let adminApp: App;
 
-const adminApp: App = !apps.length
-  ? initializeApp({
-      credential: cert(serviceAccount),
-    })
-  : getApp();
+if (!getApps().some(app => app.name === appName)) {
+  adminApp = initializeApp({
+    credential: cert(serviceAccount),
+  }, appName);
+} else {
+  adminApp = getApp(appName);
+}
 
 const adminAuth = getAuth(adminApp);
 const adminDb = getFirestore(adminApp);
