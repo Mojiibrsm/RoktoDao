@@ -4,7 +4,6 @@ import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { serviceAccount } from './firebase-service-account';
 
-const appName = 'firebase-admin-app';
 let adminApp: App;
 
 if (!getApps().length) {
