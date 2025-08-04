@@ -15,7 +15,10 @@ export function getFirebaseAdmin() {
     }
 
     try {
-      const serviceAccount = JSON.parse(serviceAccountString) as ServiceAccount;
+      // Replace the escaped newlines with actual newline characters for the private key
+      const serviceAccountJson = serviceAccountString.replace(/\\n/g, '\n');
+      const serviceAccount = JSON.parse(serviceAccountJson) as ServiceAccount;
+      
       app = admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
       });
