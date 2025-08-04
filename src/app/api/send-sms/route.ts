@@ -4,12 +4,13 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { SmsLog } from '@/lib/types';
 
-async function logSms(logData: Omit<SmsLog, 'id' | 'createdAt'>) {
+async function logSms(logData: Omit<SmsLog, 'id' | 'createdAt'>): Promise<void> {
     try {
         await addDoc(collection(db, 'sms_logs'), {
             ...logData,
             createdAt: serverTimestamp(),
         });
+        console.log(`SMS log saved for ${logData.number}`);
     } catch (error) {
         console.error("Failed to log SMS to Firestore:", error);
     }

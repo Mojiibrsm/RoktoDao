@@ -1,8 +1,9 @@
 
+
 "use client";
 
-import { useState, useEffect } from 'react';
-import { collection, getDocs, doc, updateDoc, deleteDoc, writeBatch, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useState, useEffect, useCallback, useTransition } from 'react';
+import { collection, getDocs, doc, updateDoc, deleteDoc, writeBatch, addDoc, serverTimestamp, query, where, orderBy, startAt, endAt } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Donor as DonorType } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
@@ -10,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { MoreHorizontal, UserX, Trash2, Edit, ChevronDown, Ban, UserCheck, PlusCircle } from 'lucide-react';
+import { MoreHorizontal, UserX, Trash2, Edit, ChevronDown, Ban, UserCheck, PlusCircle, Search, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -42,6 +43,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { bloodGroups } from '@/lib/location-data';
+import Papa from 'papaparse';
+import { format } from 'date-fns';
 
 
 type Donor = DonorType & { id: string };
@@ -113,12 +116,18 @@ const UserForm = ({ form, onSubmit, isSubmitting, submitText }: UserFormProps) =
 };
 
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState<Donor[]>([]);
+  const [allUsers, setAllUsers] = useState<Donor[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<Donor[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
+  
+  const [searchName, setSearchName] = useState('');
+  const [searchPhone, setSearchPhone] = useState('');
+  const [searchArea, setSearchArea] = useState('');
+  const [isPending, startTransition] = useTransition();
 
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userSchema),
@@ -136,10 +145,27 @@ export default function AdminUsersPage() {
     const usersCollection = collection(db, 'donors');
     const usersSnapshot = await getDocs(usersCollection);
     const usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Donor));
-    setUsers(usersList);
+    setAllUsers(usersList);
+    setFilteredUsers(usersList);
     setLoading(false);
     setSelectedUsers([]);
   };
+  
+  const handleSearch = useCallback(() => {
+    startTransition(() => {
+        const filtered = allUsers.filter(user => {
+            const nameMatch = searchName ? user.fullName.toLowerCase().includes(searchName.toLowerCase()) : true;
+            const phoneMatch = searchPhone ? user.phoneNumber.includes(searchPhone) : true;
+            const areaMatch = searchArea ? 
+                `${user.address.upazila}, ${user.address.district}`.toLowerCase().includes(searchArea.toLowerCase()) ||
+                user.address.district.toLowerCase().includes(searchArea.toLowerCase())
+                : true;
+            return nameMatch && phoneMatch && areaMatch;
+        });
+        setFilteredUsers(filtered);
+    });
+  }, [allUsers, searchName, searchPhone, searchArea]);
+
 
   useEffect(() => {
     fetchUsers();
@@ -232,6 +258,25 @@ export default function AdminUsersPage() {
         });
     }
   };
+  
+    const downloadCSV = () => {
+    const csv = Papa.unparse(filteredUsers.map(d => ({
+        Name: d.fullName,
+        Phone: d.phoneNumber,
+        BloodGroup: d.bloodGroup,
+        Location: `${d.address.upazila}, ${d.address.district}`,
+        LastDonation: d.lastDonationDate ? format(new Date(d.lastDonationDate), 'yyyy-MM-dd') : 'N/A',
+        Available: d.isAvailable ? 'Yes' : 'No',
+        Verified: d.isVerified ? 'Yes' : 'No',
+    })));
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', 'users.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
 
   return (
@@ -243,29 +288,45 @@ export default function AdminUsersPage() {
             </h1>
             <p className="text-muted-foreground">View, block, or remove users from the system.</p>
         </div>
-        <Dialog open={isAddUserOpen} onOpenChange={(isOpen) => {
-            setIsAddUserOpen(isOpen);
-            if (!isOpen) form.reset();
-        }}>
-            <DialogTrigger asChild>
-                <Button><PlusCircle className="mr-2 h-4 w-4" /> Add User</Button>
-            </DialogTrigger>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Add New User</DialogTitle>
-                    <DialogDescription>
-                        Fill in the details below to add a new user to the system.
-                    </DialogDescription>
-                </DialogHeader>
-                <UserForm form={form} onSubmit={handleAddUser} isSubmitting={form.formState.isSubmitting} submitText="Add User" />
-            </DialogContent>
-        </Dialog>
+        <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={downloadCSV} disabled={filteredUsers.length === 0}><Download className="mr-2 h-4 w-4" /> Download CSV</Button>
+            <Dialog open={isAddUserOpen} onOpenChange={(isOpen) => {
+                setIsAddUserOpen(isOpen);
+                if (!isOpen) form.reset();
+            }}>
+                <DialogTrigger asChild>
+                    <Button><PlusCircle className="mr-2 h-4 w-4" /> Add User</Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Add New User</DialogTitle>
+                        <DialogDescription>
+                            Fill in the details below to add a new user to the system.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <UserForm form={form} onSubmit={handleAddUser} isSubmitting={form.formState.isSubmitting} submitText="Add User" />
+                </DialogContent>
+            </Dialog>
+        </div>
       </header>
+       <Card className="mb-6">
+            <CardHeader>
+                <CardTitle>Search Users</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                    <Input placeholder="Search by name..." value={searchName} onChange={e => setSearchName(e.target.value)} />
+                    <Input placeholder="Search by phone..." value={searchPhone} onChange={e => setSearchPhone(e.target.value)} />
+                    <Input placeholder="Search by area (upazila/district)..." value={searchArea} onChange={e => setSearchArea(e.target.value)} />
+                    <Button onClick={handleSearch} disabled={isPending}><Search className="mr-2 h-4 w-4" />{isPending ? 'Searching...' : 'Search'}</Button>
+                </div>
+            </CardContent>
+        </Card>
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle>All Users</CardTitle>
+              <CardTitle>All Users ({filteredUsers.length})</CardTitle>
               <CardDescription>A list of all registered users (donors).</CardDescription>
             </div>
             {selectedUsers.length > 0 && (
@@ -318,10 +379,10 @@ export default function AdminUsersPage() {
               <TableRow>
                  <TableHead padding="checkbox">
                   <Checkbox
-                    checked={selectedUsers.length === users.length && users.length > 0}
+                    checked={selectedUsers.length === filteredUsers.length && filteredUsers.length > 0}
                     onCheckedChange={(checked) => {
                       if (checked) {
-                        setSelectedUsers(users.map(u => u.id));
+                        setSelectedUsers(filteredUsers.map(u => u.id));
                       } else {
                         setSelectedUsers([]);
                       }
@@ -344,7 +405,7 @@ export default function AdminUsersPage() {
                 <TableRow>
                     <TableCell colSpan={7} className="text-center">Loading users...</TableCell>
                 </TableRow>
-              ) : users.map((user) => (
+              ) : filteredUsers.map((user) => (
                 <TableRow key={user.id} data-state={selectedUsers.includes(user.id) && "selected"}>
                   <TableCell padding="checkbox">
                     <Checkbox
@@ -414,7 +475,7 @@ export default function AdminUsersPage() {
               ))}
             </TableBody>
           </Table>
-           { !loading && users.length === 0 && (
+           { !loading && filteredUsers.length === 0 && (
               <p className="text-center text-muted-foreground p-8">No users found.</p>
             )}
         </CardContent>
@@ -422,5 +483,3 @@ export default function AdminUsersPage() {
     </div>
   );
 }
-
-    

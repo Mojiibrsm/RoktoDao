@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useRef, ChangeEvent, useMemo } from 'react';
@@ -7,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updatePassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, setDoc, serverTimestamp, collection, query, where, getDocs, or } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
@@ -32,8 +33,6 @@ import IK from 'imagekit-javascript';
 const signupSchema = z.object({
   fullName: z.string().min(3, { message: 'Full name is required.' }),
   email: z.string().email({ message: 'Invalid email address.' }).optional().or(z.literal('')),
-  password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
-  confirmPassword: z.string().min(6, { message: 'Please confirm your password.' }),
   bloodGroup: z.string({ required_error: 'Blood group is required.' }).min(1, 'Blood group is required.'),
   phoneNumber: z.string().min(11, { message: 'A valid phone number is required.' }),
   division: z.string({ required_error: 'Division is required.' }).min(1, 'Division is required.'),
@@ -45,9 +44,6 @@ const signupSchema = z.object({
   gender: z.enum(['Male', 'Female', 'Other'], {required_error: 'Gender is required.'}),
   donationCount: z.coerce.number().optional(),
   profilePictureUrl: z.string().optional(),
-}).refine(data => data.password === data.confirmPassword, {
-  message: "Passwords do not match.",
-  path: ["confirmPassword"],
 });
 
 const imagekit = new IK({
@@ -79,8 +75,6 @@ export default function SignupPage() {
     defaultValues: {
       fullName: '',
       email: '',
-      password: '',
-      confirmPassword: '',
       bloodGroup: '',
       phoneNumber: '',
       division: '',
@@ -162,6 +156,9 @@ export default function SignupPage() {
 
         // --- If not exists, proceed with signup ---
         let finalProfilePictureUrl = '';
+        // Use a temporary, strong, random password for initial creation.
+        // User will be prompted to change it.
+        const tempPassword = Math.random().toString(36).slice(-10) + 'A1!';
         const emailForAuth = values.email || `${values.phoneNumber}@rokto.dao`;
 
 
@@ -181,7 +178,7 @@ export default function SignupPage() {
             finalProfilePictureUrl = response.url;
         }
 
-        const userCredential = await createUserWithEmailAndPassword(auth, emailForAuth, values.password);
+        const userCredential = await createUserWithEmailAndPassword(auth, emailForAuth, tempPassword);
         const user = userCredential.user;
 
         const donorData: Omit<Donor, 'id'> = {
@@ -208,8 +205,17 @@ export default function SignupPage() {
 
         await setDoc(doc(db, 'donors', user.uid), donorData);
 
-        // --- Send Admin Notification ---
+        // --- Send Welcome SMS and Admin Notification ---
         try {
+            const welcomeMessage = `Welcome to RoktoDao, ${values.fullName}! Your account has been created successfully. You can now set your password in the profile section.`;
+            // Fire and forget SMS
+            fetch('/api/send-sms', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ number: values.phoneNumber, message: welcomeMessage }),
+            });
+
+            // Fire and forget admin email
             fetch('/api/send-email', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -226,7 +232,7 @@ export default function SignupPage() {
             }),
             });
         } catch (notificationError) {
-            console.error("Failed to send admin notification:", notificationError);
+            console.error("Failed to send notifications:", notificationError);
             // Don't block user creation for notification failure
         }
 
@@ -235,7 +241,7 @@ export default function SignupPage() {
             title: 'Account Created Successfully!',
             description: "Welcome to RoktoDao. Please log in to continue.",
         });
-        // Let AuthProvider handle redirect
+        // AuthProvider will handle redirect
     } catch (error: any) {
         const errorCode = error.code;
         let errorMessage = 'An unknown error occurred. Please try again.';
@@ -329,22 +335,6 @@ export default function SignupPage() {
                         )}
                     />
                     
-                     <FormField control={form.control} name="password" render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>পাসওয়ার্ড</FormLabel>
-                        <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )} />
-                     <FormField control={form.control} name="confirmPassword" render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>পাসওয়ার্ড নিশ্চিত করুন</FormLabel>
-                        <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )} />
-
-
                     <FormField control={form.control} name="bloodGroup" render={({ field }) => (
                         <FormItem>
                         <FormLabel>রক্তের গ্রুপ</FormLabel>
