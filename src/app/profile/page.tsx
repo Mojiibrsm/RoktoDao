@@ -200,9 +200,9 @@ function ProfilePageComponent() {
         isAvailable: values.isAvailable,
         lastDonationDate: values.lastDonationDate ? values.lastDonationDate.toISOString() : null,
         dateOfBirth: values.dateOfBirth ? values.dateOfBirth.toISOString() : null,
-        gender: values.gender,
-        donationCount: values.donationCount,
-        profilePictureUrl: finalProfilePictureUrl,
+        gender: values.gender ?? null,
+        donationCount: values.donationCount ?? 0,
+        profilePictureUrl: finalProfilePictureUrl ?? null,
       };
       await setDoc(donorRef, donorData, { merge: true });
       toast({ title: 'Profile Updated', description: 'Your information saved successfully.' });
@@ -372,8 +372,3 @@ export default function ProfilePage() {
         </Suspense>
     )
 }
-
-    
-
-
-
