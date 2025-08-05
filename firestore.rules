@@ -1,97 +1,83 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
+    
     // Helper functions
-    function isAuthenticated() {
+    function isAuth() {
       return request.auth != null;
     }
-
+    
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
-
+    
     function isAdmin() {
-      // An admin is a user whose document in the 'donors' collection has 'isAdmin' set to true.
-      return isAuthenticated() && get(/databases/$(database)/documents/donors/$(request.auth.uid)).data.isAdmin == true;
+      return isAuth() && get(/databases/$(database)/documents/donors/$(request.auth.uid)).data.isAdmin == true;
     }
 
-    // Donors can only be read by themselves or admins.
-    // Anyone can create a donor profile (signup).
+    // Donors Collection
     match /donors/{userId} {
-      allow read: if isAuthenticated(); // Allow any logged-in user to view a specific donor's profile page.
-      allow list: if isAdmin(); // Only admins can list all donors.
-      allow create: if isAuthenticated() && isOwner(userId);
-      allow update: if (isAuthenticated() && isOwner(userId)) || isAdmin();
+      allow read: if isAuth() && (isOwner(userId) || isAdmin());
+      allow create: if isAuth() && isOwner(userId);
+      allow update: if isAuth() && (isOwner(userId) || isAdmin());
       allow delete: if isAdmin();
     }
     
-    // Custom rule for homepage query to show pinned donors
-    match /donors/{donorId} {
-       allow list: if request.query.where.isPinned == true;
+    match /donors/{document=**} {
+      // Allow anyone to query the donors collection, but only if they are querying for available donors.
+      // This is crucial for the public search page. Admins can list all.
+      allow list: if request.query.where.isAvailable == true || isAdmin();
     }
 
-    // Blood requests can be read by anyone.
-    // Anyone can create a request.
-    // Only admins can update/delete requests.
+    // Requests Collection
     match /requests/{requestId} {
       allow read: if true;
       allow create: if true;
-      // Allow authenticated users to update the responders array.
-      allow update: if (isAuthenticated() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['responders'])) || isAdmin();
+      allow update(before, after): if isAdmin() || (isAuth() && before.uid == request.auth.uid);
       allow delete: if isAdmin();
     }
     
-    // Marquee Notices can be read by anyone, but only managed by admins
-    match /marquee-notices/{noticeId} {
-        allow read: if true;
-        allow write: if isAdmin();
-    }
-    
-    // Blog posts can be read by anyone, but only managed by admins
-    match /blogs/{blogId} {
-        allow read: if true;
-        allow write: if isAdmin();
-    }
-    
-    // Gallery images can be read by anyone if approved.
-    // Authenticated users can create (pending) images.
-    // Admins can manage all images.
-    match /gallery/{imageId} {
-      allow read: if resource.data.status == 'approved';
-      allow create: if isAuthenticated();
-      allow update, delete: if isAdmin();
-    }
-    
-    // Team members/moderators can be read by anyone, but only managed by admins.
-    match /moderators/{modId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-    
-    // Settings can only be managed by admins.
-    match /settings/{settingId} {
-      allow read, write: if isAdmin();
-    }
-    
-    // Feedback can only be managed by admins.
-    // Anyone can create a feedback entry via the contact form (server-side function).
-    match /feedback/{feedbackId} {
-        allow read, write: if isAdmin();
-        // The create rule is handled by the server-side email function which uses admin privileges.
-    }
-    
-    // SMS logs are only accessible by admins (or server-side functions).
-    match /sms_logs/{logId} {
-        allow read, write: if isAdmin();
-    }
+     match /requests/{document=**} {
+       allow list: if true;
+     }
 
-    // OTP codes are not readable by clients. They are managed by server-side functions.
+    // Admin-only collections
+    match /settings/{docId} {
+        allow read, write: if isAdmin();
+    }
+    match /marquee-notices/{docId} {
+        allow read: if true;
+        allow write: if isAdmin();
+    }
+    match /blogs/{docId} {
+        allow read: if true;
+        allow write: if isAdmin();
+    }
+    match /moderators/{docId} {
+        allow read: if true;
+        allow write: if isAdmin();
+    }
+    match /gallery/{docId} {
+        allow read: if resource.data.status == 'approved' || isAdmin(); 
+        allow create: if isAuth() && request.resource.data.status == 'pending';
+        allow write: if isAdmin();
+    }
+     match /gallery/{document=**} {
+        allow list: if request.query.where.status == 'approved' || isAdmin();
+     }
+
+    // Feedback and SMS logs (Admin only)
+     match /feedback/{docId} {
+        allow read, write: if isAdmin();
+     }
+      match /sms_logs/{docId} {
+        allow read, write: if isAdmin();
+     }
+
+    // OTP codes (Server/Admin SDK access only)
     match /otp_codes/{phone} {
-      allow read, update, delete: if false; // Deny all client access
-      allow create: if true; // Allow anyone to request an OTP to be created by the server
+      allow read, write: if false; 
     }
   }
 }
