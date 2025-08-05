@@ -4,7 +4,6 @@ import nodemailer from 'nodemailer';
 import { doc, getDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { adminDb } from '@/lib/firebase-admin';
 import type { FeedbackType } from '@/lib/types';
-require('dotenv').config();
 
 
 export async function POST(request: NextRequest) {

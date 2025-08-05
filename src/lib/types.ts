@@ -86,6 +86,6 @@ export type SmsLog = {
   number: string;
   message: string;
   status: 'success' | 'failure';
-  apiUsed: 'BulkSMSBD' | 'Both Failed';
+  apiUsed: 'BulkSMSBD' | 'BDBulkSMS';
   createdAt: any;
 };

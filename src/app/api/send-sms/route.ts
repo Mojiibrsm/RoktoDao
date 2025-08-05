@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { SmsLog } from '@/lib/types';
-require('dotenv').config();
 
 async function logSms(logData: Omit<SmsLog, 'id' | 'createdAt'>): Promise<void> {
     try {
@@ -34,20 +33,52 @@ async function sendSmsWithBulkSmsBd(number: string, message: string): Promise<bo
     
     if (result.response_code === 202) {
       console.log('SMS sent successfully via BulkSMSBD.');
+      await logSms({ number, message, status: 'success', apiUsed: 'BulkSMSBD' });
       return true;
     } else {
       console.error('BulkSMSBD API Error:', result.response_msg, 'Code:', result.response_code);
+      await logSms({ number, message, status: 'failure', apiUsed: 'BulkSMSBD' });
       return false;
     }
   } catch (error) {
     console.error('Error calling BulkSMSBD API:', error);
+    await logSms({ number, message, status: 'failure', apiUsed: 'BulkSMSBD' });
     return false;
   }
 }
 
+async function sendSmsWithBdBulkSms(number: string, message: string): Promise<boolean> {
+  const apiKey = process.env.BDBULKSMS_API_KEY;
+  const senderId = process.env.BDBULKSMS_SENDER_ID;
+
+  if (!apiKey || !senderId) {
+    console.error('BDBulkSMS API Key or Sender ID is not configured.');
+    return false;
+  }
+
+  const url = `https://api.bd-bulk-sms.com/sms/send?api_key=${apiKey}&sender_id=${senderId}&number=${number}&message=${encodeURIComponent(message)}`;
+
+  try {
+    const response = await fetch(url);
+    const result = await response.json();
+    
+    if (result.status === 'success') {
+      console.log('SMS sent successfully via BDBulkSMS.');
+      await logSms({ number, message, status: 'success', apiUsed: 'BDBulkSMS' });
+      return true;
+    } else {
+      console.error('BDBulkSMS API Error:', result.message);
+      await logSms({ number, message, status: 'failure', apiUsed: 'BDBulkSMS' });
+      return false;
+    }
+  } catch (error) {
+    console.error('Error calling BDBulkSMS API:', error);
+    await logSms({ number, message, status: 'failure', apiUsed: 'BDBulkSMS' });
+    return false;
+  }
+}
 
 async function sendFailureReport(number: string, message: string) {
-    // This is an internal call, so we construct the full URL
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
     try {
         await fetch(`${baseUrl}/api/send-email`, {
@@ -70,19 +101,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: 'Missing number or message.' }, { status: 400 });
   }
 
-  // We only have one provider now, so we call it directly.
-  const success = await sendSmsWithBulkSmsBd(number, message);
+  // Try the first provider
+  let success = await sendSmsWithBulkSmsBd(number, message);
   
+  // If the first provider fails, try the second one
+  if (!success) {
+    console.log("Primary SMS provider failed. Trying fallback provider...");
+    success = await sendSmsWithBdBulkSms(number, message);
+  }
+
   if (success) {
-    await logSms({ number, message, status: 'success', apiUsed: 'BulkSMSBD' }); 
     return NextResponse.json({ success: true, message: 'SMS sent successfully.' });
   } else {
-    // If the primary API fails, we log it and send a failure report.
-    console.error(`SMS API failed for number: ${number}`);
-    await logSms({ number, message, status: 'failure', apiUsed: 'BulkSMSBD' });
-    // Notify admin about the failure.
+    // Both APIs failed
+    console.error(`Both SMS APIs failed for number: ${number}`);
+    // Notify admin about the complete failure.
     await sendFailureReport(number, message);
-    // Return a server error response.
-    return NextResponse.json({ success: false, error: 'SMS API failed to send the message.' }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'All SMS providers failed to send the message.' }, { status: 500 });
   }
 }
