@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import Link from 'next/link';
@@ -17,7 +18,7 @@ import {
 import Image from 'next/image';
 import DonorCard from '@/components/donor-card';
 import RequestCard from '@/components/request-card';
-import { collection, getDocs, query, where, orderBy, limit, Timestamp, getCountFromServer } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, limit, Timestamp, getCountFromServer, doc, getDoc } from 'firebase/firestore';
 import { useState, useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -81,29 +82,28 @@ export default function Home() {
         const directorQuery = query(modsCollection, where('role', '==', 'প্রধান পরিচালক'), limit(1));
         const galleryQuery = query(imagesRef, where('status', '==', 'approved'), orderBy('createdAt', 'desc'), limit(8));
         const blogQuery = query(blogsRef, orderBy('createdAt', 'desc'), limit(3));
+        const statsRef = doc(db, 'settings', 'stats');
 
 
         // Fetch all data in parallel for better performance
         const [
             reqSnapshot,
             pinnedSnapshot,
-            // NOTE: getCountFromServer on `donors` collection is removed for non-admins to avoid permission errors.
-            // totalDonors stat will be 0 for public users, but this is better than a crashing page.
-            // An alternative would be to use a cloud function to maintain a counter document.
             requestCountSnap,
             fulfilledCountSnap,
             directorSnapshot,
             gallerySnapshot,
             blogSnapshot,
+            statsSnapshot,
         ] = await Promise.all([
             getDocs(reqQuery),
             getDocs(pinnedDonorsQuery),
-            // getCountFromServer(donorsRef), // This was causing permission errors
             getCountFromServer(requestsRef),
             getCountFromServer(query(requestsRef, where("status", "==", "Fulfilled"))),
             getDocs(directorQuery),
             getDocs(galleryQuery),
             getDocs(blogQuery),
+            getDoc(statsRef),
         ]);
 
         // Process Urgent Requests
@@ -131,8 +131,9 @@ export default function Home() {
         setDonors(pinnedDonors);
 
         // Process Stats
+        const totalDonors = statsSnapshot.exists() ? statsSnapshot.data().totalDonors : 0;
         setStats({
-            totalDonors: 0, // Set to 0 to avoid showing potentially incorrect data from a failed query
+            totalDonors: totalDonors,
             totalRequests: requestCountSnap.data().count,
             donationsFulfilled: fulfilledCountSnap.data().count,
         });
@@ -189,6 +190,10 @@ export default function Home() {
               </div>
             </div>
             <div className="flex items-center gap-8 pt-12">
+               <div className="text-center">
+                 {loading ? <Skeleton className="h-8 w-20 mb-1" /> : <p className="text-3xl font-bold">{stats.totalDonors.toLocaleString()}+</p>}
+                <p className="text-sm text-muted-foreground">মোট ডোনার</p>
+              </div>
               <div className="text-center">
                  {loading ? <Skeleton className="h-8 w-20 mb-1" /> : <p className="text-3xl font-bold">{stats.totalRequests.toLocaleString()}+</p>}
                 <p className="text-sm text-muted-foreground">রক্তের অনুরোধ</p>

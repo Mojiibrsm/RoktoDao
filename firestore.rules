@@ -2,117 +2,79 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
+    
     // Helper functions
-    function isSignedIn() {
+    function isAdmin() {
+      return request.auth != null && get(/databases/$(database)/documents/donors/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+    
+    function isVerifiedUser() {
       return request.auth != null;
     }
     
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+    // Collections
+    match /donors/{donorId} {
+      // Allow anyone to read donor profiles that are marked as available
+      allow read: if resource.data.isAvailable == true || isOwner(donorId) || isAdmin();
+      // Allow any authenticated user to create their own profile
+      allow create: if isOwner(donorId);
+      // Allow users to update/delete their own profile, or admins to update/delete any profile
+      allow update, delete: if isOwner(donorId) || isAdmin();
     }
     
-    function getDonorData(userId) {
-        return get(/databases/$(database)/documents/donors/$(userId)).data;
-    }
-
-    function isAdmin() {
-      return isSignedIn() && getDonorData(request.auth.uid).isAdmin == true;
-    }
-
-    // Donors Collection
-    match /donors/{userId} {
-      // READ: 
-      // - Anyone can read a donor's profile if it's available. This is crucial for search.
-      // - The owner can always read their own profile.
-      // - Admins can read any profile.
-      allow read: if (resource.data.isAvailable == true) || isOwner(userId) || isAdmin();
-
-      // CREATE: Anyone can create their own donor profile (signup).
-      allow create: if isOwner(userId);
-      
-      // UPDATE: Only the owner or an admin can update a profile.
-      allow update: if isOwner(userId) || isAdmin();
-      
-      // DELETE: Only the owner or an admin can delete a profile.
-      allow delete: if isOwner(userId) || isAdmin();
-
-      // LIST: This rule was causing issues. It's removed in favor of the more granular `read` rule above.
-      // Now, client-side queries will be automatically filtered by Firestore based on the `read` rule.
-      // If a query tries to access documents a user can't read (e.g., isAvailable == false for a public user),
-      // the entire query will fail with "Missing or insufficient permissions".
-      // This is expected and secure. Our client code now only queries for `isAvailable == true`.
-    }
-
-    // Requests Collection
-    match /requests/{requestId} {
-      // Anyone can see blood requests and the list of them.
+    // Publicly listable collections for anyone
+    match /blogs/{docId} {
       allow read: if true;
-      // Anyone can create a new blood request.
-      allow create: if true;
-      // Only admins can update or delete requests.
+      allow write: if isAdmin();
+    }
+    
+    match /gallery/{docId} {
+      allow read: if resource.data.status == 'approved';
+      allow create: if isVerifiedUser();
+      allow write: if isAdmin();
+    }
+    
+    match /moderators/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /marquee-notices/{docId} {
+       allow read: if true;
+       allow write: if isAdmin();
+    }
+    
+    // Blood Requests
+    match /requests/{reqId} {
+      allow read, create: if true;
       allow update, delete: if isAdmin();
     }
-    
-    // Blogs Collection
-    match /blogs/{blogId} {
-        // Public can read, only admin can write/delete
-        allow read: if true;
-        allow write, delete: if isAdmin();
-    }
-    
-    // Gallery Collection
-    match /gallery/{imageId} {
-        // Public can read approved images.
-        allow read: if resource.data.status == 'approved';
-        // Any signed-in user can create a (pending) image upload.
-        allow create: if isSignedIn();
-        // Only admin can update (approve) or delete.
-        allow update, delete: if isAdmin();
-    }
-    
-    // Moderators Collection
-    match /moderators/{modId} {
-        // Public can read team info.
-        allow read: if true;
-        // Only admin can manage team.
-        allow write, delete: if isAdmin();
-    }
 
-    // Marquee Notices
-    match /marquee-notices/{noticeId} {
-        // Public can read notices.
-        allow read: if true;
-        // Only admin can manage notices.
-        allow write, delete: if isAdmin();
+    // Settings
+    match /settings/global {
+    	allow read, write: if isAdmin();
+    }
+    match /settings/stats {
+    	allow read: if true;
+      allow write: if isAdmin();
     }
     
-    // Feedback Collection
-    match /feedback/{feedbackId} {
-        // Anyone can submit feedback (handled by API).
-        // Only admins can read/manage feedback.
-        allow read, write, delete: if isAdmin();
+    // Sensitive data - only accessible by server/admin
+    match /otp_codes/{docId} {
+      allow read, write: if false; // Should be handled by server-side logic (e.g. cloud functions or admin sdk)
     }
     
-    // Settings Collection
-    match /settings/{settingId} {
-        // Nobody on the client can access this. Managed by Admin SDK.
-        allow read, write: if false;
-    }
+     match /sms_logs/{docId} {
+       allow read, write: if isAdmin();
+     }
 
-    // OTP Codes Collection
-    match /otp_codes/{phone} {
-      // Nobody on the client can read these.
-      allow read: if false;
-      // Anyone can create an OTP request.
-      allow create: if true;
-      // Only server can delete (after verification).
-      allow delete: if false;
-    }
-
-    // SMS Logs - Admin only
-    match /sms_logs/{logId} {
-        allow read, write, delete: if isAdmin();
-    }
+     match /feedback/{docId} {
+       allow read, write: if isAdmin();
+       allow create: if true;
+     }
   }
 }

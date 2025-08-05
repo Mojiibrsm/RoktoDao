@@ -3,7 +3,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useTransition } from 'react';
-import { collection, getDocs, doc, deleteDoc, updateDoc, writeBatch, addDoc, serverTimestamp, query, where, orderBy, startAt, endAt } from 'firebase/firestore';
+import { collection, getDocs, doc, deleteDoc, updateDoc, writeBatch, addDoc, serverTimestamp, query, where, orderBy, startAt, endAt, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Donor as DonorType } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
@@ -235,6 +235,15 @@ export default function AdminDonorsPage() {
     }
   });
 
+  const updateTotalDonorsCount = async () => {
+    const donorsCollection = collection(db, 'donors');
+    const donorsSnapshot = await getDocs(query(donorsCollection));
+    const totalDonors = donorsSnapshot.size;
+    
+    const statsRef = doc(db, 'settings', 'stats');
+    await setDoc(statsRef, { totalDonors: totalDonors }, { merge: true });
+  };
+
 
   const fetchDonors = async () => {
     setLoading(true);
@@ -281,6 +290,7 @@ export default function AdminDonorsPage() {
   const handleDeleteDonor = async (donorId: string) => {
     try {
       await deleteDoc(doc(db, 'donors', donorId));
+      await updateTotalDonorsCount();
       toast({ title: "Donor Deleted", description: "The donor's record has been deleted." });
       fetchDonors();
     } catch (error) {
@@ -306,6 +316,9 @@ export default function AdminDonorsPage() {
 
     try {
         await batch.commit();
+        if (action === 'delete') {
+            await updateTotalDonorsCount();
+        }
         toast({
             title: 'Success',
             description: `${selectedDonors.length} donors have been ${action === 'delete' ? 'deleted' : 'verified'}.`
@@ -376,6 +389,7 @@ export default function AdminDonorsPage() {
 
             try {
                 await batch.commit();
+                await updateTotalDonorsCount();
                 toast({
                     title: "Import Successful",
                     description: `${importedCount} donors have been imported.`,
@@ -425,6 +439,7 @@ const handleAddDonor = async (values: DonorFormValues) => {
     };
     try {
         await addDoc(collection(db, 'donors'), donorData);
+        await updateTotalDonorsCount();
         toast({
           title: 'Donor Added',
           description: 'The new donor has been successfully created.',
