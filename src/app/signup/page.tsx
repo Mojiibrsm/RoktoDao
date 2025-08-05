@@ -125,7 +125,7 @@ export default function SignupPage() {
       reader.onloadend = () => {
         setProfileImageUrl(reader.result as string);
       };
-      reader.readDataURL(file);
+      reader.readAsDataURL(file);
     }
   };
 
@@ -358,7 +358,7 @@ export default function SignupPage() {
                                 </FormControl>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar mode="single" selected={field.value} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={1950} toYear={new Date().getFullYear() - 18} disabled={(date) => date > addYears(new Date(), -18) || date.getFullYear() < 1920} initialFocus />
+                                <Calendar mode="single" selected={field.value} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={1950} toYear={new Date().getFullYear()} disabled={(date) => date > addYears(new Date(), -18)} initialFocus />
                                 </PopoverContent>
                             </Popover>
                             <FormMessage />
