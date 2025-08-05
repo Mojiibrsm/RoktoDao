@@ -114,7 +114,7 @@ export default function RequestBloodPage() {
             value: district,
             label: district,
         }))
-    ).sort((a, b) => a.label.localeCompare(b.label, 'bn'));
+    ).sort((a, b) => a.label.localeCompare(b, 'bn'));
 
     const sendSmsToDonors = async (request: Omit<BloodRequest, 'id'>) => {
       try {
@@ -200,11 +200,12 @@ export default function RequestBloodPage() {
         description: 'আপনার রক্তের অনুরোধ সফলভাবে জমা দেওয়া হয়েছে।',
       });
       router.push('/thank-you');
-    } catch (error) {
+    } catch (error: any) {
+       console.error("Request submission failed:", error);
        toast({
         variant: 'destructive',
         title: 'জমা দিতে ব্যর্থ হয়েছে',
-        description: 'কিছু একটা ভুল হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।',
+        description: error.message || 'কিছু একটা ভুল হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।',
       });
     } finally {
         setIsSubmitting(false);
