@@ -7,4 +7,4 @@ Disallow: /admin/
 Disallow: /api/
 
 # Specify the location of the sitemap
-Sitemap: https://roktodao.web.app/sitemap.xml
+Sitemap: https://roktodao.bartanow.com/sitemap.xml
