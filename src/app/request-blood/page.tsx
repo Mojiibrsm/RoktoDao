@@ -158,7 +158,7 @@ export default function RequestBloodPage() {
       district: values.district,
       hospitalLocation: finalHospitalName,
       contactPhone: values.contactPhone,
-      uid: user?.uid,
+      uid: user?.uid ?? null,
       isEmergency: values.isEmergency,
       status: 'Approved',
       createdAt: new Date().toISOString(), // Use client-side timestamp for immediate use
@@ -391,4 +391,5 @@ export default function RequestBloodPage() {
 
     </div>
   );
-}
+
+    
