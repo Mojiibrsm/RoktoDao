@@ -122,26 +122,35 @@ export default function RequestBloodPage() {
         const q = query(
             donorsRef,
             where('address.district', '==', request.district),
-            where('bloodGroup', '==', request.bloodGroup),
-            where('isAvailable', '==', true)
+            where('bloodGroup', '==', request.bloodGroup)
         );
 
         const querySnapshot = await getDocs(q);
-        const donors = querySnapshot.docs.map(doc => doc.data() as Donor);
+        // Filter for available donors on the client side
+        const availableDonors = querySnapshot.docs
+            .map(doc => doc.data() as Donor)
+            .filter(donor => donor.isAvailable === true);
+
+        if (availableDonors.length === 0) {
+            console.log("No available donors found for this request.");
+            return;
+        }
 
         const message = `জরুরী রক্তের আবেদন: ${request.district}-এ ${request.bloodGroup} রক্তের প্রয়োজন। রোগীর নাম: ${request.patientName}, যোগাযোগ: ${request.contactPhone}`;
 
         // Use Promise.all to send SMS concurrently
-        await Promise.all(donors.map(donor => 
+        await Promise.all(availableDonors.map(donor => 
             fetch('/api/send-sms', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ number: donor.phoneNumber, message }),
             })
         ));
+        console.log(`SMS dispatched to ${availableDonors.length} donors.`);
       } catch (error) {
-        console.error("Failed to send SMS to donors:", error);
-        // Do not block the UI, just log the error
+        console.error("Failed to query or send SMS to donors:", error);
+        // Do not block the UI for this, just log the error.
+        // This might happen if Firestore rules are too restrictive or an index is missing.
       }
     };
 
@@ -391,5 +400,7 @@ export default function RequestBloodPage() {
 
     </div>
   );
+
+    
 
     
