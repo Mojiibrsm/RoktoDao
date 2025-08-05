@@ -146,8 +146,3 @@ export default function AdminSettingsPage() {
                 <Button onClick={handleSaveChanges} size="lg" disabled={isSaving}>
                     {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                     {isSaving ? 'Saving...' : 'Save Changes'}
-                </Button>
-            </div>
-        </div>
-    );
-}
