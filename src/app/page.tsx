@@ -97,7 +97,7 @@ export default function Home() {
             statsSnapshot,
         ] = await Promise.all([
             getDocs(reqQuery),
-            getDocs(pinnedDonorsQuery),
+            getDocs(pinnedSnapshot),
             getCountFromServer(requestsRef),
             getCountFromServer(query(requestsRef, where("status", "==", "Fulfilled"))),
             getDocs(directorQuery),
@@ -131,7 +131,7 @@ export default function Home() {
         setDonors(pinnedDonors);
 
         // Process Stats
-        const totalDonors = statsSnapshot.exists() ? statsSnapshot.data().totalDonors : 0;
+        const totalDonors = statsSnapshot.exists() && statsSnapshot.data() ? statsSnapshot.data().totalDonors || 0 : 0;
         setStats({
             totalDonors: totalDonors,
             totalRequests: requestCountSnap.data().count,
