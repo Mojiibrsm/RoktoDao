@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { SmsLog } from '@/lib/types';
+require('dotenv').config();
 
 async function logSms(logData: Omit<SmsLog, 'id' | 'createdAt'>): Promise<void> {
     try {
@@ -85,4 +86,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: 'SMS API failed to send the message.' }, { status: 500 });
   }
 }
-
