@@ -97,7 +97,7 @@ export default function Home() {
             statsSnapshot,
         ] = await Promise.all([
             getDocs(reqQuery),
-            getDocs(pinnedSnapshot),
+            getDocs(pinnedDonorsQuery),
             getCountFromServer(requestsRef),
             getCountFromServer(query(requestsRef, where("status", "==", "Fulfilled"))),
             getDocs(directorQuery),
