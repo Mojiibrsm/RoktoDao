@@ -17,8 +17,8 @@ async function logSms(logData: Omit<SmsLog, 'id' | 'createdAt'>): Promise<void> 
 }
 
 async function sendSmsWithBulkSmsBd(number: string, message: string): Promise<boolean> {
-  const apiKey = process.env.BULKSMSBD_API_KEY || "LkcuBmpXSgO77LgytC9w";
-  const senderId = process.env.BULKSMSBD_SENDER_ID || "8809617614208";
+  const apiKey = process.env.BULKSMSBD_API_KEY;
+  const senderId = process.env.BULKSMSBD_SENDER_ID;
 
   if (!apiKey || !senderId) {
     console.error('BulkSMSBD API Key or Sender ID is not configured.');
@@ -85,3 +85,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: 'SMS API failed to send the message.' }, { status: 500 });
   }
 }
+
