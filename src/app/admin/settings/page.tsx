@@ -21,7 +21,7 @@ export default function AdminSettingsPage() {
     const [tagline, setTagline] = useState("রক্ত দিন, জীবন বাঁচান — এখন আরও সহজে!");
     const [adminEmail, setAdminEmail] = useState("mojibrsm@gmail.com");
     const [notifyNewDonor, setNotifyNewDonor] = useState(true);
-    const [notifyNewRequest, setNotifyNewRequest] = useState(true); // Changed to true by default
+    const [notifyNewRequest, setNotifyNewRequest] = useState(true);
 
     useEffect(() => {
         const fetchSettings = async () => {
@@ -34,8 +34,8 @@ export default function AdminSettingsPage() {
                     setSiteName(data.siteName || "RoktoDao");
                     setTagline(data.tagline || "রক্ত দিন, জীবন বাঁচান — এখন আরও সহজে!");
                     setAdminEmail(data.adminEmail || "mojibrsm@gmail.com");
-                    setNotifyNewDonor(data.notifyNewDonor !== false); // default to true
-                    setNotifyNewRequest(data.notifyNewRequest !== false); // default to true
+                    setNotifyNewDonor(data.notifyNewDonor !== false);
+                    setNotifyNewRequest(data.notifyNewRequest !== false);
                 }
             } catch (error) {
                 console.error("Error fetching settings:", error);
@@ -146,3 +146,8 @@ export default function AdminSettingsPage() {
                 <Button onClick={handleSaveChanges} size="lg" disabled={isSaving}>
                     {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                     {isSaving ? 'Saving...' : 'Save Changes'}
+                </Button>
+            </div>
+        </div>
+    );
+}
