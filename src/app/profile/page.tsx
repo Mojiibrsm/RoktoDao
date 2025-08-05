@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useEffect, useState, useMemo, Suspense, useRef, ChangeEvent } from 'react';
@@ -15,7 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, User, Upload, Loader2, KeyRound, Droplet, List, ShieldCheck } from 'lucide-react';
+import { CalendarIcon, User, Upload, Loader2, KeyRound, Droplet, List, ShieldCheck, PlusCircle } from 'lucide-react';
 import { format, addYears } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { bloodGroups, locations, upazilas } from '@/lib/location-data';
@@ -28,6 +29,7 @@ import IK from 'imagekit-javascript';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import RequestCard from '@/components/request-card';
 import { updatePassword } from 'firebase/auth';
+import Link from 'next/link';
 
 const profileSchema = z.object({
   fullName: z.string().min(3, { message: 'Full name is required.' }),
@@ -237,10 +239,10 @@ function ProfilePageComponent() {
     <div className="container mx-auto max-w-5xl py-12 px-4">
       <Tabs defaultValue="profile" className="w-full">
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
-            <TabsTrigger value="profile"><User className="mr-2 h-4 w-4" />Profile</TabsTrigger>
-            <TabsTrigger value="donations"><Droplet className="mr-2 h-4 w-4" />My Donations</TabsTrigger>
-            <TabsTrigger value="requests"><List className="mr-2 h-4 w-4" />My Requests</TabsTrigger>
-            <TabsTrigger value="security"><ShieldCheck className="mr-2 h-4 w-4" />Security</TabsTrigger>
+            <TabsTrigger value="profile"><User className="mr-2 h-4 w-4" />প্রোফাইল</TabsTrigger>
+            <TabsTrigger value="donations"><Droplet className="mr-2 h-4 w-4" />আমার ডোনেশন</TabsTrigger>
+            <TabsTrigger value="requests"><List className="mr-2 h-4 w-4" />আমার অনুরোধ</TabsTrigger>
+            <TabsTrigger value="security"><ShieldCheck className="mr-2 h-4 w-4" />নিরাপত্তা</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile">
@@ -270,7 +272,7 @@ function ProfilePageComponent() {
                      <FormField control={profileForm.control} name="fullName" render={({ field }) => ( <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                      <FormField control={profileForm.control} name="phoneNumber" render={({ field }) => ( <FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                      <FormField control={profileForm.control} name="bloodGroup" render={({ field }) => ( <FormItem><FormLabel>Blood Group</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{bloodGroups.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
-                     <FormField control={profileForm.control} name="dateOfBirth" render={({ field }) => ( <FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn(!field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick date</span>}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={field.value} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={1950} toYear={new Date().getFullYear()} disabled={(date) => date > addYears(new Date(), -18)} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
+                     <FormField control={profileForm.control} name="dateOfBirth" render={({ field }) => ( <FormItem className="flex flex-col"><FormLabel>Date of Birth</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn(!field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick date</span>}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={field.value} onSelect={field.onChange} captionLayout="dropdown-buttons" fromYear={1950} toYear={addYears(new Date(), -18)} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
                      <FormField control={profileForm.control} name="lastDonationDate" render={({ field }) => ( <FormItem className="flex flex-col"><FormLabel>Last Donation Date</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" className={cn(!field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick date</span>}</Button></FormControl></PopoverTrigger><PopoverContent><Calendar mode="single" selected={field.value} onSelect={field.onChange} /></PopoverContent></Popover><FormMessage /></FormItem> )} />
                      <FormField control={profileForm.control} name="gender" render={({ field }) => ( <FormItem><FormLabel>Gender</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{['Male', 'Female', 'Other'].map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
                      <FormField control={profileForm.control} name="division" render={({ field }) => ( <FormItem><FormLabel>Division</FormLabel><Select onValueChange={v => {field.onChange(v); profileForm.setValue('district',''); profileForm.setValue('upazila','')}} value={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent>{Object.keys(locations).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
@@ -287,35 +289,45 @@ function ProfilePageComponent() {
         </TabsContent>
 
         <TabsContent value="donations">
-            <Card className="mt-6"><CardHeader><CardTitle>My Donations</CardTitle><CardDescription>Blood requests you have responded to.</CardDescription></CardHeader>
+            <Card className="mt-6"><CardHeader><CardTitle>আমার ডোনেশন</CardTitle><CardDescription>যেসব রক্তের অনুরোধে আপনি সাড়া দিয়েছেন।</CardDescription></CardHeader>
                 <CardContent>
                     {myDonations.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {myDonations.map(req => <RequestCard key={req.id} req={req} />)}
                         </div>
-                    ) : <p className="text-muted-foreground">You have not responded to any requests yet.</p>}
+                    ) : <p className="text-muted-foreground">আপনি এখনো কোনো অনুরোধে সাড়া দেননি।</p>}
                 </CardContent>
             </Card>
         </TabsContent>
         <TabsContent value="requests">
-            <Card className="mt-6"><CardHeader><CardTitle>My Requests</CardTitle><CardDescription>Blood requests you have created.</CardDescription></CardHeader>
+            <Card className="mt-6"><CardHeader><CardTitle>আমার অনুরোধ</CardTitle><CardDescription>আপনার তৈরি করা রক্তের অনুরোধগুলো।</CardDescription></CardHeader>
                 <CardContent>
                      {myRequests.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {myRequests.map(req => <RequestCard key={req.id} req={req} />)}
                         </div>
-                    ) : <p className="text-muted-foreground">You have not created any requests yet.</p>}
+                    ) : (
+                        <div className="text-center py-10 border-2 border-dashed rounded-lg">
+                           <p className="text-muted-foreground mb-4">আপনি এখনো কোনো রক্তের অনুরোধ করেননি।</p>
+                           <Button asChild>
+                            <Link href="/request-blood">
+                                <PlusCircle className="mr-2 h-4 w-4" />
+                                নতুন অনুরোধ করুন
+                            </Link>
+                           </Button>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </TabsContent>
         <TabsContent value="security">
-             <Card className="mt-6"><CardHeader><CardTitle>Security Settings</CardTitle><CardDescription>Manage your account password.</CardDescription></CardHeader>
+             <Card className="mt-6"><CardHeader><CardTitle>নিরাপত্তা</CardTitle><CardDescription>আপনার অ্যাকাউন্টের পাসওয়ার্ড পরিচালনা করুন।</CardDescription></CardHeader>
                 <CardContent>
                     <Form {...passwordForm}>
                         <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-6 max-w-md">
-                           <FormField control={passwordForm.control} name="newPassword" render={({ field }) => ( <FormItem><FormLabel>New Password</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                           <FormField control={passwordForm.control} name="confirmPassword" render={({ field }) => ( <FormItem><FormLabel>Confirm New Password</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                           <div><Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Updating...' : 'Update Password'}</Button></div>
+                           <FormField control={passwordForm.control} name="newPassword" render={({ field }) => ( <FormItem><FormLabel>নতুন পাসওয়ার্ড</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                           <FormField control={passwordForm.control} name="confirmPassword" render={({ field }) => ( <FormItem><FormLabel>নতুন পাসওয়ার্ড নিশ্চিত করুন</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                           <div><Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'আপডেট হচ্ছে...' : 'পাসওয়ার্ড আপডেট করুন'}</Button></div>
                         </form>
                     </Form>
                 </CardContent>
@@ -337,3 +349,4 @@ export default function ProfilePage() {
 }
 
     
+
