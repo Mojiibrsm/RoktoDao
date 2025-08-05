@@ -3,79 +3,87 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper function to check for admin role
+  
+    // Helper function to check if user is an admin
     function isAdmin() {
       return exists(/databases/$(database)/documents/donors/$(request.auth.uid)) &&
              get(/databases/$(database)/documents/donors/$(request.auth.uid)).data.isAdmin == true;
     }
-
-    // Donors Collection
+    
+    // Donors can be created by anyone, but only read/updated by the owner or an admin.
+    // Listing all donors is restricted to admins or for pinned donors.
     match /donors/{userId} {
-      // Anyone can see a donor's profile (for search functionality)
-      allow read: if true;
-      // Anyone can sign up (create their own document)
-      allow create: if request.auth != null && request.auth.uid == userId;
-      // Users can update their own profile, or an admin can update any profile
-      allow update: if (request.auth != null && request.auth.uid == userId) || isAdmin();
-      // Only admins can delete donor profiles
+      allow read, update: if request.auth.uid == userId || isAdmin();
+      allow create: if request.auth.uid == userId;
       allow delete: if isAdmin();
     }
+    match /donors/{document=**} {
+      // Allow listing if the user is an admin OR if the query is for pinned donors.
+      // Note: This rule is not perfectly secure for the `isPinned` check alone, as a malicious user
+      // could bypass it if other rules are not set correctly. 
+      // It assumes the client query for non-admins is ALWAYS `where('isPinned', '==', true)`.
+      allow list: if isAdmin() || (resource.data.isPinned == true);
+    }
 
-    // Requests Collection
+    // Requests can be created and read by anyone.
+    // Only admins can update or delete requests.
     match /requests/{requestId} {
-      // Anyone can read blood requests
-      allow read: if true;
-      // Anyone can create a blood request
-      allow create: if true;
-      // Only admins can update or delete requests
+      allow read, create: if true;
       allow update, delete: if isAdmin();
     }
     
-    // OTP Codes - Allow creation, but restrict read/update for security
-    match /otp_codes/{phone} {
-      allow read, update, delete: if false; // Deny client access
-      allow create: if true; // Allow anyone to request an OTP
-    }
-    
-    // Settings Collection - Only admins
-    match /settings/{settingId} {
-      allow read, write: if isAdmin();
-    }
-
-    // Feedback Collection - Creation allowed, but only admins can manage
-    match /feedback/{feedbackId} {
-        allow create: if true;
-        allow read, update, delete: if isAdmin();
-    }
-
-    // Marquee Notices - Read for all, write for admins
-    match /marquee-notices/{noticeId} {
-        allow read: if true;
-        allow write: if isAdmin();
-    }
-    
-    // Gallery - Read approved for all, manage for admins
-    match /gallery/{imageId} {
-        allow read: if resource.data.status == 'approved';
-        allow create: if request.auth != null;
-        allow update, delete: if isAdmin();
-    }
-    
-    // Moderators - Only admins can read/write
-    match /moderators/{modId} {
-      allow read, write: if isAdmin();
-    }
-    
-    // Blogs - Read for all, write for admins
+    // Blogs can be read by anyone, but only managed by admins.
     match /blogs/{blogId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Gallery images can be read by anyone if approved.
+    // They can be created by any authenticated user (as pending).
+    // They can be updated/deleted only by admins.
+    match /gallery/{imageId} {
+      allow read: if resource.data.status == 'approved';
+      allow create: if request.auth != null;
+      allow update, delete: if isAdmin();
     }
     
-    // SMS Logs - only admins
-    match /sms_logs/{logId} {
-        allow read, write: if isAdmin();
+    // Marquee notices can be read by anyone, but only managed by admins.
+    match /marquee-notices/{noticeId} {
+        allow read: if true;
+        allow create, update, delete: if isAdmin();
     }
+
+    // Moderators can only be managed by admins.
+    match /moderators/{modId} {
+        allow read: if true;
+        allow create, update, delete: if isAdmin();
+    }
+
+    // OTP codes can be created by anyone (via server-side logic).
+    // Reading/deleting should ideally be restricted to server-side logic only.
+    // This rule allows creation, but not reading by clients.
+    match /otp_codes/{phone} {
+        allow read, update: if false; // Should only be managed by server/admin
+        allow create: if true;
+        allow delete: if false; // Should only be managed by server/admin
+    }
+
+    // Settings can only be managed by admins.
+    match /settings/global {
+      allow read, write: if isAdmin();
+    }
+    
+    // Feedback can only be created by authenticated users and managed by admins.
+    match /feedback/{feedbackId} {
+        allow read, update, delete: if isAdmin();
+        allow create: if request.auth != null;
+    }
+
+    // SMS logs can only be created by server-side logic and read by admins.
+    match /sms_logs/{logId} {
+        allow read: if isAdmin();
+        allow write: if false; // Should only be created by server
+    }
+    
   }
 }

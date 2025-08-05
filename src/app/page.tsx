@@ -78,7 +78,6 @@ export default function Home() {
         // Define all queries
         const reqQuery = query(requestsRef, where('status', '==', 'Approved'), orderBy('neededDate', 'asc'), limit(6));
         const pinnedDonorsQuery = query(donorsRef, where('isPinned', '==', true), where('isAvailable', '==', true), limit(6));
-        const otherDonorsQuery = query(donorsRef, where('isAvailable', '==', true), limit(12));
         const directorQuery = query(modsCollection, where('role', '==', 'প্রধান পরিচালক'), limit(1));
         const galleryQuery = query(imagesRef, where('status', '==', 'approved'), orderBy('createdAt', 'desc'), limit(8));
         const blogQuery = query(blogsRef, orderBy('createdAt', 'desc'), limit(3));
@@ -88,7 +87,6 @@ export default function Home() {
         const [
             reqSnapshot,
             pinnedSnapshot,
-            otherSnapshot,
             donorCountSnap,
             requestCountSnap,
             fulfilledCountSnap,
@@ -98,7 +96,6 @@ export default function Home() {
         ] = await Promise.all([
             getDocs(reqQuery),
             getDocs(pinnedDonorsQuery),
-            getDocs(otherDonorsQuery),
             getCountFromServer(donorsRef),
             getCountFromServer(requestsRef),
             getCountFromServer(query(requestsRef, where("status", "==", "Fulfilled"))),
@@ -119,7 +116,7 @@ export default function Home() {
         });
         setUrgentRequests(fetchedUrgentRequests);
         
-        // Process Donors (pinned first, then others)
+        // Process Donors (pinned first)
         const pinnedDonors = pinnedSnapshot.docs.map(doc => {
             const data = doc.data();
             return { 
@@ -129,22 +126,7 @@ export default function Home() {
                 createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString()),
             } as Donor;
         });
-
-        let allDonors: Donor[] = [...pinnedDonors];
-        if (allDonors.length < 6) {
-          const otherDonors = otherSnapshot.docs.map(doc => {
-              const data = doc.data();
-              return { 
-                id: doc.id, 
-                ...data,
-                lastDonationDate: data.lastDonationDate instanceof Timestamp ? data.lastDonationDate.toDate().toISOString() : data.lastDonationDate,
-                createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString()),
-              } as Donor
-          });
-          const nonPinnedDonors = otherDonors.filter(d => !allDonors.some(pd => pd.uid === d.uid));
-          allDonors = [...allDonors, ...nonPinnedDonors].slice(0, 6);
-        }
-        setDonors(allDonors);
+        setDonors(pinnedDonors);
 
         // Process Stats
         setStats({
