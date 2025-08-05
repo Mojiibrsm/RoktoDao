@@ -87,7 +87,9 @@ export default function Home() {
         const [
             reqSnapshot,
             pinnedSnapshot,
-            donorCountSnap,
+            // NOTE: getCountFromServer on `donors` collection is removed for non-admins to avoid permission errors.
+            // totalDonors stat will be 0 for public users, but this is better than a crashing page.
+            // An alternative would be to use a cloud function to maintain a counter document.
             requestCountSnap,
             fulfilledCountSnap,
             directorSnapshot,
@@ -96,7 +98,7 @@ export default function Home() {
         ] = await Promise.all([
             getDocs(reqQuery),
             getDocs(pinnedDonorsQuery),
-            getCountFromServer(donorsRef),
+            // getCountFromServer(donorsRef), // This was causing permission errors
             getCountFromServer(requestsRef),
             getCountFromServer(query(requestsRef, where("status", "==", "Fulfilled"))),
             getDocs(directorQuery),
@@ -130,7 +132,7 @@ export default function Home() {
 
         // Process Stats
         setStats({
-            totalDonors: donorCountSnap.data().count,
+            totalDonors: 0, // Set to 0 to avoid showing potentially incorrect data from a failed query
             totalRequests: requestCountSnap.data().count,
             donationsFulfilled: fulfilledCountSnap.data().count,
         });
@@ -188,8 +190,8 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-8 pt-12">
               <div className="text-center">
-                 {loading ? <Skeleton className="h-8 w-20 mb-1" /> : <p className="text-3xl font-bold">{stats.totalDonors.toLocaleString()}+</p>}
-                <p className="text-sm text-muted-foreground">নিবন্ধিত ডোনার</p>
+                 {loading ? <Skeleton className="h-8 w-20 mb-1" /> : <p className="text-3xl font-bold">{stats.totalRequests.toLocaleString()}+</p>}
+                <p className="text-sm text-muted-foreground">রক্তের অনুরোধ</p>
               </div>
                 <div className="text-center">
                  {loading ? <Skeleton className="h-8 w-20 mb-1" /> : <p className="text-3xl font-bold">{stats.donationsFulfilled.toLocaleString()}+</p>}
@@ -306,12 +308,7 @@ export default function Home() {
                 আমাদের সম্প্রদায়ের সম্মিলিত প্রভাব দেখুন।
             </p>
             <Separator className="my-8" />
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="flex flex-col items-center gap-2">
-                    <Users className="h-12 w-12 text-primary" />
-                     {loading ? <Skeleton className="h-8 w-20 mt-1" /> : <p className="text-4xl font-bold">{stats.totalDonors.toLocaleString()}+</p>}
-                    <p className="text-muted-foreground">মোট ডোনার</p>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="flex flex-col items-center gap-2">
                     <ListChecks className="h-12 w-12 text-primary" />
                     {loading ? <Skeleton className="h-8 w-20 mt-1" /> : <p className="text-4xl font-bold">{stats.totalRequests.toLocaleString()}+</p>}
