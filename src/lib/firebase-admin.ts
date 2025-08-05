@@ -1,5 +1,5 @@
 
-import { getApps, initializeApp, getApp, App } from 'firebase-admin/app';
+import { getApps, initializeApp, getApp, App, credential } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { serviceAccount } from './firebase-service-account';
@@ -8,11 +8,7 @@ let adminApp: App;
 
 if (!getApps().length) {
   adminApp = initializeApp({
-    credential: {
-        projectId: serviceAccount.project_id,
-        clientEmail: serviceAccount.client_email,
-        privateKey: serviceAccount.private_key,
-    },
+    credential: credential.cert(serviceAccount),
   });
 } else {
   adminApp = getApp();
