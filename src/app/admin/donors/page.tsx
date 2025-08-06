@@ -3,7 +3,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useTransition } from 'react';
-import { collection, getDocs, doc, deleteDoc, updateDoc, writeBatch, addDoc, serverTimestamp, query, where, orderBy, startAt, endAt, setDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, deleteDoc, updateDoc, writeBatch, addDoc, serverTimestamp, query, where, orderBy, startAt, endAt, setDoc, getCountFromServer } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Donor as DonorType } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
@@ -237,8 +237,8 @@ export default function AdminDonorsPage() {
 
   const updateTotalDonorsCount = async () => {
     const donorsCollection = collection(db, 'donors');
-    const donorsSnapshot = await getDocs(query(donorsCollection));
-    const totalDonors = donorsSnapshot.size;
+    const donorsSnapshot = await getCountFromServer(donorsCollection);
+    const totalDonors = donorsSnapshot.data().count;
     
     const statsRef = doc(db, 'settings', 'stats');
     await setDoc(statsRef, { totalDonors: totalDonors }, { merge: true });
