@@ -3,78 +3,100 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper functions
+    // --- Helper Functions ---
+    // Checks if the user is authenticated and an admin.
     function isAdmin() {
       return request.auth != null && get(/databases/$(database)/documents/donors/$(request.auth.uid)).data.isAdmin == true;
     }
-
+    
+    // Checks if the user is the owner of the document.
     function isOwner(userId) {
       return request.auth != null && request.auth.uid == userId;
     }
-    
-    function isVerifiedUser() {
-      return request.auth != null;
+
+    // --- Donors Collection Rules ---
+    match /donors/{userId} {
+      // READ: 
+      // - Admins can read any donor profile.
+      // - Any authenticated user can read their own profile.
+      // - Anyone can read a donor's profile IF they are available to donate (for search results).
+      allow get: if isAdmin() || isOwner(userId) || resource.data.isAvailable == true;
+
+      // LIST (Query):
+      // - Admins can query the entire collection.
+      // - Anyone can query the collection ONLY IF they are filtering for available donors. This is crucial for the public search page.
+      allow list: if isAdmin() || request.query.where.isAvailable == true;
+      
+      // CREATE:
+      // - Anyone can create their own donor profile (signup).
+      allow create: if isOwner(userId);
+      
+      // UPDATE:
+      // - Admins can update any donor profile.
+      // - Users can update their own profile.
+      allow update: if isAdmin() || isOwner(userId);
+      
+      // DELETE:
+      // - Only admins can delete donor profiles.
+      allow delete: if isAdmin();
+    }
+
+    // --- Publicly Readable Collections ---
+    // These collections can be read by anyone but only written to by admins.
+    match /requests/{docId} {
+      allow read, create: if true;
+      allow update, delete: if isAdmin();
     }
     
-    // Collections
-    match /donors/{donorId} {
-      // Allow anyone to read donor profiles that are marked as available
-      allow read: if resource.data.isAvailable == true || isOwner(donorId) || isAdmin();
-      // Allow any authenticated user to create their own profile
-      allow create: if isOwner(donorId);
-      // Allow users to update/delete their own profile, or admins to update/delete any profile
-      allow update, delete: if isOwner(donorId) || isAdmin();
-    }
-    
-    // Publicly listable collections for anyone
     match /blogs/{docId} {
       allow read: if true;
       allow write: if isAdmin();
     }
-    
-    match /gallery/{docId} {
-      allow read: if resource.data.status == 'approved';
-      allow create: if isVerifiedUser();
-      allow write: if isAdmin();
-    }
-    
+
     match /moderators/{docId} {
       allow read: if true;
       allow write: if isAdmin();
     }
     
     match /marquee-notices/{docId} {
-       allow read: if true;
-       allow write: if isAdmin();
-    }
-    
-    // Blood Requests
-    match /requests/{reqId} {
-      allow read, create: if true;
-      allow update, delete: if isAdmin();
-    }
-
-    // Settings
-    match /settings/global {
-    	allow read, write: if isAdmin();
-    }
-    match /settings/stats {
-    	allow read: if true;
+      allow read: if true;
       allow write: if isAdmin();
     }
-    
-    // Sensitive data - only accessible by server/admin
-    match /otp_codes/{docId} {
-      allow read, write: if false; // Should be handled by server-side logic (e.g. cloud functions or admin sdk)
+
+    // Gallery: Anyone can read 'approved' images. Only admins can manage all images.
+    match /gallery/{imageId} {
+      allow get: if resource.data.status == 'approved';
+      allow list: if request.query.where.status == 'approved';
+      allow create: if request.auth != null; // Any authenticated user can submit an image
+      allow update, delete: if isAdmin(); // Only admins can approve/delete
+    }
+
+    // --- Feedback Collection ---
+    // Only admins can read/write feedback. Users submit feedback via a backend function (send-email).
+    match /feedback/{docId} {
+      allow read, write: if isAdmin();
     }
     
-     match /sms_logs/{docId} {
-       allow read, write: if isAdmin();
-     }
+    // --- SMS Logs Collection ---
+    // Only admins can view logs. Logs are written by the backend.
+    match /sms_logs/{docId} {
+      allow read: if isAdmin();
+      allow write: if false; // Only backend can write
+    }
 
-     match /feedback/{docId} {
-       allow read, write: if isAdmin();
-       allow create: if true;
-     }
+    // --- Settings Collection ---
+    // The 'stats' document is publicly readable for homepage stats.
+    // Only admins can change settings.
+    match /settings/{docId} {
+        allow get: if docId == 'stats';
+        allow list, write: if isAdmin();
+    }
+    
+    // --- OTP Codes Collection ---
+    // OTPs are highly sensitive. No client-side access is allowed.
+    // They should only be created and verified by the backend (server).
+    match /otp_codes/{phone} {
+      allow read, write: if false;
+    }
   }
 }
