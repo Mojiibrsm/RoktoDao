@@ -3,7 +3,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useTransition } from 'react';
-import { collection, getDocs, doc, deleteDoc, updateDoc, writeBatch, addDoc, serverTimestamp, query, where, orderBy, startAt, endAt, setDoc, getCountFromServer } from 'firebase/firestore';
+import { collection, getDocs, doc, deleteDoc, updateDoc, writeBatch, addDoc, serverTimestamp, query, where, orderBy, startAt, endAt, setDoc, getCountFromServer, runTransaction } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Donor as DonorType } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
@@ -236,13 +236,21 @@ export default function AdminDonorsPage() {
   });
 
   const updateTotalDonorsCount = async () => {
-    const donorsCollection = collection(db, 'donors');
-    const donorsSnapshot = await getCountFromServer(donorsCollection);
-    const totalDonors = donorsSnapshot.data().count;
-    
-    const statsRef = doc(db, 'settings', 'stats');
-    await setDoc(statsRef, { totalDonors: totalDonors }, { merge: true });
-  };
+    try {
+        const statsRef = doc(db, 'settings', 'stats');
+        const donorsCollection = collection(db, 'donors');
+        const donorsSnapshot = await getCountFromServer(donorsCollection);
+        const totalDonors = donorsSnapshot.data().count;
+        await setDoc(statsRef, { totalDonors: totalDonors }, { merge: true });
+    } catch (error) {
+        console.error("Failed to update donor count:", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Could not update total donor statistics.",
+        });
+    }
+};
 
 
   const fetchDonors = async () => {

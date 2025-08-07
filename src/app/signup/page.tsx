@@ -10,7 +10,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { createUserWithEmailAndPassword, updatePassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { doc, setDoc, serverTimestamp, collection, query, where, getDocs, or } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, query, where, getDocs, or, increment, runTransaction } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -204,6 +204,18 @@ export default function SignupPage() {
         };
 
         await setDoc(doc(db, 'donors', user.uid), donorData);
+
+        // --- Update total donor count atomically ---
+        const statsRef = doc(db, 'settings', 'stats');
+        await runTransaction(db, async (transaction) => {
+            const statsDoc = await transaction.get(statsRef);
+            if (!statsDoc.exists()) {
+                transaction.set(statsRef, { totalDonors: 1 });
+            } else {
+                const newTotal = (statsDoc.data().totalDonors || 0) + 1;
+                transaction.update(statsRef, { totalDonors: newTotal });
+            }
+        });
 
         // --- Send Welcome SMS and Admin Notification ---
         try {
