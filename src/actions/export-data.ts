@@ -31,11 +31,20 @@ export async function exportDonorsToCsvAction(): Promise<Partial<Donor>[]> {
 
         const donorsData = donorsSnapshot.docs.map(doc => {
             const data = doc.data();
-            // Important: We use the doc.id as the uid, which is consistent with the app's logic
+            const serializableData = convertTimestampsToStrings(data);
+
+            // Create a donor object for CSV, ensuring address is a JSON string
             const donor = {
-                uid: doc.id,
-                ...convertTimestampsToStrings(data)
+                ...serializableData,
+                address: data.address ? JSON.stringify(data.address) : null,
             };
+
+            // IMPORTANT: We are intentionally removing the `uid` from the export
+            // because Firestore doc IDs are not valid UUIDs for Supabase.
+            // The `uid` will need to be populated later, possibly by matching emails or phone numbers
+            // after the initial data import.
+            delete (donor as any).uid;
+
             return donor as Partial<Donor>;
         });
         
