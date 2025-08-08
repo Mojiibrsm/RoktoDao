@@ -82,7 +82,7 @@ export default function Home() {
         const directorQuery = query(modsCollection, where('role', '==', 'প্রধান পরিচালক'), limit(1));
         const galleryQuery = query(imagesRef, where('status', '==', 'approved'), orderBy('createdAt', 'desc'), limit(8));
         const blogQuery = query(blogsRef, orderBy('createdAt', 'desc'), limit(3));
-        const statsRef = doc(db, 'settings', 'stats');
+        const settingsRef = doc(db, 'settings', 'global');
 
 
         // Fetch all data in parallel for better performance
@@ -94,7 +94,7 @@ export default function Home() {
             directorSnapshot,
             gallerySnapshot,
             blogSnapshot,
-            statsSnapshot,
+            settingsSnapshot,
         ] = await Promise.all([
             getDocs(reqQuery),
             getDocs(pinnedDonorsQuery),
@@ -103,7 +103,7 @@ export default function Home() {
             getDocs(directorQuery),
             getDocs(galleryQuery),
             getDocs(blogQuery),
-            getDoc(statsRef),
+            getDoc(settingsRef),
         ]);
 
         // Process Urgent Requests
@@ -131,7 +131,7 @@ export default function Home() {
         setDonors(pinnedDonors);
 
         // Process Stats
-        const totalDonors = statsSnapshot.exists() && statsSnapshot.data() ? statsSnapshot.data().totalDonors || 0 : 0;
+        const totalDonors = settingsSnapshot.exists() && settingsSnapshot.data() ? settingsSnapshot.data().publicTotalDonors || 0 : 0;
         setStats({
             totalDonors: totalDonors,
             totalRequests: requestCountSnap.data().count,

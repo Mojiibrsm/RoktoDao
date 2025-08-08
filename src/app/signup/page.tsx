@@ -205,18 +205,6 @@ export default function SignupPage() {
 
         await setDoc(doc(db, 'donors', user.uid), donorData);
 
-        // --- Update total donor count atomically ---
-        const statsRef = doc(db, 'settings', 'stats');
-        await runTransaction(db, async (transaction) => {
-            const statsDoc = await transaction.get(statsRef);
-            if (!statsDoc.exists()) {
-                transaction.set(statsRef, { totalDonors: 1 });
-            } else {
-                const newTotal = (statsDoc.data().totalDonors || 0) + 1;
-                transaction.update(statsRef, { totalDonors: newTotal });
-            }
-        });
-
         // --- Send Welcome SMS and Admin Notification ---
         try {
             const welcomeMessage = `Welcome to RoktoDao, ${values.fullName}! Your account has been created successfully. You can now set your password in the profile section.`;

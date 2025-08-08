@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -20,6 +21,7 @@ export default function AdminSettingsPage() {
     const [siteName, setSiteName] = useState("RoktoDao");
     const [tagline, setTagline] = useState("রক্ত দিন, জীবন বাঁচান — এখন আরও সহজে!");
     const [adminEmail, setAdminEmail] = useState("mojibrsm@gmail.com");
+    const [publicTotalDonors, setPublicTotalDonors] = useState(0);
     const [notifyNewDonor, setNotifyNewDonor] = useState(true);
     const [notifyNewRequest, setNotifyNewRequest] = useState(true);
 
@@ -34,6 +36,7 @@ export default function AdminSettingsPage() {
                     setSiteName(data.siteName || "RoktoDao");
                     setTagline(data.tagline || "রক্ত দিন, জীবন বাঁচান — এখন আরও সহজে!");
                     setAdminEmail(data.adminEmail || "mojibrsm@gmail.com");
+                    setPublicTotalDonors(data.publicTotalDonors || 0);
                     setNotifyNewDonor(data.notifyNewDonor !== false);
                     setNotifyNewRequest(data.notifyNewRequest !== false);
                 }
@@ -59,6 +62,7 @@ export default function AdminSettingsPage() {
                 siteName,
                 tagline,
                 adminEmail,
+                publicTotalDonors,
                 notifyNewDonor,
                 notifyNewRequest
             }, { merge: true });
@@ -114,6 +118,11 @@ export default function AdminSettingsPage() {
                         <Label htmlFor="admin-email">Admin Email</Label>
                         <Input id="admin-email" type="email" value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} />
                         <p className="text-sm text-muted-foreground">Email for receiving system notifications.</p>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="public-total-donors">Public Total Donors</Label>
+                        <Input id="public-total-donors" type="number" value={publicTotalDonors} onChange={(e) => setPublicTotalDonors(Number(e.target.value))} />
+                        <p className="text-sm text-muted-foreground">This number will be shown on the homepage as the total donor count.</p>
                     </div>
                 </CardContent>
             </Card>
