@@ -26,16 +26,14 @@ export default function ExportDataPage() {
                 return;
             }
 
-            // Map the data to a flat structure suitable for CSV
+            // Map the data to a flat structure suitable for CSV, ensuring address is a JSON string
             const csvData = donors.map(d => ({
                 uid: d.uid,
                 fullName: d.fullName,
                 email: d.email,
                 bloodGroup: d.bloodGroup,
                 phoneNumber: d.phoneNumber,
-                address_division: d.address?.division,
-                address_district: d.address?.district,
-                address_upazila: d.address?.upazila,
+                address: d.address ? JSON.stringify(d.address) : null,
                 lastDonationDate: d.lastDonationDate,
                 isAvailable: d.isAvailable,
                 dateOfBirth: d.dateOfBirth,
