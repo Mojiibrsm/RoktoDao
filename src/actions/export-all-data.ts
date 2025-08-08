@@ -5,15 +5,22 @@ import { adminDb } from '@/lib/firebase-admin';
 import { Timestamp } from 'firebase-admin/firestore';
 
 // Helper to convert Firestore Timestamps to serializable ISO strings
-const convertTimestampsToStrings = (docData: any): Record<string, any> => {
-    const data: Record<string, any> = { ...docData };
-    for (const key in data) {
-        if (data[key] instanceof Timestamp) {
-            data[key] = data[key].toDate().toISOString();
-        } else if (data[key] instanceof Date) {
-            data[key] = data[key].toISOString();
-        } else if (typeof data[key] === 'object' && data[key] !== null) {
-            data[key] = JSON.stringify(data[key]);
+// and handle nested objects for JSON conversion.
+const convertDataForExport = (docData: Record<string, any>): Record<string, any> => {
+    const data: Record<string, any> = {};
+    for (const key in docData) {
+        if (Object.prototype.hasOwnProperty.call(docData, key)) {
+            const value = docData[key];
+            if (value instanceof Timestamp) {
+                data[key] = value.toDate().toISOString();
+            } else if (value instanceof Date) {
+                data[key] = value.toISOString();
+            } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+                // Convert nested objects to JSON strings for fields like 'address' or 'user'
+                data[key] = JSON.stringify(value);
+            } else {
+                data[key] = value;
+            }
         }
     }
     return data;
@@ -32,9 +39,9 @@ async function exportCollection(collectionName: string): Promise<Record<string, 
 
         const data = snapshot.docs.map(doc => {
             const docData = doc.data();
-            const serializableData = convertTimestampsToStrings(docData);
+            const serializableData = convertDataForExport(docData);
             
-            // For the donors collection, we remove the uid to avoid Supabase import issues.
+            // For the donors collection, we remove the uid to avoid Supabase import issues with UUID type.
             if (collectionName === 'donors') {
               delete serializableData.uid;
             }
