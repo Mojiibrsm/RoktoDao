@@ -79,6 +79,7 @@ export default function Home() {
         // Define all queries
         const reqQuery = query(requestsRef, where('status', '==', 'Approved'), orderBy('neededDate', 'asc'), limit(6));
         const pinnedDonorsQuery = query(donorsRef, where('isPinned', '==', true), where('isAvailable', '==', true), limit(6));
+        const latestDonorsQuery = query(donorsRef, where('isAvailable', '==', true), orderBy('createdAt', 'desc'), limit(6));
         const directorQuery = query(modsCollection, where('role', '==', 'প্রধান পরিচালক'), limit(1));
         const galleryQuery = query(imagesRef, where('status', '==', 'approved'), orderBy('createdAt', 'desc'), limit(8));
         const blogQuery = query(blogsRef, orderBy('createdAt', 'desc'), limit(3));
@@ -89,6 +90,7 @@ export default function Home() {
         const [
             reqSnapshot,
             pinnedSnapshot,
+            latestDonorsSnapshot,
             requestCountSnap,
             fulfilledCountSnap,
             directorSnapshot,
@@ -98,6 +100,7 @@ export default function Home() {
         ] = await Promise.all([
             getDocs(reqQuery),
             getDocs(pinnedDonorsQuery),
+            getDocs(latestDonorsQuery),
             getCountFromServer(requestsRef),
             getCountFromServer(query(requestsRef, where("status", "==", "Fulfilled"))),
             getDocs(directorQuery),
@@ -118,17 +121,15 @@ export default function Home() {
         });
         setUrgentRequests(fetchedUrgentRequests);
         
-        // Process Donors (pinned first)
-        const pinnedDonors = pinnedSnapshot.docs.map(doc => {
-            const data = doc.data();
-            return { 
-                id: doc.id, 
-                ...data,
-                lastDonationDate: data.lastDonationDate instanceof Timestamp ? data.lastDonationDate.toDate().toISOString() : data.lastDonationDate,
-                createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString()),
-            } as Donor;
-        });
-        setDonors(pinnedDonors);
+        // Process Donors: Show pinned donors first, otherwise show latest donors.
+        let donorsToShow: Donor[] = [];
+        if (!pinnedSnapshot.empty) {
+            donorsToShow = pinnedSnapshot.docs.map(doc => doc.data() as Donor);
+        } else {
+            donorsToShow = latestDonorsSnapshot.docs.map(doc => doc.data() as Donor);
+        }
+        setDonors(donorsToShow);
+
 
         // Process Stats
         const totalDonors = settingsSnapshot.exists() && settingsSnapshot.data() ? settingsSnapshot.data().publicTotalDonors || 0 : 0;
