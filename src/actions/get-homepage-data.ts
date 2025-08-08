@@ -16,6 +16,7 @@ interface Stats {
   totalDonors: number;
   totalRequests: number;
   donationsFulfilled: number;
+  activeDonors: number;
 }
 interface Member {
   id: string;
@@ -65,6 +66,7 @@ export async function getHomepageData() {
             latestDonorsSnapshot,
             requestCountSnap,
             fulfilledCountSnap,
+            activeDonorsSnap,
             directorSnapshot,
             gallerySnapshot,
             blogSnapshot,
@@ -75,6 +77,7 @@ export async function getHomepageData() {
             latestDonorsQuery.get(),
             requestsRef.count().get(),
             requestsRef.where("status", "==", "Fulfilled").count().get(),
+            donorsRef.where("isAvailable", "==", true).count().get(),
             directorQuery.get(),
             galleryQuery.get(),
             blogQuery.get(),
@@ -101,6 +104,7 @@ export async function getHomepageData() {
             totalDonors: totalDonors,
             totalRequests: requestCountSnap.data().count,
             donationsFulfilled: fulfilledCountSnap.data().count,
+            activeDonors: activeDonorsSnap.data().count,
         };
 
         // Process Director
@@ -134,7 +138,7 @@ export async function getHomepageData() {
         return {
             donors: [],
             urgentRequests: [],
-            stats: { totalDonors: 0, totalRequests: 0, donationsFulfilled: 0 },
+            stats: { totalDonors: 0, totalRequests: 0, donationsFulfilled: 0, activeDonors: 0 },
             director: null,
             galleryImages: [],
             blogPosts: [],

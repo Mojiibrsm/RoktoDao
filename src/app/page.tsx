@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import type { BloodRequest, Donor, BlogPost } from '@/lib/types';
-import { Droplet, Search, Heart, Phone, LifeBuoy, HeartPulse, ShieldCheck, Stethoscope, LocateFixed, MessageCircle, Newspaper, Github, Linkedin, Twitter, Users, Globe, HandHeart, ListChecks, Pin, ArrowRight } from 'lucide-react';
+import { Droplet, Search, Heart, Phone, LifeBuoy, HeartPulse, ShieldCheck, Stethoscope, LocateFixed, MessageCircle, Newspaper, Github, Linkedin, Twitter, Users, Globe, HandHeart, ListChecks, Pin, ArrowRight, UserCheck } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
@@ -189,7 +189,17 @@ export default async function Home() {
                 আমাদের সম্প্রদায়ের সম্মিলিত প্রভাব দেখুন।
             </p>
             <Separator className="my-8" />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+                <div className="flex flex-col items-center gap-2">
+                    <Users className="h-12 w-12 text-primary" />
+                    <p className="text-4xl font-bold">{stats.totalDonors.toLocaleString()}+</p>
+                    <p className="text-muted-foreground">মোট ডোনার</p>
+                </div>
+                 <div className="flex flex-col items-center gap-2">
+                    <UserCheck className="h-12 w-12 text-primary" />
+                    <p className="text-4xl font-bold">{stats.activeDonors.toLocaleString()}+</p>
+                    <p className="text-muted-foreground">সক্রিয় ডোনার</p>
+                </div>
                 <div className="flex flex-col items-center gap-2">
                     <ListChecks className="h-12 w-12 text-primary" />
                     <p className="text-4xl font-bold">{stats.totalRequests.toLocaleString()}+</p>
