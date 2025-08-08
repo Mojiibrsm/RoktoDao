@@ -79,7 +79,7 @@ export default function Home() {
         // Define all queries
         const reqQuery = query(requestsRef, where('status', '==', 'Approved'), orderBy('neededDate', 'asc'), limit(6));
         const pinnedDonorsQuery = query(donorsRef, where('isPinned', '==', true), where('isAvailable', '==', true), limit(6));
-        const latestDonorsQuery = query(donorsRef, where('isAvailable', '==', true), orderBy('createdAt', 'desc'), limit(6));
+        const latestDonorsQuery = query(donorsRef, where('isAvailable', '==', true), where('isPinned', '==', false), orderBy('createdAt', 'desc'), limit(6));
         const directorQuery = query(modsCollection, where('role', '==', 'প্রধান পরিচালক'), limit(1));
         const galleryQuery = query(imagesRef, where('status', '==', 'approved'), orderBy('createdAt', 'desc'), limit(8));
         const blogQuery = query(blogsRef, orderBy('createdAt', 'desc'), limit(3));
@@ -125,7 +125,7 @@ export default function Home() {
         let donorsToShow: Donor[] = [];
         if (!pinnedSnapshot.empty) {
             donorsToShow = pinnedSnapshot.docs.map(doc => doc.data() as Donor);
-        } else {
+        } else if (!latestDonorsSnapshot.empty) {
             donorsToShow = latestDonorsSnapshot.docs.map(doc => doc.data() as Donor);
         }
         setDonors(donorsToShow);
