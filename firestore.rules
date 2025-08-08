@@ -1,119 +1,78 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper function to check for admin role
+  
     function isAdmin() {
       return exists(/databases/$(database)/documents/donors/$(request.auth.uid)) &&
              get(/databases/$(database)/documents/donors/$(request.auth.uid)).data.isAdmin == true;
     }
 
-    // Rules for the 'donors' collection
+    // Donors can be queried by anyone if available, but only the user or an admin can write.
     match /donors/{userId} {
-      // ANYONE can query the list of available donors.
-      // This is crucial for the search page and homepage.
-      // The client query MUST include `where('isAvailable', '==', true)`.
+      allow get: if resource.data.isAvailable == true || resource.data.isPinned == true || request.auth.uid == userId || isAdmin();
       allow list: if request.query.where.isAvailable == true || isAdmin();
-
-      // ANYONE can view a single donor's profile if they are available or pinned.
-      // This allows direct linking to profiles and homepage display.
-      allow get: if (resource.data.isAvailable == true || resource.data.isPinned == true) || isAdmin();
-
-      // ONLY authenticated users can create their OWN donor document.
-      allow create: if request.auth != null && request.auth.uid == userId;
-
-      // Authenticated users can update THEIR OWN document.
-      // Admins can update ANY document.
-      allow update: if (request.auth != null && request.auth.uid == userId) || isAdmin();
-
-      // Admins can delete any document.
-      allow delete: if isAdmin();
+      allow create: if request.auth.uid == userId; // Allow user to create their own profile
+      allow update, delete: if request.auth.uid == userId || isAdmin();
     }
     
-    // Rules for the 'requests' collection
+    // Requests can be read by anyone, but only created/updated by users/admins.
     match /requests/{requestId} {
-      // ANYONE can read requests (for homepage stats and requests page).
       allow read: if true;
-
-      // ANYONE can create a blood request.
-      allow create: if true;
-
-      // Admins can update any request.
-      // The user who created the request can also update it.
-      allow update: if isAdmin() || (resource.data.uid != null && request.auth.uid == resource.data.uid);
-      
-      // Admins can delete any request.
+      allow create: if request.auth != null;
+      allow update: if request.auth.uid == resource.data.uid || isAdmin();
       allow delete: if isAdmin();
     }
 
-    // Rules for 'marquee-notices'
-    match /marquee-notices/{noticeId} {
-      // Allow anyone to read notices for the homepage marquee
-      allow read: if true;
-      // Allow only admins to write notices
-      allow write: if isAdmin();
-    }
-    
-    // Rules for 'settings'
-    match /settings/global {
-        // Allow anyone to read site settings (for homepage stats, etc.)
-        allow get: if true;
-        // Allow only admins to update settings
-        allow write: if isAdmin();
-    }
-    
-    // Rules for 'blogs'
+    // Blogs can be read by anyone, but only written by admins.
     match /blogs/{blogId} {
-      // Allow anyone to read blog posts
       allow read: if true;
-      // Allow only admins to create, update, or delete posts
       allow write: if isAdmin();
     }
     
-    // Rules for 'gallery'
-    match /gallery/{imageId} {
-      // Allow anyone to list/get APPROVED gallery images
-      allow list: if request.query.where.status == 'approved' || isAdmin();
-      allow get: if resource.data.status == 'approved' || isAdmin();
-      
-      // Allow only logged-in users to create (upload for approval)
-      allow create: if request.auth != null;
+    // Moderators can be read by anyone, but only written by admins.
+    match /moderators/{moderatorId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
 
-      // Allow only admins to update (approve) or delete
+    // Gallery images can be listed if approved. Anyone can get an approved image.
+    // Logged-in users can create. Admins can update/delete.
+    match /gallery/{imageId} {
+      allow read, list: if true;
+      allow create: if request.auth != null;
       allow update, delete: if isAdmin();
     }
-    
-    // Rules for 'moderators'
-    match /moderators/{moderatorId} {
-      // Allow anyone to read moderators list (for team/about page)
-      allow read: if true;
-      // Allow only admins to create, update, or delete moderators
+
+    // Site settings can be read by anyone, but only written by admins.
+    match /settings/global {
+      allow get: if true;
       allow write: if isAdmin();
     }
 
-    // Rules for 'feedback'
-    match /feedback/{feedbackId} {
-        // Allow anyone to submit feedback
-        allow create: if true;
-        // Only admins can view, update or delete feedback
-        allow read, update, delete: if isAdmin();
-    }
-    
-    // Rules for 'otp_codes'
-    match /otp_codes/{phone} {
-        // Disallow any client-side reads
-        allow read: if false;
-        // Disallow any client-side writes (these are created by backend/server)
-        allow write: if false;
+    // Marquee notices can be read by anyone, written by admins.
+    match /marquee-notices/{noticeId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
-    // Rules for 'sms_logs'
-    match /sms_logs/{logId} {
-      // Only admins can read logs
-      allow read: if isAdmin();
-      // Nobody from client-side can write logs (server-only)
-      allow write: if false;
+    // OTP codes should not be readable by clients.
+    match /otp_codes/{phone} {
+        allow read, write: if false;
     }
+
+    // Feedback should only be written by clients, and managed by admins
+    match /feedback/{feedbackId} {
+      allow read, update, delete: if isAdmin();
+      allow create: if true;
+    }
+
+    // SMS logs should only be written by the server, and read by admins
+    match /sms_logs/{logId} {
+      allow read: if isAdmin();
+      allow write: if false; // Should be written by server functions only
+    }
+
   }
 }

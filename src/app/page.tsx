@@ -1,14 +1,11 @@
 
 
-"use client";
-
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { db } from '@/lib/firebase';
 import type { BloodRequest, Donor, BlogPost } from '@/lib/types';
-import { Droplet, MapPin, Calendar, Syringe, Search, Heart, Phone, LifeBuoy, HeartPulse, ShieldCheck, Stethoscope, LocateFixed, MessageCircle, Newspaper, Github, Linkedin, Twitter, Users, Globe, HandHeart, ListChecks, AlertTriangle, ArrowRight, Pin } from 'lucide-react';
+import { Droplet, Search, Heart, Phone, LifeBuoy, HeartPulse, ShieldCheck, Stethoscope, LocateFixed, MessageCircle, Newspaper, Github, Linkedin, Twitter, Users, Globe, HandHeart, ListChecks, Pin, ArrowRight } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
@@ -18,27 +15,20 @@ import {
 import Image from 'next/image';
 import DonorCard from '@/components/donor-card';
 import RequestCard from '@/components/request-card';
-import { collection, getDocs, query, where, orderBy, limit, Timestamp, getCountFromServer, doc, getDoc } from 'firebase/firestore';
-import { useState, useEffect } from 'react';
-import { Skeleton } from '@/components/ui/skeleton';
+import { getHomepageData } from '@/actions/get-homepage-data';
 
-
-interface GalleryImage {
-    id: string;
-    imageUrl: string;
-    status: 'approved' | 'pending';
-}
-interface Stats {
-  totalDonors: number;
-  totalRequests: number;
-  donationsFulfilled: number;
-}
 interface Member {
   id: string;
   name: string;
   role: string;
   avatar: string;
   avatarHint?: string;
+}
+
+interface GalleryImage {
+    id: string;
+    imageUrl: string;
+    status: 'approved' | 'pending';
 }
 
 const faqs = [
@@ -57,118 +47,15 @@ const faqs = [
 ];
 
 
-export default function Home() {
-  const [urgentRequests, setUrgentRequests] = useState<BloodRequest[]>([]);
-  const [donors, setDonors] = useState<Donor[]>([]);
-  const [stats, setStats] = useState<Stats>({ totalDonors: 0, totalRequests: 0, donationsFulfilled: 0 });
-  const [director, setDirector] = useState<Member | null>(null);
-  const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
-  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const getHomepageData = async () => {
-      setLoading(true);
-      try {
-        const requestsRef = collection(db, 'requests');
-        const donorsRef = collection(db, 'donors');
-        const modsCollection = collection(db, 'moderators');
-        const imagesRef = collection(db, 'gallery');
-        const blogsRef = collection(db, 'blogs');
-
-        // Define all queries
-        const reqQuery = query(requestsRef, where('status', '==', 'Approved'), orderBy('neededDate', 'asc'), limit(6));
-        const pinnedDonorsQuery = query(donorsRef, where('isPinned', '==', true), where('isAvailable', '==', true), limit(6));
-        const latestDonorsQuery = query(donorsRef, where('isAvailable', '==', true), where('isPinned', '==', false), orderBy('createdAt', 'desc'), limit(6));
-        const directorQuery = query(modsCollection, where('role', '==', 'প্রধান পরিচালক'), limit(1));
-        const galleryQuery = query(imagesRef, where('status', '==', 'approved'), orderBy('createdAt', 'desc'), limit(8));
-        const blogQuery = query(blogsRef, orderBy('createdAt', 'desc'), limit(3));
-        const settingsRef = doc(db, 'settings', 'global');
-
-
-        // Fetch all data in parallel for better performance
-        const [
-            reqSnapshot,
-            pinnedSnapshot,
-            latestDonorsSnapshot,
-            requestCountSnap,
-            fulfilledCountSnap,
-            directorSnapshot,
-            gallerySnapshot,
-            blogSnapshot,
-            settingsSnapshot,
-        ] = await Promise.all([
-            getDocs(reqQuery),
-            getDocs(pinnedDonorsQuery),
-            getDocs(latestDonorsQuery),
-            getCountFromServer(requestsRef),
-            getCountFromServer(query(requestsRef, where("status", "==", "Fulfilled"))),
-            getDocs(directorQuery),
-            getDocs(galleryQuery),
-            getDocs(blogQuery),
-            getDoc(settingsRef),
-        ]);
-
-        // Process Urgent Requests
-        const fetchedUrgentRequests = reqSnapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                id: doc.id,
-                ...data,
-                neededDate: data.neededDate instanceof Timestamp ? data.neededDate.toDate().toISOString() : data.neededDate,
-                createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString()),
-            } as BloodRequest;
-        });
-        setUrgentRequests(fetchedUrgentRequests);
-        
-        // Process Donors: Show pinned donors first, otherwise show latest donors.
-        let donorsToShow: Donor[] = [];
-        if (!pinnedSnapshot.empty) {
-            donorsToShow = pinnedSnapshot.docs.map(doc => doc.data() as Donor);
-        } else if (!latestDonorsSnapshot.empty) {
-            donorsToShow = latestDonorsSnapshot.docs.map(doc => doc.data() as Donor);
-        }
-        setDonors(donorsToShow);
-
-
-        // Process Stats
-        const totalDonors = settingsSnapshot.exists() && settingsSnapshot.data() ? settingsSnapshot.data().publicTotalDonors || 0 : 0;
-        setStats({
-            totalDonors: totalDonors,
-            totalRequests: requestCountSnap.data().count,
-            donationsFulfilled: fulfilledCountSnap.data().count,
-        });
-
-        // Process Director
-        if (!directorSnapshot.empty) {
-            const directorDoc = directorSnapshot.docs[0];
-            setDirector({ id: directorDoc.id, ...directorDoc.data() } as Member);
-        }
-
-        // Process Gallery Images
-        const fetchedGalleryImages = gallerySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GalleryImage));
-        setGalleryImages(fetchedGalleryImages);
-
-         // Process Blog Posts
-        const fetchedBlogPosts = blogSnapshot.docs.map(doc => {
-            const data = doc.data();
-            return { 
-                id: doc.id, 
-                ...data,
-                date: data.date instanceof Timestamp ? data.date.toDate().toISOString() : data.date,
-                createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString()),
-            } as BlogPost;
-        });
-        setBlogPosts(fetchedBlogPosts);
-        
-      } catch (error) {
-        console.error("Error fetching homepage data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    getHomepageData();
-  }, []);
+export default async function Home() {
+  const { 
+    donors, 
+    urgentRequests, 
+    stats, 
+    director, 
+    galleryImages, 
+    blogPosts 
+  } = await getHomepageData();
 
   return (
     <div className="flex flex-col items-center">
@@ -192,15 +79,15 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-8 pt-12">
                <div className="text-center">
-                 {loading ? <Skeleton className="h-8 w-20 mb-1" /> : <p className="text-3xl font-bold">{stats.totalDonors.toLocaleString()}+</p>}
+                 <p className="text-3xl font-bold">{stats.totalDonors.toLocaleString()}+</p>
                 <p className="text-sm text-muted-foreground">মোট ডোনার</p>
               </div>
               <div className="text-center">
-                 {loading ? <Skeleton className="h-8 w-20 mb-1" /> : <p className="text-3xl font-bold">{stats.totalRequests.toLocaleString()}+</p>}
+                 <p className="text-3xl font-bold">{stats.totalRequests.toLocaleString()}+</p>
                 <p className="text-sm text-muted-foreground">রক্তের অনুরোধ</p>
               </div>
                 <div className="text-center">
-                 {loading ? <Skeleton className="h-8 w-20 mb-1" /> : <p className="text-3xl font-bold">{stats.donationsFulfilled.toLocaleString()}+</p>}
+                 <p className="text-3xl font-bold">{stats.donationsFulfilled.toLocaleString()}+</p>
                 <p className="text-sm text-muted-foreground">সফল ডোনেশন</p>
               </div>
             </div>
@@ -250,13 +137,7 @@ export default function Home() {
             <p className="mt-2 text-lg text-muted-foreground">Our active and available donors</p>
           </div>
           <Separator className="my-8" />
-          {loading ? (
-             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {[...Array(3)].map((_, i) => (
-                  <Card key={i} className="animate-pulse p-6"><div className="h-24 w-full bg-muted rounded"></div></Card>
-              ))}
-            </div>
-          ) : donors.length > 0 ? (
+          {donors.length > 0 ? (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {donors.map((donor) => (
                 <DonorCard key={donor.uid} donor={donor} />
@@ -282,13 +163,7 @@ export default function Home() {
             <p className="mt-2 text-lg text-muted-foreground">Live urgent blood requests</p>
           </div>
           <Separator className="my-8" />
-          {loading ? (
-             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {[...Array(3)].map((_, i) => (
-                  <Card key={i} className="animate-pulse p-6"><div className="h-24 w-full bg-muted rounded"></div></Card>
-              ))}
-            </div>
-          ) : urgentRequests.length > 0 ? (
+          {urgentRequests.length > 0 ? (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {urgentRequests.map((req) => (
                 <RequestCard key={req.id} req={req} />
@@ -317,12 +192,12 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="flex flex-col items-center gap-2">
                     <ListChecks className="h-12 w-12 text-primary" />
-                    {loading ? <Skeleton className="h-8 w-20 mt-1" /> : <p className="text-4xl font-bold">{stats.totalRequests.toLocaleString()}+</p>}
+                    <p className="text-4xl font-bold">{stats.totalRequests.toLocaleString()}+</p>
                     <p className="text-muted-foreground">মোট রিকোয়েস্ট</p>
                 </div>
                 <div className="flex flex-col items-center gap-2">
                     <HandHeart className="h-12 w-12 text-primary" />
-                    {loading ? <Skeleton className="h-8 w-20 mt-1" /> : <p className="text-4xl font-bold">{stats.donationsFulfilled.toLocaleString()}+</p>}
+                    <p className="text-4xl font-bold">{stats.donationsFulfilled.toLocaleString()}+</p>
                     <p className="text-muted-foreground">সফল ডোনেশন</p>
                 </div>
             </div>
@@ -446,13 +321,7 @@ export default function Home() {
             <p className="mt-2 text-lg text-muted-foreground">Stay informed with our latest articles</p>
           </div>
           <Separator className="my-8" />
-           {loading ? (
-             <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-              {[...Array(3)].map((_, i) => (
-                  <Card key={i} className="animate-pulse p-6"><div className="h-64 w-full bg-muted rounded"></div></Card>
-              ))}
-            </div>
-           ) : blogPosts.length > 0 ? (
+           {blogPosts.length > 0 ? (
             <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
               {blogPosts.map((post) => (
                 <a key={post.id} href={post.link} target="_blank" rel="noopener noreferrer" className="flex flex-col no-underline group">
@@ -525,13 +394,7 @@ export default function Home() {
             আমাদের রক্তযোদ্ধাদের কিছু অনুপ্রেরণামূলক মুহূর্ত।
           </p>
           <Separator className="my-8" />
-          {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {[...Array(8)].map((_, i) => (
-                  <Card key={i} className="animate-pulse aspect-square"><div className="h-full w-full bg-muted rounded-lg"></div></Card>
-              ))}
-            </div>
-          ) : galleryImages.length > 0 ? (
+          {galleryImages.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {galleryImages.map(image => (
                   <div key={image.id} className="overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
