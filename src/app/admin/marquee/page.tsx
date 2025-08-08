@@ -2,8 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { collection, getDocs, doc, deleteDoc, updateDoc, addDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -56,12 +55,14 @@ export default function MarqueePage() {
     const fetchNotices = async () => {
         setLoading(true);
         try {
-            const noticesCollection = collection(db, 'marquee-notices');
-            const q = query(noticesCollection, orderBy('createdAt', 'desc'));
-            const noticesSnapshot = await getDocs(q);
-            const noticesList = noticesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notice));
-            setNotices(noticesList);
-        } catch (error) {
+            const { data, error } = await supabase
+                .from('marquee_notices')
+                .select('*')
+                .order('createdAt', { ascending: false });
+
+            if (error) throw error;
+            setNotices(data as Notice[]);
+        } catch (error: any) {
             toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch notices.' });
         } finally {
             setLoading(false);
@@ -78,16 +79,17 @@ export default function MarqueePage() {
             return;
         }
         try {
-            await addDoc(collection(db, 'marquee-notices'), {
-                text: newNoticeText,
-                createdAt: serverTimestamp(),
-            });
+            const { error } = await supabase
+                .from('marquee_notices')
+                .insert({ text: newNoticeText });
+
+            if (error) throw error;
             toast({ title: 'Notice Added', description: 'The new notice has been added successfully.' });
             fetchNotices();
             setNewNoticeText('');
             setIsAddDialogOpen(false);
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not add the notice.' });
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Error', description: `Could not add the notice: ${error.message}` });
         }
     };
 
@@ -97,25 +99,34 @@ export default function MarqueePage() {
             return;
         }
         try {
-            const noticeRef = doc(db, 'marquee-notices', selectedNotice.id);
-            await updateDoc(noticeRef, { text: selectedNotice.text });
+            const { error } = await supabase
+                .from('marquee_notices')
+                .update({ text: selectedNotice.text })
+                .eq('id', selectedNotice.id);
+            
+            if (error) throw error;
             toast({ title: 'Notice Updated', description: 'The notice has been updated successfully.' });
             fetchNotices();
             setIsEditDialogOpen(false);
             setSelectedNotice(null);
-        } catch (error) {
-             toast({ variant: 'destructive', title: 'Error', description: 'Could not update the notice.' });
+        } catch (error: any) {
+             toast({ variant: 'destructive', title: 'Error', description: `Could not update the notice: ${error.message}` });
         }
     };
 
     const handleDeleteNotice = async () => {
         if (!selectedNotice) return;
         try {
-            await deleteDoc(doc(db, 'marquee-notices', selectedNotice.id));
+            const { error } = await supabase
+                .from('marquee_notices')
+                .delete()
+                .eq('id', selectedNotice.id);
+            
+            if (error) throw error;
             toast({ title: 'Notice Deleted', description: 'The notice has been deleted.' });
             fetchNotices();
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not delete the notice.' });
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Error', description: `Could not delete the notice: ${error.message}` });
         } finally {
             setIsDeleteDialogOpen(false);
             setSelectedNotice(null);
@@ -253,3 +264,5 @@ export default function MarqueePage() {
         </div>
     );
 }
+
+    

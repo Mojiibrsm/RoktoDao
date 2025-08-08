@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -7,9 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase';
-import { collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -47,32 +46,38 @@ export default function LoginPage() {
   const onSubmit = async (values: z.infer<typeof loginSchema>) => {
     setIsLoading(true);
     let emailToLogin = values.identifier;
+    let passwordToLogin = values.password;
 
     try {
-      // Check if the identifier is a phone number and not an email
-      if (/^\d{11,}$/.test(values.identifier) && !values.identifier.includes('@')) {
-        const donorsRef = collection(db, 'donors');
-        const q = query(donorsRef, where('phoneNumber', '==', values.identifier), limit(1));
-        const querySnapshot = await getDocs(q);
+        // Check if identifier is phone number
+        if (/^\d{11,}$/.test(values.identifier) && !values.identifier.includes('@')) {
+             const { data: donor, error } = await supabase
+                .from('donors')
+                .select('email')
+                .eq('phoneNumber', values.identifier)
+                .single();
 
-        if (querySnapshot.empty) {
-          throw new Error('User with this phone number not found.');
+            if (error || !donor) {
+                 throw new Error('User with this phone number not found.');
+            }
+            emailToLogin = donor.email!;
         }
-        const userDoc = querySnapshot.docs[0].data();
-        // If the user registered with a phone number but no email, we use the dummy email.
-        emailToLogin = userDoc.email || `${values.identifier}@rokto.dao`;
-      }
 
-      await signInWithEmailAndPassword(auth, emailToLogin, values.password);
+      const { error } = await supabase.auth.signInWithPassword({
+        email: emailToLogin,
+        password: passwordToLogin,
+      });
+
+      if (error) throw error;
+
       toast({
         title: 'Login Successful',
         description: 'Welcome back!',
       });
-      // Let the AuthProvider handle the redirect by detecting the user state change.
-      // router.push('/profile');
+      // AuthProvider will redirect
     } catch (error: any) {
       let description = 'An unknown error occurred.';
-      if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.message.includes('not found')) {
+      if (error.message.includes('Invalid login credentials')) {
         description = 'ভুল ফোন নম্বর/ইমেল বা পাসওয়ার্ড। অনুগ্রহ করে আবার চেষ্টা করুন।';
       }
       toast({
@@ -151,3 +156,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    

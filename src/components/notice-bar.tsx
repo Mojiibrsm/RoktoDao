@@ -3,9 +3,8 @@
 
 import { Bell, Droplet } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
-import { collection, query, orderBy, getDocs, where, Timestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import type { BloodRequest } from '@/lib/types';
+import { supabase } from '@/lib/supabase';
 
 interface Notice {
     id: string;
@@ -21,37 +20,30 @@ const NoticeBar = () => {
     const fetchAllNotices = async () => {
         setLoading(true);
         try {
-            // Fetch admin notices
-            const noticesCollection = collection(db, 'marquee-notices');
-            const noticesQuery = query(noticesCollection, orderBy('createdAt', 'desc'));
-            const noticesSnapshot = await getDocs(noticesQuery);
-            const adminNotices: Notice[] = noticesSnapshot.docs.map(doc => ({
-                id: doc.id,
-                text: doc.data().text,
+            // Fetch admin notices from Supabase
+            const { data: adminNoticesData, error: noticesError } = await supabase
+                .from('marquee_notices')
+                .select('id, text')
+                .order('createdAt', { ascending: false });
+
+            if (noticesError) throw noticesError;
+
+            const adminNotices: Notice[] = adminNoticesData.map(notice => ({
+                id: notice.id,
+                text: notice.text,
                 type: 'notice'
             }));
 
-            // Fetch active blood requests
-            const requestsCollection = collection(db, 'requests');
-            const requestsQuery = query(
-                requestsCollection,
-                where('status', 'in', ['Pending', 'Approved'])
-            );
-            const requestsSnapshot = await getDocs(requestsQuery);
+            // Fetch active blood requests from Supabase
+            const { data: requestsData, error: requestsError } = await supabase
+                .from('requests')
+                .select('id, bloodGroup, district, isEmergency, status')
+                .in('status', ['Pending', 'Approved'])
+                .order('createdAt', { ascending: false });
+
+            if (requestsError) throw requestsError;
             
-            const fetchedRequests = requestsSnapshot.docs.map(doc => {
-                 const data = doc.data();
-                 return {
-                    id: doc.id,
-                    ...data,
-                    createdAt: data.createdAt?.toDate()?.toISOString() || new Date().toISOString(),
-                 }
-            }) as (BloodRequest & {id: string, createdAt: string})[];
-
-            // Sort on the client side to avoid composite index requirement
-            const sortedRequests = fetchedRequests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-            const urgentRequests: Notice[] = sortedRequests.map(data => {
+            const urgentRequests: Notice[] = requestsData.map(data => {
                 const emergencyText = data.isEmergency ? "জরুরী: " : "";
                 const text = `${emergencyText}${data.district}-এ ${data.bloodGroup} রক্তের প্রয়োজন। যোগাযোগ করুন।`;
                 return {
@@ -65,7 +57,7 @@ const NoticeBar = () => {
             setNotices([...adminNotices, ...urgentRequests]);
 
         } catch (error) {
-            console.error("Error fetching notices: ", error);
+            console.error("Error fetching notices from Supabase: ", error);
         } finally {
             setLoading(false);
         }

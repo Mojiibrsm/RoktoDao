@@ -8,8 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { bloodGroups, locations, upazilas } from '@/lib/location-data';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import type { Donor } from '@/lib/types';
 import DonorCard from '@/components/donor-card';
 import { Search } from 'lucide-react';
@@ -32,31 +31,38 @@ export default function SearchDonorsPage() {
 
   const handleSearch = useCallback(() => {
     startTransition(async () => {
-      const donorsRef = collection(db, 'donors');
-      let q = query(donorsRef, where('isAvailable', '==', true));
+      let query = supabase
+        .from('donors')
+        .select('*')
+        .eq('isAvailable', true);
       
       if (bloodGroup && bloodGroup !== 'any') {
-        q = query(q, where('bloodGroup', '==', bloodGroup));
+        query = query.eq('bloodGroup', bloodGroup);
       }
       if (division && division !== 'any') {
-        q = query(q, where('address.division', '==', division));
+        query = query.eq('address->>division', division);
       }
       if (district && district !== 'any') {
-        q = query(q, where('address.district', '==', district));
+        query = query.eq('address->>district', district);
       }
       if (upazila && upazila !== 'any') {
-        q = query(q, where('address.upazila', '==', upazila));
+        query = query.eq('address->>upazila', upazila);
       }
       if (name) {
-        q = query(q, where('fullName', '==', name));
+        query = query.ilike('fullName', `%${name}%`);
       }
       if (phoneNumber) {
-        q = query(q, where('phoneNumber', '==', phoneNumber));
+        query = query.eq('phoneNumber', phoneNumber);
       }
 
-      const querySnapshot = await getDocs(q);
-      const fetchedDonors = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Donor[];
-      setDonors(fetchedDonors);
+      const { data: fetchedDonors, error } = await query;
+      
+      if (error) {
+        console.error("Error fetching donors:", error);
+        setDonors([]);
+      } else {
+        setDonors(fetchedDonors as Donor[]);
+      }
     });
   }, [bloodGroup, division, district, upazila, name, phoneNumber]);
 
@@ -169,7 +175,7 @@ export default function SearchDonorsPage() {
             </div>
         ) : donors.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {donors.map(donor => <DonorCard key={donor.id} donor={donor} />)}
+            {donors.map(donor => <DonorCard key={donor.uid} donor={donor} />)}
           </div>
         ) : (
           <div className="text-center py-16 border-2 border-dashed rounded-lg">
@@ -181,3 +187,5 @@ export default function SearchDonorsPage() {
     </div>
   );
 }
+
+    

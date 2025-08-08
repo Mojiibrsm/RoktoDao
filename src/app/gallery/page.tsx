@@ -2,8 +2,7 @@
 "use client";
 
 import { useState, useEffect, useRef, ChangeEvent } from 'react';
-import { collection, getDocs, doc, addDoc, serverTimestamp, query, where, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Image as ImageIcon, Loader2, PlusCircle, CheckCircle } from 'lucide-react';
@@ -81,14 +80,15 @@ const UploadDialog = () => {
                 folder: '/roktodao/gallery/',
             });
             
-            await addDoc(collection(db, 'gallery'), {
+            const { error } = await supabase.from('gallery').insert({
                 imageUrl: response.url,
                 filePath: response.filePath,
                 fileId: response.fileId,
                 status: 'pending',
-                uploaderId: user.uid,
-                createdAt: serverTimestamp(),
+                uploaderId: user.id,
             });
+
+            if (error) throw error;
 
             toast({ title: 'Image Uploaded', description: 'Thank you! Your image is now pending approval from an admin.' });
             setSelectedFile(null);
@@ -148,15 +148,15 @@ export default function GalleryPage() {
         const fetchImages = async () => {
             setLoading(true);
             try {
-                const imagesCollection = collection(db, 'gallery');
-                // Order by creation time and filter for approved status on the client
-                const q = query(imagesCollection, orderBy('createdAt', 'desc'));
-                const imagesSnapshot = await getDocs(q);
-                const imagesList = imagesSnapshot.docs
-                    .map(doc => ({ id: doc.id, ...doc.data() } as GalleryImage))
-                    .filter(img => img.status === 'approved');
-                setImages(imagesList);
-            } catch (error) {
+                const { data, error } = await supabase
+                    .from('gallery')
+                    .select('*')
+                    .eq('status', 'approved')
+                    .order('createdAt', { ascending: false });
+
+                if (error) throw error;
+                setImages(data as GalleryImage[]);
+            } catch (error: any) {
                 console.error(error);
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch gallery images.' });
             } finally {
@@ -207,10 +207,12 @@ export default function GalleryPage() {
                     <div className="text-center py-16 border-2 border-dashed rounded-lg">
                        <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground" />
                        <p className="mt-4 text-muted-foreground">গ্যালারিতে কোনো ছবি পাওয়া যায়নি।</p>
-                       <p className="text-sm text-muted-foreground/80">ছবি আপলোড করে প্রথম জন হোন!</p>
+                       <p className="text-sm text-muted-foreground/80 mt-2">ছবি আপলোড করে প্রথম জন হোন!</p>
                     </div>
                 )}
             </section>
         </div>
     );
 }
+
+    

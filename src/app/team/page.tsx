@@ -9,8 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Crown, Shield, Mail, Phone, MapPin, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { collection, query, orderBy, getDocs, where } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 
 interface Member {
   id: string;
@@ -132,10 +131,12 @@ export default function TeamPage() {
     const fetchTeam = async () => {
         setLoading(true);
         try {
-            const modsCollection = collection(db, 'moderators');
-            const q = query(modsCollection, orderBy('createdAt', 'desc'));
-            const modsSnapshot = await getDocs(q);
-            const allMembers = modsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
+            const { data: allMembers, error } = await supabase
+                .from('moderators')
+                .select('*')
+                .order('createdAt', { ascending: false });
+
+            if (error) throw error;
             
             const directorMember = allMembers.find(m => m.role === 'প্রধান পরিচালক');
             const moderatorMembers = allMembers.filter(m => m.role !== 'প্রধান পরিচালক');
@@ -211,3 +212,5 @@ export default function TeamPage() {
     </div>
   );
 }
+
+    

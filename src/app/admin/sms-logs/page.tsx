@@ -1,9 +1,9 @@
 
+
 "use client";
 
 import { useState, useEffect } from 'react';
-import { collection, getDocs, query, orderBy, Timestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import type { SmsLog } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,20 +23,14 @@ export default function SmsLogsPage() {
         const fetchLogs = async () => {
             setLoading(true);
             try {
-                const logsCollection = collection(db, 'sms_logs');
-                const q = query(logsCollection, orderBy('createdAt', 'desc'));
-                const logsSnapshot = await getDocs(q);
-                const logsList = logsSnapshot.docs.map(doc => {
-                    const data = doc.data();
-                    const createdAt = data.createdAt as Timestamp;
-                    return { 
-                        id: doc.id,
-                        ...data,
-                        createdAt: createdAt ? createdAt.toDate() : new Date(),
-                    } as SmsLogWithId;
-                });
-                setLogs(logsList);
-            } catch (error) {
+                const { data, error } = await supabase
+                    .from('sms_logs')
+                    .select('*')
+                    .order('createdAt', { ascending: false });
+
+                if (error) throw error;
+                setLogs(data as SmsLogWithId[]);
+            } catch (error: any) {
                 console.error("Error fetching SMS logs:", error);
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch SMS logs.' });
             } finally {
@@ -116,3 +110,5 @@ export default function SmsLogsPage() {
         </div>
     );
 }
+
+    

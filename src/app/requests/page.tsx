@@ -1,29 +1,28 @@
 
 "use client";
 
-import { collection, getDocs, orderBy, query, Timestamp, doc, updateDoc, arrayUnion } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import type { BloodRequest } from '@/lib/types';
 import { useEffect, useState } from 'react';
 import RequestCard from '@/components/request-card';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
+import { format } from 'date-fns';
 
 async function getAllRequests(): Promise<BloodRequest[]> {
   try {
-    const requestsRef = collection(db, 'requests');
-    const q = query(requestsRef, orderBy('createdAt', 'desc'));
-    const querySnapshot = await getDocs(q);
-    const requests = querySnapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        ...data,
-        createdAt: data.createdAt?.toDate().toISOString() || new Date().toISOString(),
-        neededDate: data.neededDate instanceof Timestamp ? data.neededDate.toDate().toISOString() : data.neededDate,
-      } as BloodRequest;
-    });
-    return requests;
+    const { data: requests, error } = await supabase
+      .from('requests')
+      .select('*')
+      .order('createdAt', { ascending: false });
+    
+    if (error) throw error;
+
+    return requests.map(req => ({
+      ...req,
+      neededDate: format(new Date(req.neededDate), 'PPP'),
+    })) as BloodRequest[];
+
   } catch (error) {
     console.error("Error fetching all requests:", error);
     return [];
@@ -53,13 +52,34 @@ export default function AllRequestsPage() {
       return;
     }
     try {
-      const requestRef = doc(db, 'requests', requestId);
-      await updateDoc(requestRef, {
-        responders: arrayUnion(user.uid)
-      });
+      // First, fetch the current responders
+      const { data, error: fetchError } = await supabase
+        .from('requests')
+        .select('responders')
+        .eq('id', requestId)
+        .single();
+      
+      if(fetchError) throw fetchError;
+
+      const currentResponders = data.responders || [];
+      
+      // Avoid adding duplicate UIDs
+      if (currentResponders.includes(user.id)) {
+        toast({ title: 'Already Responded', description: 'You have already responded to this request.' });
+        return;
+      }
+      
+      // Update with the new responder
+      const { error: updateError } = await supabase
+        .from('requests')
+        .update({ responders: [...currentResponders, user.id] })
+        .eq('id', requestId);
+
+      if (updateError) throw updateError;
+      
       toast({ title: 'Thank you!', description: 'Your response has been recorded. The patient may contact you.' });
-    } catch (error) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Could not record your response.' });
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Error', description: `Could not record your response: ${error.message}` });
     }
   };
 
@@ -98,3 +118,5 @@ export default function AllRequestsPage() {
     </div>
   );
 }
+
+    

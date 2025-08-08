@@ -10,8 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { Bell, Wrench, Loader2, Save } from 'lucide-react';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 
 export default function AdminSettingsPage() {
     const { toast } = useToast();
@@ -29,10 +28,15 @@ export default function AdminSettingsPage() {
         const fetchSettings = async () => {
             setLoading(true);
             try {
-                const settingsRef = doc(db, 'settings', 'global');
-                const docSnap = await getDoc(settingsRef);
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
+                const { data, error } = await supabase
+                    .from('settings')
+                    .select('*')
+                    .eq('id', 'global')
+                    .single();
+
+                if (error && error.code !== 'PGRST116') throw error; // PGRST116: row not found
+
+                if (data) {
                     setSiteName(data.siteName || "RoktoDao");
                     setTagline(data.tagline || "রক্ত দিন, জীবন বাঁচান — এখন আরও সহজে!");
                     setAdminEmail(data.adminEmail || "mojibrsm@gmail.com");
@@ -40,7 +44,7 @@ export default function AdminSettingsPage() {
                     setNotifyNewDonor(data.notifyNewDonor !== false);
                     setNotifyNewRequest(data.notifyNewRequest !== false);
                 }
-            } catch (error) {
+            } catch (error: any) {
                 console.error("Error fetching settings:", error);
                 toast({
                     variant: 'destructive',
@@ -57,25 +61,30 @@ export default function AdminSettingsPage() {
     const handleSaveChanges = async () => {
         setIsSaving(true);
         try {
-            const settingsRef = doc(db, 'settings', 'global');
-            await setDoc(settingsRef, {
-                siteName,
-                tagline,
-                adminEmail,
-                publicTotalDonors,
-                notifyNewDonor,
-                notifyNewRequest
-            }, { merge: true });
+            const { error } = await supabase
+                .from('settings')
+                .upsert({
+                    id: 'global',
+                    siteName,
+                    tagline,
+                    adminEmail,
+                    publicTotalDonors,
+                    notifyNewDonor,
+                    notifyNewRequest
+                }, { onConflict: 'id' });
+
+            if (error) throw error;
+            
             toast({
                 title: "Settings Saved",
                 description: "Your changes have been successfully saved.",
             });
-        } catch (error) {
+        } catch (error: any) {
              console.error("Error saving settings:", error);
             toast({
                 variant: 'destructive',
                 title: "Error",
-                description: "Could not save settings. Check Firestore permissions.",
+                description: `Could not save settings: ${error.message}`,
             });
         } finally {
             setIsSaving(false);
@@ -160,3 +169,5 @@ export default function AdminSettingsPage() {
         </div>
     );
 }
+
+    

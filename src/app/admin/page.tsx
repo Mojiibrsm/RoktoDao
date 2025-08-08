@@ -2,17 +2,15 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { collection, getDocs, query, where, Timestamp, getCountFromServer, startOfMonth, endOfMonth } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Bar, BarChart, CartesianGrid, XAxis, Pie, PieChart, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-import { ChartContainer, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart';
 import { bloodGroups } from '@/lib/location-data';
+import { subDays, format as formatDate } from 'date-fns';
 
-// Define the shape of your chart data
 interface MonthlyRequestData {
   month: string;
   total: number;
@@ -43,67 +41,73 @@ export default function AdminDashboard() {
     const fetchAllData = async () => {
       setLoading(true);
       try {
-        const donorsCollection = collection(db, 'donors');
-        const requestsCollection = collection(db, 'requests');
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const thirtyDaysAgo = subDays(new Date(), 30).toISOString();
         
-        // Fetch stats
-        const donorsSnapshot = await getCountFromServer(donorsCollection);
-        const activeRequestsSnapshot = await getCountFromServer(query(requestsCollection, where('status', 'in', ['Pending', 'Approved'])));
-        const fulfilledRequestsSnapshot = await getCountFromServer(query(requestsCollection, where('status', '==', 'Fulfilled')));
-        const newSignupsSnapshot = await getCountFromServer(query(donorsCollection, where('createdAt', '>=', Timestamp.fromDate(thirtyDaysAgo))));
+        // Fetch stats in parallel
+        const [
+          { count: totalDonors },
+          { count: activeRequests },
+          { count: requestsFulfilled },
+          { count: newSignups },
+          { data: allDonorsData },
+          { data: allRequestsData }
+        ] = await Promise.all([
+          supabase.from('donors').select('*', { count: 'exact', head: true }),
+          supabase.from('requests').select('*', { count: 'exact', head: true }).in('status', ['Pending', 'Approved']),
+          supabase.from('requests').select('*', { count: 'exact', head: true }).eq('status', 'Fulfilled'),
+          supabase.from('donors').select('*', { count: 'exact', head: true }).gte('createdAt', thirtyDaysAgo),
+          supabase.from('donors').select('bloodGroup'),
+          supabase.from('requests').select('neededDate')
+        ]);
 
         setStats({
-          totalDonors: donorsSnapshot.data().count,
-          activeRequests: activeRequestsSnapshot.data().count,
-          requestsFulfilled: fulfilledRequestsSnapshot.data().count,
-          newSignups: newSignupsSnapshot.data().count,
-        });
-
-        // Fetch data for charts
-        const donorsDocs = await getDocs(donorsCollection);
-        const requestsDocs = await getDocs(requestsCollection);
-
-        // Process blood group distribution
-        const groupCounts: { [key: string]: number } = {};
-        donorsDocs.forEach(doc => {
-            const group = doc.data().bloodGroup;
-            if (group) {
-                groupCounts[group] = (groupCounts[group] || 0) + 1;
-            }
-        });
-
-        const pieData: BloodGroupData[] = bloodGroups.map((group, index) => ({
-            name: group,
-            value: groupCounts[group] || 0,
-            fill: CHART_COLORS[index % CHART_COLORS.length],
-        })).filter(item => item.value > 0);
-        setBloodGroupData(pieData);
-
-
-        // Process monthly donation requests for the last 6 months
-        const monthlyCounts: { [key: string]: number } = {};
-        const today = new Date();
-        for (let i = 5; i >= 0; i--) {
-            const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
-            const monthKey = date.toLocaleString('default', { month: 'short', year: '2-digit' });
-            monthlyCounts[monthKey] = 0;
-        }
-
-        requestsDocs.forEach(doc => {
-            const requestDate = (doc.data().neededDate as any)?.toDate ? (doc.data().neededDate as any).toDate() : new Date(doc.data().neededDate);
-            const monthKey = requestDate.toLocaleString('default', { month: 'short', year: '2-digit' });
-             if (monthlyCounts.hasOwnProperty(monthKey)) {
-                monthlyCounts[monthKey]++;
-            }
+          totalDonors: totalDonors ?? 0,
+          activeRequests: activeRequests ?? 0,
+          requestsFulfilled: requestsFulfilled ?? 0,
+          newSignups: newSignups ?? 0,
         });
         
-        const barData = Object.keys(monthlyCounts).map(month => ({
-            month,
-            total: monthlyCounts[month],
-        }));
-        setMonthlyData(barData);
+        // Process blood group distribution
+        if (allDonorsData) {
+          const groupCounts: { [key: string]: number } = {};
+          allDonorsData.forEach(donor => {
+              const group = donor.bloodGroup;
+              if (group) {
+                  groupCounts[group] = (groupCounts[group] || 0) + 1;
+              }
+          });
+          const pieData: BloodGroupData[] = bloodGroups.map((group, index) => ({
+              name: group,
+              value: groupCounts[group] || 0,
+              fill: CHART_COLORS[index % CHART_COLORS.length],
+          })).filter(item => item.value > 0);
+          setBloodGroupData(pieData);
+        }
+
+        // Process monthly donation requests for the last 6 months
+        if (allRequestsData) {
+            const monthlyCounts: { [key: string]: number } = {};
+            const today = new Date();
+            for (let i = 5; i >= 0; i--) {
+                const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
+                const monthKey = formatDate(date, 'MMM yy');
+                monthlyCounts[monthKey] = 0;
+            }
+
+            allRequestsData.forEach(req => {
+                const requestDate = new Date(req.neededDate);
+                const monthKey = formatDate(requestDate, 'MMM yy');
+                 if (monthlyCounts.hasOwnProperty(monthKey)) {
+                    monthlyCounts[monthKey]++;
+                }
+            });
+            
+            const barData = Object.keys(monthlyCounts).map(month => ({
+                month,
+                total: monthlyCounts[month],
+            }));
+            setMonthlyData(barData);
+        }
 
 
       } catch (error) {
@@ -221,3 +225,5 @@ export default function AdminDashboard() {
     </div>
   );
 }
+
+    

@@ -2,10 +2,8 @@
 "use client";
 
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
-import { onAuthStateChanged, User, signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
+import type { AuthChangeEvent, Session, User } from '@supabase/supabase-js';
 import type { Donor } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 
@@ -28,40 +26,67 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
-      if (currentUser) {
-        try {
-          const donorRef = doc(db, 'donors', currentUser.uid);
-          const docSnap = await getDoc(donorRef);
-          if (docSnap.exists()) {
-            const donorData = { id: docSnap.id, ...docSnap.data() } as Donor;
-            setDonorProfile(donorData);
-            setIsAdmin(!!donorData.isAdmin);
-          } else {
-            console.log(`No donor profile found for UID: ${currentUser.uid}. This can happen immediately after signup before the document is created.`);
-            setDonorProfile(null);
-            setIsAdmin(false);
-          }
-        } catch (e) {
-          console.error("Error fetching donor profile:", e);
+    const getInitialSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setUser(session.user);
+        await fetchDonorProfile(session.user);
+      }
+      setLoading(false);
+    };
+
+    getInitialSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event: AuthChangeEvent, session: Session | null) => {
+        setLoading(true);
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        if (currentUser) {
+          await fetchDonorProfile(currentUser);
+        } else {
           setDonorProfile(null);
           setIsAdmin(false);
-        } finally {
-          setLoading(false);
         }
-      } else {
-        setDonorProfile(null);
-        setIsAdmin(false);
         setLoading(false);
       }
-    });
+    );
 
-    return () => unsubscribe();
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
+  const fetchDonorProfile = async (currentUser: User) => {
+    try {
+      const { data: donorData, error } = await supabase
+        .from('donors')
+        .select('*')
+        .eq('uid', currentUser.id)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') { // Ignore "row not found" error
+        throw error;
+      }
+      
+      if (donorData) {
+        setDonorProfile(donorData as Donor);
+        setIsAdmin(!!donorData.isAdmin);
+      } else {
+         console.log(`No donor profile found for UID: ${currentUser.id}.`);
+         setDonorProfile(null);
+         setIsAdmin(false);
+      }
+    } catch (e) {
+      console.error("Error fetching donor profile:", e);
+      setDonorProfile(null);
+      setIsAdmin(false);
+    }
+  };
+
+
   const signOutUser = async () => {
-    await signOut(auth);
+    await supabase.auth.signOut();
     // State will be cleared by onAuthStateChanged listener
     router.push('/login');
   };
@@ -74,3 +99,5 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     </AuthContext.Provider>
   );
 };
+
+    

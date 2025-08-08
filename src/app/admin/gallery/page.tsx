@@ -1,9 +1,9 @@
 
+
 "use client";
 
 import { useState, useEffect, useRef, ChangeEvent } from 'react';
-import { collection, getDocs, doc, deleteDoc, addDoc, serverTimestamp, query, orderBy, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Trash2, Upload, Image as ImageIcon, Loader2, CheckCircle, PlusCircle } from 'lucide-react';
@@ -32,8 +32,8 @@ interface GalleryImage {
     createdAt: any;
     status: 'pending' | 'approved';
     uploaderId?: string;
-    filePath?: string; // For deletion from ImageKit
-    fileId?: string; // For deletion from ImageKit
+    filePath?: string; 
+    fileId?: string; 
 }
 
 const imagekit = new IK({
@@ -69,7 +69,6 @@ const AdminUploadDialog = ({ onUploadComplete }: { onUploadComplete: () => void 
         setUploading(true);
 
         try {
-            // Fetch authentication parameters from your backend
             const authResponse = await fetch('/api/imagekit-auth');
             if (!authResponse.ok) {
                 throw new Error('Failed to get authentication parameters');
@@ -84,15 +83,16 @@ const AdminUploadDialog = ({ onUploadComplete }: { onUploadComplete: () => void 
                 folder: '/roktodao/gallery/',
             });
 
-            // Admin uploads are automatically approved
-            await addDoc(collection(db, 'gallery'), {
+            const { error } = await supabase.from('gallery').insert({
                 imageUrl: response.url,
                 filePath: response.filePath,
                 fileId: response.fileId,
-                status: 'approved',
+                status: 'approved', // Admin uploads are automatically approved
                 uploaderId: user.uid,
-                createdAt: serverTimestamp(),
             });
+
+            if (error) throw error;
+
             toast({ title: 'Image Uploaded', description: 'The image has been added to the gallery.' });
             setSelectedFile(null);
             if(fileInputRef.current) fileInputRef.current.value = "";
@@ -153,16 +153,17 @@ export default function GalleryManagementPage() {
     const fetchImages = async () => {
         setLoading(true);
         try {
-            const imagesCollection = collection(db, 'gallery');
-            const q = query(imagesCollection, orderBy('createdAt', 'desc'));
-            const querySnapshot = await getDocs(q);
-            
-            const allImages = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GalleryImage));
+            const { data: allImages, error } = await supabase
+                .from('gallery')
+                .select('*')
+                .order('createdAt', { ascending: false });
+
+            if (error) throw error;
             
             setPendingImages(allImages.filter(img => img.status === 'pending'));
             setApprovedImages(allImages.filter(img => img.status === 'approved'));
 
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
             toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch gallery images.' });
         } finally {
@@ -177,12 +178,17 @@ export default function GalleryManagementPage() {
     const handleApproveImage = async (imageId: string) => {
         setIsApproving(imageId);
         try {
-            const imageRef = doc(db, 'gallery', imageId);
-            await updateDoc(imageRef, { status: 'approved' });
+            const { error } = await supabase
+                .from('gallery')
+                .update({ status: 'approved' })
+                .eq('id', imageId);
+
+            if (error) throw error;
+            
             toast({ title: 'Image Approved', description: 'The image will now appear in the public gallery.' });
             fetchImages();
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not approve the image.' });
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Error', description: `Could not approve the image: ${error.message}` });
         } finally {
             setIsApproving(null);
         }
@@ -191,13 +197,17 @@ export default function GalleryManagementPage() {
     const handleDeleteImage = async (imageId: string) => {
         setIsDeleting(imageId);
         try {
-            // Note: Deleting from ImageKit requires a backend endpoint for security.
-            // This implementation only deletes the Firestore record.
-            await deleteDoc(doc(db, 'gallery', imageId));
+            const { error } = await supabase
+                .from('gallery')
+                .delete()
+                .eq('id', imageId);
+            
+            if (error) throw error;
+
             toast({ title: 'Image Record Deleted', description: 'The image reference has been removed from the database.' });
             fetchImages();
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not delete the image record.' });
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Error', description: `Could not delete the image record: ${error.message}` });
         } finally {
             setIsDeleting(null);
         }
@@ -305,3 +315,5 @@ export default function GalleryManagementPage() {
         </div>
     );
 }
+
+    

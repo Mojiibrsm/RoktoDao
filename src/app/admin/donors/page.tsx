@@ -3,8 +3,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useTransition } from 'react';
-import { collection, getDocs, doc, deleteDoc, updateDoc, writeBatch, addDoc, serverTimestamp, query, where, orderBy, startAt, endAt, setDoc, getCountFromServer, runTransaction } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import type { Donor as DonorType } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -238,11 +237,18 @@ export default function AdminDonorsPage() {
 
   const fetchDonors = async () => {
     setLoading(true);
-    const donorsCollection = collection(db, 'donors');
-    const donorsSnapshot = await getDocs(query(donorsCollection, orderBy('createdAt', 'desc')));
-    const donorsList = donorsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Donor));
-    setAllDonors(donorsList);
-    setFilteredDonors(donorsList); // Initially, all donors are shown
+    const { data: donorsList, error } = await supabase
+      .from('donors')
+      .select('*')
+      .order('createdAt', { ascending: false });
+
+    if (error) {
+      toast({ variant: "destructive", title: "Error", description: "Could not fetch donors." });
+    } else {
+      setAllDonors(donorsList as Donor[]);
+      setFilteredDonors(donorsList as Donor[]);
+    }
+    
     setLoading(false);
     setSelectedDonors([]);
   };
@@ -256,7 +262,7 @@ export default function AdminDonorsPage() {
         const filtered = allDonors.filter(donor => {
             const nameMatch = searchName ? donor.fullName.toLowerCase().includes(searchName.toLowerCase()) : true;
             const phoneMatch = searchPhone ? donor.phoneNumber.includes(searchPhone) : true;
-            const areaMatch = searchArea ? 
+            const areaMatch = searchArea && donor.address ? 
                 `${donor.address.upazila}, ${donor.address.district}`.toLowerCase().includes(searchArea.toLowerCase()) || 
                 donor.address.district.toLowerCase().includes(searchArea.toLowerCase())
                 : true;
@@ -268,23 +274,30 @@ export default function AdminDonorsPage() {
 
 
   const handleVerifyDonor = async (donorId: string) => {
-    try {
-      const donorRef = doc(db, 'donors', donorId);
-      await updateDoc(donorRef, { isVerified: true });
+    const { error } = await supabase
+      .from('donors')
+      .update({ isVerified: true })
+      .eq('id', donorId);
+
+    if (error) {
+      toast({ variant: "destructive", title: "Error", description: "Could not verify the donor." });
+    } else {
       toast({ title: "Donor Verified", description: "The donor has been marked as verified." });
       fetchDonors();
-    } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "Could not verify the donor." });
     }
   };
 
   const handleDeleteDonor = async (donorId: string) => {
-    try {
-      await deleteDoc(doc(db, 'donors', donorId));
+    const { error } = await supabase
+      .from('donors')
+      .delete()
+      .eq('id', donorId);
+
+    if (error) {
+      toast({ variant: "destructive", title: "Error", description: "Could not delete the donor." });
+    } else {
       toast({ title: "Donor Deleted", description: "The donor's record has been deleted." });
       fetchDonors();
-    } catch (error) {
-       toast({ variant: "destructive", title: "Error", description: "Could not delete the donor." });
     }
   };
   
@@ -294,33 +307,25 @@ export default function AdminDonorsPage() {
   };
   
   const handleBulkAction = async (action: 'verify' | 'delete') => {
-    const batch = writeBatch(db);
-    selectedDonors.forEach(id => {
-        const donorRef = doc(db, 'donors', id);
-        if (action === 'delete') {
-            batch.delete(donorRef);
-        } else if (action === 'verify') {
-            batch.update(donorRef, { isVerified: true });
-        }
-    });
-
-    try {
-        await batch.commit();
-        toast({
-            title: 'Success',
-            description: `${selectedDonors.length} donors have been ${action === 'delete' ? 'deleted' : 'verified'}.`
-        });
+    if (action === 'delete') {
+      const { error } = await supabase.from('donors').delete().in('id', selectedDonors);
+      if (error) {
+        toast({ variant: 'destructive', title: 'Error', description: `Could not perform bulk delete.` });
+      } else {
+        toast({ title: 'Success', description: `${selectedDonors.length} donors have been deleted.` });
         fetchDonors();
-    } catch (error) {
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: `Could not perform bulk ${action}.`
-        });
-    } finally {
-       if (action === 'delete') setIsBulkDeleteOpen(false);
+      }
+      setIsBulkDeleteOpen(false);
+    } else if (action === 'verify') {
+      const { error } = await supabase.from('donors').update({ isVerified: true }).in('id', selectedDonors);
+      if (error) {
+        toast({ variant: 'destructive', title: 'Error', description: `Could not perform bulk verify.` });
+      } else {
+        toast({ title: 'Success', description: `${selectedDonors.length} donors have been verified.` });
+        fetchDonors();
+      }
     }
-};
+  };
 
 
   const handleImportDonors = async () => {
@@ -341,58 +346,41 @@ export default function AdminDonorsPage() {
                 return;
             }
 
-            const batch = writeBatch(db);
-            let importedCount = 0;
+            const formattedDonors = donorsToImport.map(row => ({
+                fullName: row['Donor Name'] || "N/A",
+                phoneNumber: row['Mobile'] || "N/A",
+                bloodGroup: row['Blood Group'] || "N/A",
+                address: {
+                    division: row['Address'] || "N/A",
+                    district: "N/A",
+                    upazila: "N/A",
+                },
+                isAvailable: true,
+                isVerified: false,
+                isAdmin: false,
+                lastDonationDate: row['Last Donation Date'] ? new Date(row['Last Donation Date']).toISOString() : null,
+            }));
 
-            donorsToImport.forEach((row) => {
-                const newDonorRef = doc(collection(db, 'donors'));
-                
-                const newDonor: Partial<DonorType> = {
-                    uid: newDonorRef.id,
-                    fullName: row['Donor Name'] || "N/A",
-                    phoneNumber: row['Mobile'] || "N/A",
-                    bloodGroup: row['Blood Group'] || "N/A",
-                    address: {
-                        division: row['Address'] || "N/A",
-                        district: "N/A",
-                        upazila: "N/A",
-                    },
-                    isAvailable: true,
-                    isVerified: false,
-                    isAdmin: false,
-                    createdAt: new Date().toISOString(),
-                };
-
-                if (row['Last Donation Date']) {
-                    const parsedDate = new Date(row['Last Donation Date']);
-                    if (!isNaN(parsedDate.getTime())) {
-                        newDonor.lastDonationDate = parsedDate.toISOString();
-                    }
-                }
-                
-                batch.set(newDonorRef, newDonor);
-                importedCount++;
-            });
-
-            try {
-                await batch.commit();
-                toast({
-                    title: "Import Successful",
-                    description: `${importedCount} donors have been imported.`,
-                });
-                fetchDonors();
-            } catch (error) {
-                console.error("Error importing donors:", error);
+            const { error } = await supabase.from('donors').insert(formattedDonors);
+            
+            if (error) {
+                 console.error("Error importing donors:", error);
                 toast({
                     variant: "destructive",
                     title: "Import Failed",
-                    description: "An error occurred while importing donors.",
+                    description: `An error occurred while importing donors: ${error.message}`,
                 });
-            } finally {
-                setIsImporting(false);
-                setIsImportDialogOpen(false);
-                setFileToImport(null);
+            } else {
+                toast({
+                    title: "Import Successful",
+                    description: `${donorsToImport.length} donors have been imported.`,
+                });
+                fetchDonors();
             }
+
+            setIsImporting(false);
+            setIsImportDialogOpen(false);
+            setFileToImport(null);
         },
         error: (error) => {
             toast({
@@ -403,12 +391,13 @@ export default function AdminDonorsPage() {
             setIsImporting(false);
         }
     });
-};
+  };
 
 const handleAddDonor = async (values: DonorFormValues) => {
-    const newDonorRef = doc(collection(db, 'donors'));
-    const donorData: Omit<DonorType, 'id'> = {
-        uid: newDonorRef.id,
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    const donorData = {
+        // uid will be set by Supabase auth trigger or manually if needed
         fullName: values.fullName,
         bloodGroup: values.bloodGroup,
         phoneNumber: values.phoneNumber,
@@ -421,41 +410,45 @@ const handleAddDonor = async (values: DonorFormValues) => {
         isAvailable: values.isAvailable,
         isVerified: true, // Admin added donors are auto-verified
         isAdmin: false,
-        createdAt: serverTimestamp(),
     };
-    try {
-        await addDoc(collection(db, 'donors'), donorData);
-        toast({
-          title: 'Donor Added',
-          description: 'The new donor has been successfully created.',
-        });
-        fetchDonors();
-        setIsAddDialogOpen(false);
-        form.reset();
-      } catch (error) {
-         toast({
-          variant: 'destructive',
-          title: 'Failed to Add',
-          description: 'Something went wrong. Please try again.',
-        });
-      }
+    
+    const { error } = await supabase.from('donors').insert(donorData);
+    
+    if (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Failed to Add',
+        description: `Something went wrong: ${error.message}`,
+      });
+    } else {
+       toast({
+        title: 'Donor Added',
+        description: 'The new donor has been successfully created.',
+      });
+      fetchDonors();
+      setIsAddDialogOpen(false);
+      form.reset();
+    }
 };
 
  const handlePinDonor = async (donorId: string, isPinned: boolean) => {
-    const donorRef = doc(db, 'donors', donorId);
-    try {
-      await updateDoc(donorRef, { isPinned: !isPinned });
-      toast({
-        title: 'Success',
-        description: `Donor has been ${!isPinned ? 'pinned' : 'unpinned'}.`,
-      });
-      fetchDonors();
-    } catch (error) {
+    const { error } = await supabase
+      .from('donors')
+      .update({ isPinned: !isPinned })
+      .eq('id', donorId);
+
+    if (error) {
       toast({
         variant: 'destructive',
         title: 'Error',
         description: 'Could not update donor pin status.',
       });
+    } else {
+      toast({
+        title: 'Success',
+        description: `Donor has been ${!isPinned ? 'pinned' : 'unpinned'}.`,
+      });
+      fetchDonors();
     }
   };
 
@@ -464,7 +457,7 @@ const handleAddDonor = async (values: DonorFormValues) => {
         Name: d.fullName,
         Phone: d.phoneNumber,
         BloodGroup: d.bloodGroup,
-        Location: `${d.address.upazila}, ${d.address.district}`,
+        Location: d.address ? `${d.address.upazila}, ${d.address.district}` : 'N/A',
         LastDonation: d.lastDonationDate ? format(new Date(d.lastDonationDate), 'yyyy-MM-dd') : 'N/A',
         Available: d.isAvailable ? 'Yes' : 'No',
         Verified: d.isVerified ? 'Yes' : 'No',
@@ -655,7 +648,7 @@ const handleAddDonor = async (values: DonorFormValues) => {
                       {donor.bloodGroup}
                     </Badge>
                   </TableCell>
-                  <TableCell>{`${donor.address.upazila}, ${donor.address.district}`}</TableCell>
+                  <TableCell>{donor.address ? `${donor.address.upazila}, ${donor.address.district}` : 'N/A'}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       {donor.phoneNumber}
@@ -726,3 +719,5 @@ const handleAddDonor = async (values: DonorFormValues) => {
     </div>
   );
 }
+
+    
