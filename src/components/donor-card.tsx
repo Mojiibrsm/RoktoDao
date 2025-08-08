@@ -27,7 +27,7 @@ export default function DonorCard({ donor }: DonorCardProps) {
     if (!donor.lastDonationDate) {
       return { canDonate: true, daysRemaining: 0 };
     }
-    const lastDonation = new Date(donor.lastDonationDate);
+    const lastDonation = new Date(donor.lastDonationDate); // This is now safe as it's a pre-formatted string
     const nextDonationDate = addDays(lastDonation, 90); // Use 90 days (3 months) restriction
     const daysRemaining = differenceInDays(nextDonationDate, new Date());
 
@@ -90,7 +90,7 @@ export default function DonorCard({ donor }: DonorCardProps) {
             {donor.lastDonationDate && (
                 <div className="flex items-center gap-3">
                     <Calendar className="h-4 w-4" />
-                    <span>শেষ রক্তদান: {format(new Date(donor.lastDonationDate), "PPP")}</span>
+                    <span>শেষ রক্তদান: {donor.lastDonationDate}</span>
                 </div>
             )}
              <div className="flex items-center gap-3">

@@ -26,7 +26,7 @@ export default function RequestCard({ req, onRespond, showRespondButton = false 
   const formattedText = `🩸 জরুরী রক্তের আবেদন 🩸
 রোগীর নামঃ ${req.patientName}
 রক্তের গ্রুপঃ ${req.bloodGroup}
-প্রয়োজনের তারিখঃ ${format(new Date(req.neededDate), "PPP")}
+প্রয়োজনের তারিখঃ ${req.neededDate}
 ব্যাগঃ ${req.numberOfBags}
 হাসপাতালঃ ${req.hospitalLocation}, ${req.district}
 যোগাযোগঃ ${req.contactPhone}`;
@@ -65,7 +65,7 @@ export default function RequestCard({ req, onRespond, showRespondButton = false 
         </div>
         <div className="flex items-center gap-3 text-muted-foreground">
           <Calendar className="h-5 w-5 flex-shrink-0" />
-          <span>Needed by: {format(new Date(req.neededDate), "PPP")}</span>
+          <span>Needed by: {req.neededDate}</span>
         </div>
         <div className="flex items-center gap-3 text-muted-foreground">
           <Phone className="h-5 w-5 flex-shrink-0" />

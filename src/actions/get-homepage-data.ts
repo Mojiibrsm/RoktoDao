@@ -5,6 +5,7 @@
 import { adminDb } from '@/lib/firebase-admin';
 import type { BloodRequest, Donor, BlogPost } from '@/lib/types';
 import { Timestamp } from 'firebase-admin/firestore';
+import { format } from 'date-fns';
 
 interface GalleryImage {
     id: string;
@@ -24,12 +25,16 @@ interface Member {
   avatarHint?: string;
 }
 
-// Helper to convert Firestore Timestamps to serializable strings
+// Helper to convert Firestore Timestamps to serializable and formatted strings
 const convertTimestamps = (docData: any) => {
     const data = { ...docData };
     for (const key in data) {
         if (data[key] instanceof Timestamp) {
-            data[key] = data[key].toDate().toISOString();
+            if (key === 'lastDonationDate' || key === 'neededDate' || key === 'dateOfBirth') {
+                data[key] = format(data[key].toDate(), 'PPP');
+            } else {
+                data[key] = data[key].toDate().toISOString();
+            }
         }
     }
     return data;
@@ -85,9 +90,9 @@ export async function getHomepageData() {
         // Process Donors: Show pinned donors first, otherwise show latest donors.
         let donors: Donor[];
         if (!pinnedSnapshot.empty) {
-            donors = pinnedSnapshot.docs.map(doc => convertTimestamps(doc.data()) as Donor);
+            donors = pinnedSnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as Donor));
         } else {
-            donors = latestDonorsSnapshot.docs.map(doc => convertTimestamps(doc.data()) as Donor);
+            donors = latestDonorsSnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as Donor));
         }
 
         // Process Stats
