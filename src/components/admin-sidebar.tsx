@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Droplet, Home, Users, Bell, UserPlus, Settings, MessageSquareWarning, Droplet as BloodDrop, Info, Shield, Newspaper, Globe, Image as ImageIcon, Send } from 'lucide-react';
+import { Droplet, Home, Users, Bell, UserPlus, Settings, MessageSquareWarning, Droplet as BloodDrop, Info, Shield, Newspaper, Globe, Image as ImageIcon, Send, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from './ui/separator';
 
@@ -21,6 +21,7 @@ const navLinks = [
   { href: '/admin/feedback', label: 'Feedback/Reports', icon: MessageSquareWarning },
   { href: '/admin/marquee', label: 'Marquee Management', icon: Info },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
+  { href: '/admin/export', label: 'Export Data', icon: Download },
 ];
 
 export default function AdminSidebar() {
