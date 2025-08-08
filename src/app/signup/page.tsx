@@ -135,24 +135,35 @@ export default function SignupPage() {
     try {
         // Step 1: Check if phone number or email already exists in Firestore
         const donorsRef = collection(db, 'donors');
-        const queryConstraints = [];
-        if (values.email) {
-            queryConstraints.push(where('email', '==', values.email));
-        }
-        queryConstraints.push(where('phoneNumber', '==', values.phoneNumber));
-
-        const q = query(donorsRef, or(...queryConstraints));
-        const querySnapshot = await getDocs(q);
-
-        if (!querySnapshot.empty) {
+        
+        // Check for phone number
+        const phoneQuery = query(donorsRef, where('phoneNumber', '==', values.phoneNumber));
+        const phoneSnapshot = await getDocs(phoneQuery);
+        if (!phoneSnapshot.empty) {
             toast({
                 variant: 'destructive',
                 title: 'Signup Failed',
-                description: 'This phone number or email is already registered. Please try logging in.',
+                description: 'This phone number is already registered. Please try logging in.',
             });
             setIsLoading(false);
             return;
         }
+
+        // Check for email if provided
+        if (values.email) {
+            const emailQuery = query(donorsRef, where('email', '==', values.email));
+            const emailSnapshot = await getDocs(emailQuery);
+            if (!emailSnapshot.empty) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Signup Failed',
+                    description: 'This email is already registered. Please try logging in.',
+                });
+                setIsLoading(false);
+                return;
+            }
+        }
+        
 
         // --- If not exists, proceed with signup ---
         let finalProfilePictureUrl = '';
