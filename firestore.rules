@@ -1,121 +1,119 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper Functions
-    function isUser(userId) {
-      return request.auth != null && request.auth.uid == userId;
-    }
-    
+    // Helper function to check if the user is an admin
     function isAdmin() {
-      // Check if the user is an admin by looking at their custom claims or a specific document.
-      // This is more secure than checking a field in a public document.
-      // For this example, we'll check a field in their donor profile.
-      return exists(/databases/$(database)/documents/donors/$(request.auth.uid)) &&
-             get(/databases/$(database)/documents/donors/$(request.auth.uid)).data.isAdmin == true;
+      // Check if the user is authenticated and if their profile has isAdmin set to true
+      return request.auth != null && get(/databases/$(database)/documents/donors/$(request.auth.uid)).data.isAdmin == true;
     }
-    
-    // Donors Collection
-    // The `donors` collection stores user profile information that is an extension of Firebase Auth.
+
+    // Donors collection rules
     match /donors/{userId} {
-      // Allow admins and the user themselves to write to their own document.
-      allow write: if isUser(userId) || isAdmin();
+      // Admins can do anything
+      // Users can get their own profile
+      // Public can get profile if it's available or pinned
+      allow get: if resource.data.isAvailable == true || resource.data.isPinned == true || request.auth.uid == userId || isAdmin();
+      
+      // Allow public queries for available donors (for search page)
+      // Admins can list all donors
+      allow list: if request.query.where.isAvailable == true || isAdmin();
 
-      // Allow admins to list all donors, and public to query only for available donors
-      allow list: if (request.query.where.isAvailable == true && (request.query.where.isPinned == true || request.query.where.isPinned == false)) || isAdmin();
+      // Users can create their own profile
+      allow create: if request.auth.uid == userId;
 
-      // Allow any user to get a donor's profile if they are available OR pinned (for homepage). Admins can get any.
-      allow get: if resource.data.isAvailable == true || resource.data.isPinned == true || isAdmin();
+      // Users can update their own profile
+      // Admins can update any profile
+      allow update: if request.auth.uid == userId || isAdmin();
+
+      // Admins can delete any profile
+      allow delete: if isAdmin();
     }
 
-    // Requests Collection
-    // Stores all blood donation requests.
+    // Blood Requests collection rules
     match /requests/{requestId} {
-      // Allow anyone to read requests (for homepage stats and requests page)
+      // Allow ANYONE to read requests (for homepage stats and requests page)
       allow read: if true;
 
-      // Allow any user (even unauthenticated) to create a request
-      allow create: if true;
+      // Logged-in users can create requests for themselves
+      // Admins can create any request
+      allow create: if request.auth.uid == request.resource.data.uid || isAdmin();
 
-      // Allow the user who created it or an admin to update/delete it
-      allow update, delete: if resource.data.uid == request.auth.uid || isAdmin();
+      // Admins can update any request
+      allow update: if isAdmin();
+
+      // Admins can delete any request
+      allow delete: if isAdmin();
     }
 
-    // Marquee Notices Collection
-    // For homepage scrolling text
-    match /marquee-notices/{noticeId} {
-      // Allow anyone to read notices
+    // Blogs collection rules
+    match /blogs/{blogId} {
+      // Allow anyone to read blog posts
       allow read: if true;
-      // Only admins can write/delete
+      // Allow only admins to create, update, or delete posts
       allow write: if isAdmin();
     }
 
-    // Blogs Collection
-    // For blog posts
-    match /blogs/{blogId} {
-        // Allow anyone to read blog posts
+    // Gallery collection rules
+    match /gallery/{imageId} {
+       // Allow anyone to read approved images
+      allow get: if resource.data.status == 'approved';
+      // Allow anyone to list approved images
+      allow list: if request.query.where.status == 'approved';
+       // Logged-in users can create pending images
+      allow create: if request.auth.uid == request.resource.data.uploaderId;
+      // Admins can update/delete any image
+      allow write: if isAdmin();
+    }
+    
+    // Marquee notices rules
+    match /marquee-notices/{noticeId} {
+        // Allow anyone to read notices
         allow read: if true;
-        // Allow only admins to create, update, or delete posts
+        // Only admins can write notices
+        allow write: if isAdmin();
+    }
+    
+    // Moderators collection rules
+    match /moderators/{moderatorId} {
+        // Allow anyone to read moderators list (for team/about page)
+        allow read: if true;
+        // Allow only admins to create, update, or delete moderators
         allow write: if isAdmin();
     }
 
-    // Moderators Collection
-    // For team page
-    match /moderators/{modId} {
-      // Allow anyone to read team members
-      allow read: if true;
-      // Only admins can manage team members
-      allow write: if isAdmin();
-    }
-
-    // Gallery Collection
-    // For user-submitted gallery images
-    match /gallery/{imageId} {
-      // Allow anyone to see approved images
-      allow read: if resource.data.status == 'approved';
-      // Allow any authenticated user to create a pending image
-      allow create: if request.auth != null;
-      // Allow only admins to update (approve) or delete images
-      allow update, delete: if isAdmin();
-    }
-    
-    // Settings Collection
-    // For global site settings
+    // Site settings rules
     match /settings/global {
       // Allow anyone to read site settings (for homepage)
       allow get: if true;
       // Allow only admins to update settings
       allow write: if isAdmin();
     }
-    
-    // Feedback Collection
-    match /feedback/{feedbackId} {
-        // Allow authenticated users to submit feedback
-        allow create: if request.auth != null;
-        // Only allow admins to read or write
-        allow read, write: if isAdmin();
-    }
-    
-    // OTP Codes Collection
+
+    // OTP codes collection
     match /otp_codes/{phone} {
-        // Disallow any client-side reads
-        allow read: if false;
-        // Allow anyone to create an OTP document (for password reset)
-        allow create: if true;
-        // Only allow backend (admin) to update or delete
-        allow write: if false;
+      // Deny all client-side reads
+      allow read: if false;
+      // Allow anyone to create (for password reset) but not update/delete
+      allow create: if true;
+      allow update, delete: if false;
     }
     
-    // SMS Logs Collection (write-only from backend)
+    // Feedback collection rules
+    match /feedback/{feedbackId} {
+      // Allow anyone to submit feedback
+      allow create: if true;
+      // Allow only admins to manage feedback
+      allow read, update, delete: if isAdmin();
+    }
+    
+    // SMS Logs collection rules
     match /sms_logs/{logId} {
-        allow read, write: if false; // No client access
+       // Only admins can read logs
+       allow read: if isAdmin();
+       // Server-side (admin) can write logs, clients cannot.
+       allow write: if false;
     }
 
-    // Any other collection is locked down by default
-    match /{document=**} {
-      allow read, write: if false;
-    }
   }
 }
