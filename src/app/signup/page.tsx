@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect, useRef, ChangeEvent, useMemo } from 'react';
@@ -8,9 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { createUserWithEmailAndPassword, updatePassword } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase';
-import { doc, setDoc, serverTimestamp, collection, query, where, getDocs, or, increment, runTransaction } from 'firebase/firestore';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -21,7 +18,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { CalendarIcon, Droplet, User, Upload, Loader2 } from 'lucide-react';
-import { format, addYears } from 'date-fns';
+import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { bloodGroups, locations, upazilas } from '@/lib/location-data';
 import type { Donor } from '@/lib/types';
@@ -32,7 +29,8 @@ import IK from 'imagekit-javascript';
 
 const signupSchema = z.object({
   fullName: z.string().min(3, { message: 'Full name is required.' }),
-  email: z.string().email({ message: 'Invalid email address.' }).optional().or(z.literal('')),
+  email: z.string().email({ message: 'A valid email address is required.' }),
+  password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
   bloodGroup: z.string({ required_error: 'Blood group is required.' }).min(1, 'Blood group is required.'),
   phoneNumber: z.string().min(11, { message: 'A valid phone number is required.' }),
   division: z.string({ required_error: 'Division is required.' }).min(1, 'Division is required.'),
@@ -75,6 +73,7 @@ export default function SignupPage() {
     defaultValues: {
       fullName: '',
       email: '',
+      password: '',
       bloodGroup: '',
       phoneNumber: '',
       division: '',
@@ -120,7 +119,6 @@ export default function SignupPage() {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
       setProfileImageFile(file);
-      // Create a URL for preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setProfileImageUrl(reader.result as string);
@@ -133,138 +131,65 @@ export default function SignupPage() {
     setIsLoading(true);
 
     try {
-        // Step 1: Check if phone number or email already exists in Firestore
-        const donorsRef = collection(db, 'donors');
-        
-        // Check for phone number
-        const phoneQuery = query(donorsRef, where('phoneNumber', '==', values.phoneNumber));
-        const phoneSnapshot = await getDocs(phoneQuery);
-        if (!phoneSnapshot.empty) {
-            toast({
-                variant: 'destructive',
-                title: 'Signup Failed',
-                description: 'This phone number is already registered. Please try logging in.',
-            });
-            setIsLoading(false);
-            return;
-        }
-
-        // Check for email if provided
-        if (values.email) {
-            const emailQuery = query(donorsRef, where('email', '==', values.email));
-            const emailSnapshot = await getDocs(emailQuery);
-            if (!emailSnapshot.empty) {
-                toast({
-                    variant: 'destructive',
-                    title: 'Signup Failed',
-                    description: 'This email is already registered. Please try logging in.',
-                });
-                setIsLoading(false);
-                return;
-            }
-        }
-        
-
-        // --- If not exists, proceed with signup ---
         let finalProfilePictureUrl = '';
-        // Use a temporary, strong, random password for initial creation.
-        // User will be prompted to change it.
-        const tempPassword = Math.random().toString(36).slice(-10) + 'A1!';
-        const emailForAuth = values.email || `${values.phoneNumber}@rokto.dao`;
-
-
         if (profileImageFile) {
             const authResponse = await fetch('/api/imagekit-auth');
-            if (!authResponse.ok) {
-                throw new Error('Authentication failed for image upload.');
-            }
+            if (!authResponse.ok) throw new Error('Authentication failed for image upload.');
             const authParams = await authResponse.json();
-            const response = await imagekit.upload({
-            ...authParams,
-            file: profileImageFile,
-            fileName: profileImageFile.name,
-            useUniqueFileName: true,
-            folder: '/roktodao/avatars/',
-            });
+            const response = await imagekit.upload({ ...authParams, file: profileImageFile, fileName: profileImageFile.name, useUniqueFileName: true, folder: '/roktodao/avatars/' });
             finalProfilePictureUrl = response.url;
         }
 
-        const userCredential = await createUserWithEmailAndPassword(auth, emailForAuth, tempPassword);
-        const user = userCredential.user;
-
-        const donorData: Omit<Donor, 'id'> = {
-            uid: user.uid,
-            fullName: values.fullName,
-            email: values.email || null,
-            bloodGroup: values.bloodGroup,
-            phoneNumber: values.phoneNumber,
-            address: {
-            division: values.division,
-            district: values.district,
-            upazila: values.upazila,
-            },
-            lastDonationDate: values.lastDonationDate ? values.lastDonationDate.toISOString() : null,
-            isAvailable: values.isAvailable,
-            dateOfBirth: values.dateOfBirth ? values.dateOfBirth.toISOString() : null,
-            gender: values.gender ?? null,
-            donationCount: values.donationCount ?? 0,
-            profilePictureUrl: finalProfilePictureUrl || null,
-            isVerified: false,
-            isAdmin: false,
-            createdAt: serverTimestamp(),
-        };
-
-        await setDoc(doc(db, 'donors', user.uid), donorData);
-
-        // --- Send Welcome SMS and Admin Notification ---
-        try {
-            const welcomeMessage = `Welcome to RoktoDao, ${values.fullName}! Your account has been created successfully. You can now set your password in the profile section.`;
-            // Fire and forget SMS
-            fetch('/api/send-sms', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ number: values.phoneNumber, message: welcomeMessage }),
-            });
-
-            // Fire and forget admin email
-            fetch('/api/send-email', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                type: 'new_donor',
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            email: values.email,
+            password: values.password,
+            options: {
                 data: {
+                    full_name: values.fullName,
+                    phone_number: values.phoneNumber,
+                }
+            }
+        });
+
+        if (signUpError) throw signUpError;
+        if (!signUpData.user) throw new Error("User creation failed in Supabase.");
+
+        const { error: insertError } = await supabase
+            .from('donors')
+            .insert({
+                uid: signUpData.user.id,
                 fullName: values.fullName,
+                email: values.email,
                 bloodGroup: values.bloodGroup,
                 phoneNumber: values.phoneNumber,
-                division: values.division,
-                district: values.district,
-                upazila: values.upazila,
+                address: {
+                    division: values.division,
+                    district: values.district,
+                    upazila: values.upazila,
                 },
-            }),
+                lastDonationDate: values.lastDonationDate ? values.lastDonationDate.toISOString() : null,
+                isAvailable: values.isAvailable,
+                dateOfBirth: values.dateOfBirth ? values.dateOfBirth.toISOString() : null,
+                gender: values.gender ?? null,
+                donationCount: values.donationCount ?? 0,
+                profilePictureUrl: finalProfilePictureUrl || null,
+                isVerified: false,
+                isAdmin: false,
             });
-        } catch (notificationError) {
-            console.error("Failed to send notifications:", notificationError);
-            // Don't block user creation for notification failure
-        }
 
+        if (insertError) throw insertError;
 
         toast({
             title: 'Account Created Successfully!',
-            description: "Welcome to RoktoDao. Please log in to continue.",
+            description: "Welcome to RoktoDao. Please check your email to verify your account.",
         });
-        // AuthProvider will handle redirect
+        router.push('/login');
+
     } catch (error: any) {
-        const errorCode = error.code;
-        let errorMessage = 'An unknown error occurred. Please try again.';
-        if (errorCode === 'auth/email-already-in-use') {
-            errorMessage = 'This phone number or email is already registered. Please try logging in.';
-        } else if (error.message) {
-            errorMessage = error.message;
-        }
         toast({
             variant: 'destructive',
             title: 'Signup Failed',
-            description: errorMessage,
+            description: error.message || 'An unknown error occurred. Please try again.',
         });
     } finally {
         setIsLoading(false);
@@ -337,9 +262,22 @@ export default function SignupPage() {
                         name="email"
                         render={({ field }) => (
                         <FormItem>
-                            <FormLabel>ইমেইল (ঐচ্ছিক)</FormLabel>
+                            <FormLabel>ইমেইল</FormLabel>
                             <FormControl>
                             <Input placeholder="you@example.com" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                     <FormField
+                        control={form.control}
+                        name="password"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>পাসওয়ার্ড</FormLabel>
+                            <FormControl>
+                            <Input type="password" placeholder="••••••••" {...field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
