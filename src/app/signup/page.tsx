@@ -131,6 +131,26 @@ export default function SignupPage() {
     setIsLoading(true);
 
     try {
+        // 1. Check for existing user with the same phone number or email
+        const { data: existingUser, error: fetchError } = await supabase
+            .from('donors')
+            .select('email, phoneNumber')
+            .or(`email.eq.${values.email},phoneNumber.eq.${values.phoneNumber}`)
+            .single();
+
+        if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116: "exact one row expected, but 0 rows returned" (no user found, which is good)
+            throw new Error(`Could not verify user: ${fetchError.message}`);
+        }
+        if (existingUser) {
+            if (existingUser.email === values.email) {
+                throw new Error('An account with this email already exists.');
+            }
+            if (existingUser.phoneNumber === values.phoneNumber) {
+                throw new Error('An account with this phone number already exists.');
+            }
+        }
+
+        // 2. Upload profile picture if it exists
         let finalProfilePictureUrl = '';
         if (profileImageFile) {
             const authResponse = await fetch('/api/imagekit-auth');
@@ -140,6 +160,7 @@ export default function SignupPage() {
             finalProfilePictureUrl = response.url;
         }
 
+        // 3. Sign up the user with Supabase Auth
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
             email: values.email,
             password: values.password,
@@ -152,12 +173,13 @@ export default function SignupPage() {
         });
 
         if (signUpError) throw signUpError;
-        if (!signUpData.user) throw new Error("User creation failed in Supabase.");
+        if (!signUpData.user) throw new Error("User creation failed in Supabase Auth.");
 
+        // 4. Insert the donor profile into the 'donors' table
         const { error: insertError } = await supabase
             .from('donors')
             .insert({
-                uid: signUpData.user.id,
+                uid: signUpData.user.id, // This links the profile to the auth user
                 fullName: values.fullName,
                 email: values.email,
                 bloodGroup: values.bloodGroup,
@@ -177,7 +199,29 @@ export default function SignupPage() {
                 isAdmin: false,
             });
 
-        if (insertError) throw insertError;
+        if (insertError) {
+             // If profile insert fails, try to delete the auth user to prevent orphaned accounts
+            await supabase.auth.admin.deleteUser(signUpData.user.id);
+            throw insertError;
+        }
+        
+        // 5. Send notification email
+        fetch('/api/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                type: 'new_donor',
+                data: { 
+                    fullName: values.fullName,
+                    bloodGroup: values.bloodGroup,
+                    phoneNumber: values.phoneNumber,
+                    division: values.division,
+                    district: values.district,
+                    upazila: values.upazila,
+                }
+            })
+        }).catch(err => console.error("Email notification failed:", err));
+
 
         toast({
             title: 'Account Created Successfully!',
