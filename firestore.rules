@@ -1,98 +1,93 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+
     function isAdmin() {
       return exists(/databases/$(database)/documents/donors/$(request.auth.uid)) &&
              get(/databases/$(database)/documents/donors/$(request.auth.uid)).data.isAdmin == true;
     }
-    
-    function isOwner(uid) {
-      return request.auth.uid == uid;
-    }
 
-    match /donors/{userId} {
-      // Create: Anyone can sign up
-      allow create: if true;
-      
-      // Read: Public can see available/pinned donors, owner and admin can see everything
-      allow get: if resource.data.isAvailable == true || resource.data.isPinned == true || isOwner(userId) || isAdmin();
-      
-      // List: Public can query for available donors, admins can query all
-      allow list: if request.query.where.isAvailable == true || isAdmin();
-      
-      // Update, Delete: Only the owner or an admin can modify/delete a profile
-      allow update, delete: if isOwner(userId) || isAdmin();
-    }
-    
-    match /requests/{requestId} {
-      // Create: Anyone can request blood
-      allow create: if true;
-      
-      // Read: Anyone can see requests
-      allow read: if true;
-      
-      // Update, Delete: Only admins can modify requests
-      allow update, delete: if isAdmin();
-    }
-
-    match /blogs/{blogId} {
-        // Read: Anyone can see blog posts
-        allow read: if true;
-        // Write: Only admins
-        allow write: if isAdmin();
-    }
-    
-    match /gallery/{imageId} {
-      // Create: Any authenticated user can submit a photo
-      allow create: if request.auth != null;
-      // Read: Anyone can see approved photos
-      allow read: if resource.data.status == 'approved' || isAdmin();
-      // Update, Delete: Only admins can manage gallery
-      allow update, delete: if isAdmin();
-    }
-
-    match /moderators/{modId} {
-        // Read: Anyone can see moderators list
-        allow read: if true;
-        // Write: Only admins
-        allow write: if isAdmin();
-    }
-    
-    match /marquee-notices/{noticeId} {
-        // Read: Anyone can see notices
-        allow read: if true;
-        // Write: Only admins
-        allow write: if isAdmin();
-    }
-    
-    match /feedback/{feedbackId} {
-        // Create: Anyone can send feedback
-        allow create: if true;
-        // Read/Write: Admins only
-        allow read, write: if isAdmin();
-    }
-
-    match /otp_codes/{phone} {
-        // No public read access
-        allow read: if false;
-        // Allow server-side (admin) or owner to create/update/delete.
-        // For simplicity, locking to admin write for now as client doesn't write here.
-        allow write: if true; // Should be tightened with server-side logic
-    }
-    
+    // Settings Collection
     match /settings/global {
-      // Allow anyone to read site settings (for homepage)
+      // Allow anyone to read site settings (for homepage stats)
       allow get: if true;
       // Allow only admins to update settings
       allow write: if isAdmin();
     }
+
+    // Donors Collection
+    match /donors/{userId} {
+      // Admins can do anything
+      // Users can read their own data
+      allow read: if request.auth.uid == userId || isAdmin();
+      // Public can read available or pinned donors
+      allow get: if resource.data.isAvailable == true || resource.data.isPinned == true || isAdmin();
+      // Allow public queries for available donors (for search page)
+      allow list: if request.query.where.isAvailable == true || isAdmin();
+      // Users can update their own data
+      allow write: if request.auth.uid == userId || isAdmin();
+    }
+
+    // Requests Collection
+    match /requests/{requestId} {
+      // Allow ANYONE to read requests (for homepage stats and requests page)
+      allow read: if true;
+      // Anyone can create a request.
+      allow create: if true;
+      // Only admins can update or delete
+      allow update, delete: if isAdmin();
+    }
+
+    // Marquee Notices Collection
+    match /marquee-notices/{noticeId} {
+        // Anyone can read notices
+        allow read: if true;
+        // Only admins can create/update/delete
+        allow write: if isAdmin();
+    }
     
-    // Fallback security rule for any other collections
-    match /{document=**} {
-      allow read, write: if isAdmin();
+    // Blogs Collection
+    match /blogs/{blogId} {
+        // Anyone can read blog posts
+        allow read: if true;
+        // Only admins can write
+        allow write: if isAdmin();
+    }
+    
+    // Gallery Collection
+    match /gallery/{imageId} {
+        // Anyone can read approved images
+        allow read: if resource.data.status == 'approved' || isAdmin();
+        // Logged-in users can create (upload) images
+        allow create: if request.auth != null;
+        // Only admins can update/delete
+        allow update, delete: if isAdmin();
+    }
+
+    // Moderators Collection
+    match /moderators/{modId} {
+        // Anyone can read moderator info (for team page)
+        allow read: if true;
+        // Only admins can write
+        allow write: if isAdmin();
+    }
+
+    // Feedback Collection
+    match /feedback/{feedbackId} {
+        // Only admins can read/write feedback
+        allow read, write: if isAdmin();
+    }
+    
+    // OTP Codes Collection
+    match /otp_codes/{phone} {
+        // No one should be able to read this from the client.
+        // Server (admin SDK) handles this.
+        allow read, write: if false;
+    }
+
+    match /sms_logs/{logId} {
+        allow read, write: if isAdmin();
     }
   }
 }
