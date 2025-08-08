@@ -41,11 +41,6 @@ async function exportCollection(collectionName: string): Promise<Record<string, 
             const docData = doc.data();
             const serializableData = convertDataForExport(docData);
             
-            // For the donors collection, we remove the uid to avoid Supabase import issues with UUID type.
-            if (collectionName === 'donors') {
-              delete serializableData.uid;
-            }
-
             return {
                 id: doc.id,
                 ...serializableData,
