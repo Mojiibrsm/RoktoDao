@@ -1,7 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { collection, query, where, getDocs, setDoc, doc, serverTimestamp } from 'firebase/firestore';
-import { adminDb } from '@/lib/firebase-admin';
+import { supabase } from '@/lib/supabase';
 
 async function sendSms(number: string, message: string) {
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
@@ -26,13 +25,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Phone number is required.' }, { status: 400 });
     }
 
-    // 1. Check if user exists using the admin SDK
-    const donorsRef = collection(adminDb, 'donors');
-    const q = query(donorsRef, where('phoneNumber', '==', phoneNumber));
-    const querySnapshot = await getDocs(q);
+    // 1. Check if user exists in Supabase
+    const { data: donor, error: donorError } = await supabase
+      .from('donors')
+      .select('uid')
+      .eq('phoneNumber', phoneNumber)
+      .single();
 
-    if (querySnapshot.empty) {
-      return NextResponse.json({ success: false, error: 'No account is associated with this phone number.' }, { status: 404 });
+    if (donorError || !donor) {
+       return NextResponse.json({ success: false, error: 'No account is associated with this phone number.' }, { status: 404 });
     }
 
     // 2. Generate OTP
@@ -40,13 +41,19 @@ export async function POST(request: NextRequest) {
     const expires = new Date();
     expires.setMinutes(expires.getMinutes() + 10); // OTP expires in 10 minutes
 
-    // 3. Store OTP securely in Firestore with an expiration using the Admin SDK
-    const otpRef = doc(adminDb, 'otp_codes', phoneNumber);
-    await setDoc(otpRef, {
-      code: otp,
-      expires: expires.toISOString(),
-      createdAt: serverTimestamp(),
-    });
+    // 3. Store OTP securely in Supabase
+    const { error: otpError } = await supabase
+      .from('otp_codes')
+      .upsert({ 
+        phone: phoneNumber, 
+        code: otp, 
+        expires_at: expires.toISOString() 
+      }, { onConflict: 'phone' });
+
+    if (otpError) {
+      console.error("Supabase OTP storage error:", otpError);
+      throw new Error("Could not store OTP.");
+    }
 
     // 4. Send OTP via SMS
     const smsMessage = `Your RoktoDao OTP is: ${otp}`;
