@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     // OTP is valid, proceed to reset password
-    // 2. Find the user by phone number in Firestore to get their UID
+    // 2. Find the user by phone number to get their UID
     const { data: donor, error: donorError } = await supabase
       .from('donors')
       .select('uid')
