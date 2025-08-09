@@ -1,18 +1,17 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import type { SmsLog } from '@/lib/types';
 
 async function logSms(logData: Omit<SmsLog, 'id' | 'createdAt'>): Promise<void> {
     try {
-        await addDoc(collection(db, 'sms_logs'), {
+        const { error } = await supabase.from('sms_logs').insert({
             ...logData,
-            createdAt: serverTimestamp(),
         });
+        if (error) throw error;
         console.log(`SMS log saved for ${logData.number}`);
     } catch (error) {
-        console.error("Failed to log SMS to Firestore:", error);
+        console.error("Failed to log SMS to Supabase:", error);
     }
 }
 
@@ -120,3 +119,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: 'All SMS providers failed to send the message.' }, { status: 500 });
   }
 }
+

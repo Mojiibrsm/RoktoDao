@@ -1,8 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
-import { doc, getDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { adminDb } from '@/lib/firebase-admin';
+import { supabase } from '@/lib/supabase';
 import type { FeedbackType } from '@/lib/types';
 
 
@@ -10,16 +9,23 @@ export async function POST(request: NextRequest) {
   try {
     const { type, data } = await request.json();
 
-    // Fetch settings from Firestore
-    const settingsRef = doc(adminDb, 'settings', 'global');
-    const docSnap = await getDoc(settingsRef);
+    // Fetch settings from Supabase
+    const { data: settings, error: settingsError } = await supabase
+        .from('settings')
+        .select('*')
+        .eq('id', 'global')
+        .single();
+    
+    if (settingsError && settingsError.code !== 'PGRST116') { // PGRST116: row not found
+        console.error('Error fetching settings from Supabase:', settingsError);
+        throw settingsError;
+    }
 
-    if (!docSnap.exists()) {
-        console.warn('Settings not found in Firestore. Email not sent.');
+    if (!settings) {
+        console.warn('Settings not found in Supabase. Email not sent.');
         return NextResponse.json({ success: false, error: 'Email settings not configured.' }, { status: 500 });
     }
 
-    const settings = docSnap.data();
     const adminEmail = settings.adminEmail;
 
     if (!adminEmail) {
@@ -62,15 +68,19 @@ export async function POST(request: NextRequest) {
         <p>Please review the request in the admin panel.</p>
       `;
     } else if (type === 'contact_form') {
-      // Save feedback to Firestore
-      const feedbackData: Omit<FeedbackType, 'id' | 'date'> = {
+      // Save feedback to Supabase
+      const feedbackData: Omit<FeedbackType, 'id' | 'date' | 'createdAt'> = {
         user: { name: data.name, email: data.email },
         type: data.type || 'Other',
         message: data.message,
         status: 'New',
-        createdAt: serverTimestamp(),
       };
-      await addDoc(collection(adminDb, 'feedback'), feedbackData);
+      
+      const { error: feedbackError } = await supabase.from('feedback').insert(feedbackData);
+      if (feedbackError) {
+        console.error('Failed to save feedback to Supabase:', feedbackError);
+        // We can still try to send the email even if DB save fails
+      }
 
       subject = `📨 New Contact Message from ${data.name}`;
       htmlContent = `

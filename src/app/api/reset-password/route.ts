@@ -1,7 +1,14 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth } from '@/lib/firebase-admin'; // Using the Supabase Admin client now
+import { createClient } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+
+// Initialize Supabase Admin Client
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,7 +55,7 @@ export async function POST(request: NextRequest) {
     const uid = donor.uid;
 
     // 3. Use the UID to update the password in Supabase Auth using the Admin client
-    const { error: updateError } = await adminAuth.updateUserById(uid, {
+    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(uid, {
       password: newPassword,
     });
 
