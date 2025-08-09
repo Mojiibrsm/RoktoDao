@@ -46,8 +46,7 @@ export async function getHomepageData() {
         // Fetch all data in parallel from Supabase
         const [
             requestsRes,
-            pinnedDonorsRes,
-            latestDonorsRes,
+            donorsRes,
             totalDonorsRes,
             requestCountRes,
             fulfilledCountRes,
@@ -57,8 +56,7 @@ export async function getHomepageData() {
             blogRes
         ] = await Promise.all([
             supabase.from('requests').select('*').eq('status', 'Approved').order('neededDate', { ascending: true }).limit(6),
-            supabase.from('donors').select('*').eq('isPinned', true).eq('isAvailable', true).limit(6),
-            supabase.from('donors').select('*').eq('isAvailable', true).neq('isPinned', true).order('createdAt', { ascending: false }).limit(6),
+            supabase.from('donors').select('*').eq('isAvailable', true).order('isPinned', { ascending: false }).order('createdAt', { ascending: false }).limit(6),
             supabase.from('donors').select('*', { count: 'exact', head: true }),
             supabase.from('requests').select('*', { count: 'exact', head: true }),
             supabase.from('requests').select('*', { count: 'exact', head: true }).eq('status', 'Fulfilled'),
@@ -71,13 +69,8 @@ export async function getHomepageData() {
         // Process Urgent Requests
         const urgentRequests = requestsRes.data?.map(formatDateFields) as BloodRequest[] || [];
 
-        // Process Donors: Show pinned donors first, otherwise show latest donors.
-        let donors: Donor[];
-        if (pinnedDonorsRes.data && pinnedDonorsRes.data.length > 0) {
-            donors = pinnedDonorsRes.data.map(formatDateFields) as Donor[];
-        } else {
-            donors = latestDonorsRes.data?.map(formatDateFields) as Donor[] || [];
-        }
+        // Process Donors
+        const donors = donorsRes.data?.map(formatDateFields) as Donor[] || [];
 
         // Process Stats
         const stats: Stats = {
