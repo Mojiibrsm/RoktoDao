@@ -48,24 +48,24 @@ export async function getHomepageData() {
             requestsRes,
             pinnedDonorsRes,
             latestDonorsRes,
+            totalDonorsRes,
             requestCountRes,
             fulfilledCountRes,
             activeDonorsRes,
             directorRes,
             galleryRes,
-            blogRes,
-            settingsRes
+            blogRes
         ] = await Promise.all([
             supabase.from('requests').select('*').eq('status', 'Approved').order('neededDate', { ascending: true }).limit(6),
             supabase.from('donors').select('*').eq('isPinned', true).eq('isAvailable', true).limit(6),
             supabase.from('donors').select('*').eq('isAvailable', true).neq('isPinned', true).order('createdAt', { ascending: false }).limit(6),
+            supabase.from('donors').select('*', { count: 'exact', head: true }),
             supabase.from('requests').select('*', { count: 'exact', head: true }),
             supabase.from('requests').select('*', { count: 'exact', head: true }).eq('status', 'Fulfilled'),
             supabase.from('donors').select('*', { count: 'exact', head: true }).eq('isAvailable', true),
             supabase.from('moderators').select('*').eq('role', 'প্রধান পরিচালক').limit(1),
             supabase.from('gallery').select('*').eq('status', 'approved').order('createdAt', { ascending: false }).limit(8),
-            supabase.from('blogs').select('*').order('createdAt', { ascending: false }).limit(3),
-            supabase.from('settings').select('publicTotalDonors').eq('id', 'global').single()
+            supabase.from('blogs').select('*').order('createdAt', { ascending: false }).limit(3)
         ]);
         
         // Process Urgent Requests
@@ -80,9 +80,8 @@ export async function getHomepageData() {
         }
 
         // Process Stats
-        const totalDonors = settingsRes.data?.publicTotalDonors || 0;
         const stats: Stats = {
-            totalDonors: totalDonors,
+            totalDonors: totalDonorsRes.count ?? 0,
             totalRequests: requestCountRes.count ?? 0,
             donationsFulfilled: fulfilledCountRes.count ?? 0,
             activeDonors: activeDonorsRes.count ?? 0,
@@ -122,4 +121,3 @@ export async function getHomepageData() {
         };
       }
 }
-
