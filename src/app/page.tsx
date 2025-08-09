@@ -33,14 +33,17 @@ interface GalleryImage {
 
 const faqs = [
   {
+    id: "faq-1",
     question: "রক্তদানের জন্য সর্বনিম্ন বয়স কত?",
     answer: "রক্তদানের জন্য আপনার বয়স কমপক্ষে ১৮ বছর হতে হবে।"
   },
   {
+    id: "faq-2",
     question: "আমার ওজন কত কেজি হওয়া প্রয়োজন?",
     answer: "সুস্থভাবে রক্তদানের জন্য আপনার ওজন কমপক্ষে ৫০ কেজি (১১০ পাউন্ড) হওয়া উচিত।"
   },
   {
+    id: "faq-3",
     question: "কতদিন পর পর রক্তদান করা যায়?",
     answer: "একজন সুস্থ পুরুষ প্রতি ৩ মাস পর পর এবং একজন সুস্থ নারী প্রতি ৪ মাস পর পর রক্তদান করতে পারেন।"
   },
@@ -140,7 +143,7 @@ export default async function Home() {
           {donors.length > 0 ? (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {donors.map((donor) => (
-                <DonorCard key={donor.uid} donor={donor} />
+                <DonorCard key={donor.id} donor={donor} />
               ))}
             </div>
           ) : (
@@ -377,8 +380,8 @@ export default async function Home() {
         </h2>
         <Separator className="my-8" />
         <Accordion type="single" collapsible className="w-full">
-          {faqs.map((faq, index) => (
-            <AccordionItem value={`item-${index}`} key={index}>
+          {faqs.map((faq) => (
+            <AccordionItem value={faq.id} key={faq.id}>
               <AccordionTrigger className="text-lg font-semibold text-left hover:no-underline">
                 {faq.question}
               </AccordionTrigger>
