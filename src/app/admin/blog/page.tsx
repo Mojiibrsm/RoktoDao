@@ -1,9 +1,9 @@
 
+
 "use client";
 
 import { useState, useEffect, useRef, ChangeEvent } from 'react';
-import { collection, getDocs, doc, deleteDoc, updateDoc, addDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import type { BlogPost as BlogPostType } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -174,11 +174,9 @@ export default function BlogManagementPage() {
     const fetchPosts = async () => {
         setLoading(true);
         try {
-            const postsCollection = collection(db, 'blogs');
-            const q = query(postsCollection, orderBy('createdAt', 'desc'));
-            const postsSnapshot = await getDocs(q);
-            const postsList = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BlogPost));
-            setPosts(postsList);
+            const { data, error } = await supabase.from('blogs').select('*').order('createdAt', { ascending: false });
+            if (error) throw error;
+            setPosts(data as BlogPost[]);
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch blog posts.' });
         } finally {
@@ -192,11 +190,11 @@ export default function BlogManagementPage() {
 
     const handleAddPost = async (values: BlogPostFormValues) => {
         try {
-            await addDoc(collection(db, 'blogs'), {
+            const { error } = await supabase.from('blogs').insert({
                 ...values,
                 date: new Date().toISOString(),
-                createdAt: serverTimestamp(),
             });
+            if (error) throw error;
             toast({ title: 'Post Added', description: 'The new blog post has been added successfully.' });
             fetchPosts();
             form.reset({
@@ -211,8 +209,8 @@ export default function BlogManagementPage() {
     const handleUpdatePost = async (values: BlogPostFormValues) => {
         if (!selectedPost) return;
         try {
-            const postRef = doc(db, 'blogs', selectedPost.id);
-            await updateDoc(postRef, values);
+            const { error } = await supabase.from('blogs').update(values).eq('id', selectedPost.id);
+            if(error) throw error;
             toast({ title: 'Post Updated', description: 'The post has been updated successfully.' });
             fetchPosts();
             setIsEditDialogOpen(false);
@@ -225,7 +223,8 @@ export default function BlogManagementPage() {
     const handleDeletePost = async () => {
         if (!selectedPost) return;
         try {
-            await deleteDoc(doc(db, 'blogs', selectedPost.id));
+            const { error } = await supabase.from('blogs').delete().eq('id', selectedPost.id);
+            if(error) throw error;
             toast({ title: 'Post Deleted', description: 'The post has been deleted.' });
             fetchPosts();
         } catch (error) {
@@ -356,5 +355,3 @@ export default function BlogManagementPage() {
         </div>
     );
 }
-
-    

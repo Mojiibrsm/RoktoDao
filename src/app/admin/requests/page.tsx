@@ -1,9 +1,9 @@
 
+
 "use client";
 
 import { useState, useEffect } from 'react';
-import { collection, getDocs, query, orderBy, doc, updateDoc, deleteDoc, addDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import type { BloodRequest as BloodRequestType } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -298,18 +298,13 @@ export default function AdminRequestsPage() {
     const fetchRequests = async () => {
         setLoading(true);
         try {
-            const requestsRef = collection(db, 'requests');
-            const q = query(requestsRef, orderBy('neededDate', 'desc'));
-            const querySnapshot = await getDocs(q);
-            const requestsList = querySnapshot.docs.map(doc => {
-              const data = doc.data();
-              return {
-                ...data,
-                id: doc.id,
-                status: data.status || 'Pending'
-              } as BloodRequest;
-            });
-            setRequests(requestsList);
+            const { data, error } = await supabase
+                .from('requests')
+                .select('*')
+                .order('neededDate', { ascending: false });
+
+            if (error) throw error;
+            setRequests(data as BloodRequest[]);
         } catch (error) {
             console.error(error);
             toast({ variant: "destructive", title: "Error", description: "Could not fetch requests." });
@@ -324,8 +319,12 @@ export default function AdminRequestsPage() {
 
     const handleUpdateStatus = async (requestId: string, status: BloodRequestType['status']) => {
         try {
-            const requestRef = doc(db, 'requests', requestId);
-            await updateDoc(requestRef, { status: status });
+             const { error } = await supabase
+                .from('requests')
+                .update({ status: status })
+                .eq('id', requestId);
+            
+            if(error) throw error;
             toast({ title: "Status Updated", description: `Request has been marked as ${status}.` });
             fetchRequests();
         } catch (error) {
@@ -336,7 +335,8 @@ export default function AdminRequestsPage() {
     const handleDeleteRequest = async (requestId: string | null) => {
         if (!requestId) return;
         try {
-            await deleteDoc(doc(db, 'requests', requestId));
+            const { error } = await supabase.from('requests').delete().eq('id', requestId);
+            if(error) throw error;
             toast({ title: "Request Deleted", description: "The blood request has been deleted." });
             fetchRequests();
         } catch (error) {
@@ -368,7 +368,9 @@ export default function AdminRequestsPage() {
         };
     
         try {
-          await addDoc(collection(db, 'requests'), requestData);
+          const { error } = await supabase.from('requests').insert(requestData);
+          if (error) throw error;
+
           toast({
             title: 'Request Added',
             description: 'The new blood request has been successfully created.',
@@ -401,8 +403,9 @@ export default function AdminRequestsPage() {
         };
 
         try {
-            const requestRef = doc(db, 'requests', selectedRequest.id);
-            await updateDoc(requestRef, requestData);
+            const { error } = await supabase.from('requests').update(requestData).eq('id', selectedRequest.id);
+            if(error) throw error;
+
             toast({
                 title: 'Request Updated',
                 description: 'The request has been successfully updated.',
@@ -651,5 +654,3 @@ export default function AdminRequestsPage() {
         </div>
     );
 }
-
-    

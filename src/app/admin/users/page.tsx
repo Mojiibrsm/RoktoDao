@@ -3,8 +3,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useTransition } from 'react';
-import { collection, getDocs, doc, updateDoc, deleteDoc, writeBatch, addDoc, serverTimestamp, query, where, orderBy, startAt, endAt } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import type { Donor as DonorType } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -142,26 +141,33 @@ export default function AdminUsersPage() {
 
   const fetchUsers = async () => {
     setLoading(true);
-    const usersCollection = collection(db, 'donors');
-    const usersSnapshot = await getDocs(usersCollection);
-    const usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Donor));
-    setAllUsers(usersList);
-    setFilteredUsers(usersList);
+    try {
+        const { data, error } = await supabase.from('donors').select('*');
+        if (error) throw error;
+        setAllUsers(data as Donor[]);
+        setFilteredUsers(data as Donor[]);
+    } catch (error) {
+         toast({ variant: "destructive", title: "Error", description: "Could not fetch users." });
+    }
     setLoading(false);
     setSelectedUsers([]);
   };
   
   const handleSearch = useCallback(() => {
     startTransition(() => {
-        const filtered = allUsers.filter(user => {
-            const nameMatch = searchName ? user.fullName.toLowerCase().includes(searchName.toLowerCase()) : true;
-            const phoneMatch = searchPhone ? user.phoneNumber.includes(searchPhone) : true;
-            const areaMatch = searchArea ? 
-                `${user.address.upazila}, ${user.address.district}`.toLowerCase().includes(searchArea.toLowerCase()) ||
-                user.address.district.toLowerCase().includes(searchArea.toLowerCase())
-                : true;
-            return nameMatch && phoneMatch && areaMatch;
-        });
+        let filtered = allUsers;
+        if(searchName) {
+            filtered = filtered.filter(user => user.fullName.toLowerCase().includes(searchName.toLowerCase()));
+        }
+        if(searchPhone) {
+            filtered = filtered.filter(user => user.phoneNumber.includes(searchPhone));
+        }
+        if(searchArea) {
+            filtered = filtered.filter(user => 
+                (user.address.upazila && user.address.upazila.toLowerCase().includes(searchArea.toLowerCase())) ||
+                (user.address.district && user.address.district.toLowerCase().includes(searchArea.toLowerCase()))
+            );
+        }
         setFilteredUsers(filtered);
     });
   }, [allUsers, searchName, searchPhone, searchArea]);
@@ -173,8 +179,8 @@ export default function AdminUsersPage() {
 
   const handleBlockUser = async (userId: string) => {
     try {
-      const userRef = doc(db, 'donors', userId);
-      await updateDoc(userRef, { isAvailable: false }); // Or a dedicated 'isBlocked' field
+      const { error } = await supabase.from('donors').update({ isAvailable: false }).eq('id', userId);
+      if(error) throw error;
       toast({ title: "User Blocked", description: "The user has been marked as unavailable." });
       fetchUsers(); // Refresh list
     } catch (error) {
@@ -184,8 +190,9 @@ export default function AdminUsersPage() {
 
   const handleDeleteUser = async (userId: string) => {
     try {
-      await deleteDoc(doc(db, 'donors', userId));
-      toast({ title: "User Deleted", description: "The user's Firestore record has been deleted." });
+        const { error } = await supabase.from('donors').delete().eq('id', userId);
+        if(error) throw error;
+      toast({ title: "User Deleted", description: "The user's record has been deleted." });
       fetchUsers();
     } catch (error) {
        toast({ variant: "destructive", title: "Error", description: "Could not delete the user." });
@@ -193,56 +200,53 @@ export default function AdminUsersPage() {
   };
 
   const handleBulkAction = async (action: 'delete' | 'block' | 'unblock') => {
-    const batch = writeBatch(db);
-    selectedUsers.forEach(id => {
-      const userRef = doc(db, 'donors', id);
-      if (action === 'delete') {
-        batch.delete(userRef);
-      } else if (action === 'block') {
-        batch.update(userRef, { isAvailable: false });
-      } else if (action === 'unblock') {
-        batch.update(userRef, { isAvailable: true });
-      }
-    });
-
+    let updateData = {};
+    if(action === 'block') updateData = { isAvailable: false };
+    if(action === 'unblock') updateData = { isAvailable: true };
+    
     try {
-      await batch.commit();
-      toast({
-        title: 'Success',
-        description: `${selectedUsers.length} users have been updated.`
-      });
-      fetchUsers();
+        if(action === 'delete') {
+            const { error } = await supabase.from('donors').delete().in('id', selectedUsers);
+            if(error) throw error;
+        } else {
+            const { error } = await supabase.from('donors').update(updateData).in('id', selectedUsers);
+            if(error) throw error;
+        }
+        toast({
+            title: 'Success',
+            description: `${selectedUsers.length} users have been updated.`
+        });
+        fetchUsers();
     } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: `Could not perform bulk action.`
-      });
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: `Could not perform bulk action.`
+        });
     } finally {
         if(action === 'delete') setIsBulkDeleteOpen(false);
     }
   };
 
   const handleAddUser = async (values: UserFormValues) => {
-    const newDonorRef = doc(collection(db, 'donors'));
-    const donorData: Omit<DonorType, 'id'> = {
-        uid: newDonorRef.id,
-        fullName: values.fullName,
-        bloodGroup: values.bloodGroup,
-        phoneNumber: values.phoneNumber,
-        address: {
-            division: 'N/A',
-            district: 'N/A',
-            upazila: 'N/A',
-        },
-        isAvailable: true,
-        isVerified: true,
-        isAdmin: false,
-        createdAt: serverTimestamp(),
-    };
-
     try {
-        await addDoc(collection(db, 'donors'), donorData);
+        const { data, error } = await supabase.from('donors').insert([
+            {
+                fullName: values.fullName,
+                email: values.email,
+                bloodGroup: values.bloodGroup,
+                phoneNumber: values.phoneNumber,
+                address: {
+                    division: 'N/A',
+                    district: 'N/A',
+                    upazila: 'N/A',
+                },
+                isAvailable: true,
+                isVerified: true,
+                isAdmin: false,
+            }
+        ]);
+        if(error) throw error;
         toast({
             title: 'User Added',
             description: 'The new user has been successfully created.',
@@ -424,7 +428,7 @@ export default function AdminUsersPage() {
                       {user.bloodGroup}
                     </Badge>
                   </TableCell>
-                  <TableCell>{`${user.address.upazila}, ${user.address.district}`}</TableCell>
+                  <TableCell>{user.address ? `${user.address.upazila}, ${user.address.district}` : 'N/A'}</TableCell>
                   <TableCell>{user.phoneNumber}</TableCell>
                   <TableCell>
                     <Badge variant={user.isAvailable ? 'default' : 'secondary'} className={user.isAvailable ? 'bg-green-600' : ''}>
@@ -461,7 +465,7 @@ export default function AdminUsersPage() {
                         <AlertDialogHeader>
                           <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete the user's data from Firestore. It will not remove them from Firebase Authentication.
+                            This action cannot be undone. This will permanently delete the user's data.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

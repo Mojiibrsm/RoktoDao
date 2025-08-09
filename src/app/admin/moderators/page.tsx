@@ -1,9 +1,9 @@
 
+
 "use client";
 
 import { useState, useEffect } from 'react';
-import { collection, getDocs, doc, deleteDoc, updateDoc, addDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -136,11 +136,9 @@ export default function ModeratorsPage() {
     const fetchModerators = async () => {
         setLoading(true);
         try {
-            const modsCollection = collection(db, 'moderators');
-            const q = query(modsCollection, orderBy('createdAt', 'desc'));
-            const modsSnapshot = await getDocs(q);
-            const modsList = modsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Moderator));
-            setModerators(modsList);
+            const { data, error } = await supabase.from('moderators').select('*').order('createdAt', { ascending: false });
+            if(error) throw error;
+            setModerators(data as Moderator[]);
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch moderators.' });
         } finally {
@@ -154,10 +152,8 @@ export default function ModeratorsPage() {
 
     const handleAddModerator = async (values: ModeratorFormValues) => {
         try {
-            await addDoc(collection(db, 'moderators'), {
-                ...values,
-                createdAt: serverTimestamp(),
-            });
+            const { error } = await supabase.from('moderators').insert([values]);
+            if(error) throw error;
             toast({ title: 'Moderator Added', description: 'The new moderator has been added successfully.' });
             fetchModerators();
             form.reset();
@@ -170,8 +166,8 @@ export default function ModeratorsPage() {
     const handleUpdateModerator = async (values: ModeratorFormValues) => {
         if (!selectedModerator) return;
         try {
-            const modRef = doc(db, 'moderators', selectedModerator.id);
-            await updateDoc(modRef, values);
+            const { error } = await supabase.from('moderators').update(values).eq('id', selectedModerator.id);
+            if(error) throw error;
             toast({ title: 'Moderator Updated', description: 'The moderator has been updated successfully.' });
             fetchModerators();
             setIsEditDialogOpen(false);
@@ -184,7 +180,8 @@ export default function ModeratorsPage() {
     const handleDeleteModerator = async () => {
         if (!selectedModerator) return;
         try {
-            await deleteDoc(doc(db, 'moderators', selectedModerator.id));
+            const { error } = await supabase.from('moderators').delete().eq('id', selectedModerator.id);
+            if(error) throw error;
             toast({ title: 'Moderator Deleted', description: 'The moderator has been deleted.' });
             fetchModerators();
         } catch (error) {

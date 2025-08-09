@@ -1,9 +1,9 @@
 
+
 "use client";
 
 import { useState, useEffect } from 'react';
-import { collection, getDocs, doc, deleteDoc, updateDoc, query, orderBy, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import type { Feedback as FeedbackType } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -44,17 +44,18 @@ export default function AdminFeedbackPage() {
     const fetchFeedback = async () => {
         setLoading(true);
         try {
-            const feedbackCollection = collection(db, 'feedback');
-            const q = query(feedbackCollection, orderBy('createdAt', 'desc'));
-            const feedbackSnapshot = await getDocs(q);
-            const list = feedbackSnapshot.docs.map(doc => {
-                const data = doc.data();
-                return { 
-                    id: doc.id,
-                    ...data,
-                    date: data.createdAt?.toDate ? format(data.createdAt.toDate(), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
-                } as Feedback
-            });
+            const { data, error } = await supabase
+                .from('feedback')
+                .select('*')
+                .order('createdAt', { ascending: 'desc' });
+            
+            if (error) throw error;
+
+            const list = data.map(item => ({
+                ...item,
+                date: item.createdAt ? format(new Date(item.createdAt), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+            })) as Feedback[];
+            
             setFeedbackList(list);
         } catch (error) {
             console.error(error);
@@ -70,8 +71,12 @@ export default function AdminFeedbackPage() {
 
     const handleUpdateStatus = async (id: string, status: FeedbackType['status']) => {
         try {
-            const feedbackRef = doc(db, 'feedback', id);
-            await updateDoc(feedbackRef, { status });
+            const { error } = await supabase
+                .from('feedback')
+                .update({ status })
+                .eq('id', id);
+
+            if (error) throw error;
             toast({ title: "Status Updated", description: `Feedback marked as ${status}.` });
             fetchFeedback();
         } catch (error) {
@@ -82,7 +87,9 @@ export default function AdminFeedbackPage() {
     const handleDelete = async (id: string | null) => {
         if (!id) return;
         try {
-            await deleteDoc(doc(db, 'feedback', id));
+            const { error } = await supabase.from('feedback').delete().eq('id', id);
+            if (error) throw error;
+
             toast({ title: "Feedback Deleted", variant: "destructive" });
             fetchFeedback();
         } catch (error) {

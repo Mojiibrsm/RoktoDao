@@ -259,15 +259,20 @@ export default function AdminDonorsPage() {
   
   const handleSearch = useCallback(() => {
     startTransition(() => {
-        const filtered = allDonors.filter(donor => {
-            const nameMatch = searchName ? donor.fullName.toLowerCase().includes(searchName.toLowerCase()) : true;
-            const phoneMatch = searchPhone ? donor.phoneNumber.includes(searchPhone) : true;
-            const areaMatch = searchArea && donor.address ? 
-                `${donor.address.upazila}, ${donor.address.district}`.toLowerCase().includes(searchArea.toLowerCase()) || 
-                donor.address.district.toLowerCase().includes(searchArea.toLowerCase())
-                : true;
-            return nameMatch && phoneMatch && areaMatch;
-        });
+        let filtered = allDonors;
+
+        if (searchName) {
+          filtered = filtered.filter(donor => donor.fullName.toLowerCase().includes(searchName.toLowerCase()));
+        }
+        if (searchPhone) {
+            filtered = filtered.filter(donor => donor.phoneNumber.includes(searchPhone));
+        }
+        if (searchArea) {
+            filtered = filtered.filter(donor => 
+                (donor.address.upazila && donor.address.upazila.toLowerCase().includes(searchArea.toLowerCase())) ||
+                (donor.address.district && donor.address.district.toLowerCase().includes(searchArea.toLowerCase()))
+            );
+        }
         setFilteredDonors(filtered);
     });
   }, [allDonors, searchName, searchPhone, searchArea]);
@@ -719,5 +724,3 @@ const handleAddDonor = async (values: DonorFormValues) => {
     </div>
   );
 }
-
-    
