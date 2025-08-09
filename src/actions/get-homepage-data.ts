@@ -1,10 +1,8 @@
 
-
 'use server';
 
-import { adminDb } from '@/lib/firebase-admin';
+import { supabase } from '@/lib/supabase';
 import type { BloodRequest, Donor, BlogPost } from '@/lib/types';
-import { Timestamp } from 'firebase-admin/firestore';
 import { format } from 'date-fns';
 
 interface GalleryImage {
@@ -26,15 +24,16 @@ interface Member {
   avatarHint?: string;
 }
 
-// Helper to convert Firestore Timestamps to serializable and formatted strings
-const convertTimestamps = (docData: any) => {
+// Helper to convert date strings to a formatted string
+const formatDateFields = (docData: any) => {
     const data = { ...docData };
+    const dateFields = ['lastDonationDate', 'neededDate', 'dateOfBirth', 'createdAt', 'date'];
     for (const key in data) {
-        if (data[key] instanceof Timestamp) {
-            if (key === 'lastDonationDate' || key === 'neededDate' || key === 'dateOfBirth') {
-                data[key] = format(data[key].toDate(), 'PPP');
-            } else {
-                data[key] = data[key].toDate().toISOString();
+        if (dateFields.includes(key) && data[key]) {
+            try {
+                data[key] = format(new Date(data[key]), 'PPP');
+            } catch (e) {
+                console.warn(`Could not format date for key: ${key}, value: ${data[key]}`);
             }
         }
     }
@@ -44,84 +43,62 @@ const convertTimestamps = (docData: any) => {
 
 export async function getHomepageData() {
     try {
-        const requestsRef = adminDb.collection('requests');
-        const donorsRef = adminDb.collection('donors');
-        const modsCollection = adminDb.collection('moderators');
-        const imagesRef = adminDb.collection('gallery');
-        const blogsRef = adminDb.collection('blogs');
-        const settingsRef = adminDb.collection('settings').doc('global');
-
-        // Define all queries
-        const reqQuery = requestsRef.where('status', '==', 'Approved').orderBy('neededDate', 'asc').limit(6);
-        const pinnedDonorsQuery = donorsRef.where('isPinned', '==', true).where('isAvailable', '==', true).limit(6);
-        const latestDonorsQuery = donorsRef.where('isAvailable', '==', true).where('isPinned', '!=', true).orderBy('isPinned').orderBy('createdAt', 'desc').limit(6);
-        const directorQuery = modsCollection.where('role', '==', 'প্রধান পরিচালক').limit(1);
-        const galleryQuery = imagesRef.where('status', '==', 'approved').orderBy('createdAt', 'desc').limit(8);
-        const blogQuery = blogsRef.orderBy('createdAt', 'desc').limit(3);
-
-        // Fetch all data in parallel
+        // Fetch all data in parallel from Supabase
         const [
-            reqSnapshot,
-            pinnedSnapshot,
-            latestDonorsSnapshot,
-            requestCountSnap,
-            fulfilledCountSnap,
-            activeDonorsSnap,
-            directorSnapshot,
-            gallerySnapshot,
-            blogSnapshot,
-            settingsSnapshot,
+            requestsRes,
+            pinnedDonorsRes,
+            latestDonorsRes,
+            requestCountRes,
+            fulfilledCountRes,
+            activeDonorsRes,
+            directorRes,
+            galleryRes,
+            blogRes,
+            settingsRes
         ] = await Promise.all([
-            reqQuery.get(),
-            pinnedDonorsQuery.get(),
-            latestDonorsQuery.get(),
-            requestsRef.count().get(),
-            requestsRef.where("status", "==", "Fulfilled").count().get(),
-            donorsRef.where("isAvailable", "==", true).count().get(),
-            directorQuery.get(),
-            galleryQuery.get(),
-            blogQuery.get(),
-            settingsRef.get(),
+            supabase.from('requests').select('*').eq('status', 'Approved').order('neededDate', { ascending: true }).limit(6),
+            supabase.from('donors').select('*').eq('isPinned', true).eq('isAvailable', true).limit(6),
+            supabase.from('donors').select('*').eq('isAvailable', true).neq('isPinned', true).order('createdAt', { ascending: false }).limit(6),
+            supabase.from('requests').select('*', { count: 'exact', head: true }),
+            supabase.from('requests').select('*', { count: 'exact', head: true }).eq('status', 'Fulfilled'),
+            supabase.from('donors').select('*', { count: 'exact', head: true }).eq('isAvailable', true),
+            supabase.from('moderators').select('*').eq('role', 'প্রধান পরিচালক').limit(1),
+            supabase.from('gallery').select('*').eq('status', 'approved').order('createdAt', { ascending: false }).limit(8),
+            supabase.from('blogs').select('*').order('createdAt', { ascending: false }).limit(3),
+            supabase.from('settings').select('publicTotalDonors').eq('id', 'global').single()
         ]);
-
+        
         // Process Urgent Requests
-        const urgentRequests = reqSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...convertTimestamps(doc.data()),
-        })) as BloodRequest[];
+        const urgentRequests = requestsRes.data?.map(formatDateFields) as BloodRequest[] || [];
 
         // Process Donors: Show pinned donors first, otherwise show latest donors.
         let donors: Donor[];
-        if (!pinnedSnapshot.empty) {
-            donors = pinnedSnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as Donor));
+        if (pinnedDonorsRes.data && pinnedDonorsRes.data.length > 0) {
+            donors = pinnedDonorsRes.data.map(formatDateFields) as Donor[];
         } else {
-            donors = latestDonorsSnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as Donor));
+            donors = latestDonorsRes.data?.map(formatDateFields) as Donor[] || [];
         }
 
         // Process Stats
-        const totalDonors = settingsSnapshot.exists ? settingsSnapshot.data()?.publicTotalDonors || 0 : 0;
+        const totalDonors = settingsRes.data?.publicTotalDonors || 0;
         const stats: Stats = {
             totalDonors: totalDonors,
-            totalRequests: requestCountSnap.data().count,
-            donationsFulfilled: fulfilledCountSnap.data().count,
-            activeDonors: activeDonorsSnap.data().count,
+            totalRequests: requestCountRes.count ?? 0,
+            donationsFulfilled: fulfilledCountRes.count ?? 0,
+            activeDonors: activeDonorsRes.count ?? 0,
         };
 
         // Process Director
         let director: Member | null = null;
-        if (!directorSnapshot.empty) {
-            const directorDoc = directorSnapshot.docs[0];
-            director = { id: directorDoc.id, ...convertTimestamps(directorDoc.data()) } as Member;
+        if (directorRes.data && directorRes.data.length > 0) {
+            director = formatDateFields(directorRes.data[0]) as Member;
         }
 
         // Process Gallery Images
-        const galleryImages = gallerySnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) })) as GalleryImage[];
+        const galleryImages = galleryRes.data?.map(formatDateFields) as GalleryImage[] || [];
 
         // Process Blog Posts
-        const blogPosts = blogSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...convertTimestamps(doc.data()),
-        })) as BlogPost[];
+        const blogPosts = blogRes.data?.map(formatDateFields) as BlogPost[] || [];
         
         return {
             donors,
@@ -133,7 +110,7 @@ export async function getHomepageData() {
         };
         
       } catch (error: any) {
-        console.error("Error fetching homepage data:", error.message);
+        console.error("Error fetching homepage data from Supabase:", error.message);
         // Return a default empty state in case of an error
         return {
             donors: [],
