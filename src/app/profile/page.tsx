@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useEffect, useState, useMemo, Suspense, useRef, ChangeEvent } from 'react';
@@ -16,19 +15,17 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, User, Upload, Loader2, KeyRound, Droplet, List, ShieldCheck, PlusCircle } from 'lucide-react';
-import { format, addYears } from 'date-fns';
+import { CalendarIcon, User, Upload, KeyRound, Droplet, List, ShieldCheck, PlusCircle } from 'lucide-react';
+import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { bloodGroups, locations, upazilas } from '@/lib/location-data';
-import { doc, setDoc, getDoc, updateDoc, serverTimestamp, collection, query, where, getDocs, writeBatch, orderBy } from 'firebase/firestore';
-import { db, auth } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import type { Donor, BloodRequest } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import IK from 'imagekit-javascript';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import RequestCard from '@/components/request-card';
-import { updatePassword } from 'firebase/auth';
 import Link from 'next/link';
 
 const profileSchema = z.object({
@@ -109,7 +106,7 @@ function ProfilePageComponent() {
     return upazilas[selectedDistrict as keyof typeof upazilas].map(u => ({ value: u, label: u })).sort((a, b) => a.label.localeCompare(b.label, 'bn'));
   }, [selectedDistrict]);
 
-  const targetUid = useMemo(() => userIdToEdit && isAdmin ? userIdToEdit : user?.uid, [userIdToEdit, isAdmin, user]);
+  const targetUid = useMemo(() => userIdToEdit && isAdmin ? userIdToEdit : user?.id, [userIdToEdit, isAdmin, user]);
 
   useEffect(() => {
     // If not admin editing, use the donorProfile from context
@@ -124,17 +121,19 @@ function ProfilePageComponent() {
       if (!targetUid) return;
       setPageLoading(true);
       try {
-        let profileToLoad = profileToEdit;
+        let profileToLoad: Donor | null = null;
         
-        // If admin is editing, we need to fetch the specific profile
         if(isAdmin && userIdToEdit) {
-            const donorRef = doc(db, 'donors', userIdToEdit);
-            const docSnap = await getDoc(donorRef);
-             if (docSnap.exists()) {
-                profileToLoad = { id: docSnap.id, ...docSnap.data() } as Donor;
-                setProfileToEdit(profileToLoad);
-             }
+            const { data, error } = await supabase.from('donors').select('*').eq('uid', userIdToEdit).single();
+            if(error && error.code !== 'PGRST116') throw error;
+            profileToLoad = data;
+        } else if (user) {
+             const { data, error } = await supabase.from('donors').select('*').eq('uid', user.id).single();
+             if(error && error.code !== 'PGRST116') throw error;
+             profileToLoad = data;
         }
+        
+        setProfileToEdit(profileToLoad);
         
         if (profileToLoad) {
           setProfileImageUrl(profileToLoad.profilePictureUrl || '');
@@ -148,13 +147,14 @@ function ProfilePageComponent() {
         }
         
         // Fetch related requests and donations for the target user
-        const [requestsSnap, donationsSnap] = await Promise.all([
-          getDocs(query(collection(db, 'requests'), where('uid', '==', targetUid))),
-          getDocs(query(collection(db, 'requests'), where('responders', 'array-contains', targetUid)))
-        ]);
-        
-        setMyRequests(requestsSnap.docs.map(d => ({id: d.id, ...d.data()}) as BloodRequest));
-        setMyDonations(donationsSnap.docs.map(d => ({id: d.id, ...d.data()}) as BloodRequest));
+         const { data: requestsData, error: requestsError } = await supabase.from('requests').select('*').eq('uid', targetUid);
+         if(requestsError) throw requestsError;
+         setMyRequests(requestsData as BloodRequest[]);
+
+         const { data: donationsData, error: donationsError } = await supabase.from('requests').select('*').contains('responders', [targetUid]);
+         if(donationsError) throw donationsError;
+         setMyDonations(donationsData as BloodRequest[]);
+
 
       } catch (e) {
         toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch profile data.' });
@@ -167,7 +167,7 @@ function ProfilePageComponent() {
     } else if (!loading && !user) {
         router.push('/login');
     }
-  }, [user, loading, router, targetUid, toast, isAdmin, userIdToEdit, profileToEdit]);
+  }, [user, loading, router, targetUid, toast, isAdmin, userIdToEdit]);
   
   const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
@@ -187,7 +187,7 @@ function ProfilePageComponent() {
         const response = await imagekit.upload({ ...authParams, file: profileImageFile, fileName: profileImageFile.name, useUniqueFileName: true, folder: '/roktodao/avatars/' });
         finalProfilePictureUrl = response.url;
       }
-      const donorRef = doc(db, 'donors', targetUid);
+      
       const donorData: Partial<Donor> = {
         fullName: values.fullName,
         bloodGroup: values.bloodGroup,
@@ -200,13 +200,17 @@ function ProfilePageComponent() {
         isAvailable: values.isAvailable,
         lastDonationDate: values.lastDonationDate ? values.lastDonationDate.toISOString() : null,
         dateOfBirth: values.dateOfBirth ? values.dateOfBirth.toISOString() : null,
-        gender: values.gender ?? null,
+        gender: values.gender ?? undefined,
         donationCount: values.donationCount ?? 0,
         profilePictureUrl: finalProfilePictureUrl ?? null,
       };
-      await setDoc(donorRef, donorData, { merge: true });
+
+      const { error } = await supabase.from('donors').update(donorData).eq('uid', targetUid);
+      if (error) throw error;
+      
       toast({ title: 'Profile Updated', description: 'Your information saved successfully.' });
       if (isAdmin && userIdToEdit) router.push('/admin/donors');
+
     } catch (error) {
        toast({ variant: 'destructive', title: 'Update Failed', description: 'Something went wrong.' });
     } finally {
@@ -221,7 +225,8 @@ function ProfilePageComponent() {
       }
       setIsSubmitting(true);
       try {
-          await updatePassword(user, values.newPassword);
+          const { error } = await supabase.auth.updateUser({ password: values.newPassword });
+          if(error) throw error;
           toast({ title: "Password Updated", description: "Your password has been changed successfully." });
           passwordForm.reset();
       } catch (error: any) {

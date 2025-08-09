@@ -14,17 +14,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGr
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, AlertTriangle } from 'lucide-react';
+import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { bloodGroups, locations, hospitalsByDistrict } from '@/lib/location-data';
-import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/use-auth';
 import { Checkbox } from '@/components/ui/checkbox';
-import type { BloodRequest, Donor } from '@/lib/types';
+import type { BloodRequest } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 import RequestCard from '@/components/request-card';
+import { PlusCircle } from 'lucide-react';
 
 
 const requestSchema = z.object({
@@ -80,14 +80,13 @@ export default function RequestBloodPage() {
    const fetchRecentRequests = async () => {
     setLoading(true);
     try {
-        const requestsRef = collection(db, 'requests');
-        const q = query(requestsRef, orderBy('createdAt', 'desc'), limit(6));
-        const querySnapshot = await getDocs(q);
-        const requests = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        })) as BloodRequest[];
-        setRecentRequests(requests);
+        const { data, error } = await supabase
+            .from('requests')
+            .select('*')
+            .order('createdAt', { ascending: 'desc' })
+            .limit(6);
+        if (error) throw error;
+        setRecentRequests(data as BloodRequest[]);
     } catch (error) {
         console.error("Error fetching recent requests:", error);
     } finally {
@@ -122,7 +121,7 @@ export default function RequestBloodPage() {
     
     const finalHospitalName = values.hospitalLocation === 'Other' ? values.otherHospital : values.hospitalLocation;
 
-    const requestData: Omit<BloodRequest, 'id'> = {
+    const requestData: Omit<BloodRequest, 'id' | 'createdAt'> = {
       patientName: values.patientName,
       bloodGroup: values.bloodGroup,
       numberOfBags: values.numberOfBags,
@@ -130,14 +129,14 @@ export default function RequestBloodPage() {
       district: values.district,
       hospitalLocation: finalHospitalName,
       contactPhone: values.contactPhone,
-      uid: user?.uid ?? null,
+      uid: user?.id ?? undefined,
       isEmergency: values.isEmergency,
       status: 'Approved',
-      createdAt: new Date().toISOString(), // Use client-side timestamp for immediate use
     };
 
     try {
-      await addDoc(collection(db, 'requests'), { ...requestData, createdAt: serverTimestamp() });
+      const { error } = await supabase.from('requests').insert({ ...requestData });
+      if (error) throw error;
       
       // Send notifications (don't wait for them to complete)
       fetch('/api/send-email', {
@@ -362,8 +361,3 @@ export default function RequestBloodPage() {
 
     </div>
   );
-
-    
-
-    
-

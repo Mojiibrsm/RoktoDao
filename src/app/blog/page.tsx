@@ -7,21 +7,20 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import type { BlogPost } from '@/lib/types';
 import Image from 'next/image';
-import { db } from '@/lib/firebase';
-import { collection, getDocs, orderBy, query } from 'firebase/firestore';
+import { supabase } from '@/lib/supabase';
 import { useState, useEffect } from 'react';
 
 async function getBlogPosts(): Promise<BlogPost[]> {
     try {
-        const postsRef = collection(db, 'blogs');
-        const q = query(postsRef, orderBy('createdAt', 'desc'));
-        const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        } as BlogPost));
+        const { data, error } = await supabase
+            .from('blogs')
+            .select('*')
+            .order('createdAt', { ascending: false });
+
+        if (error) throw error;
+        return data as BlogPost[];
     } catch (error) {
-        console.error("Error fetching blog posts: ", error);
+        console.error("Error fetching blog posts from Supabase: ", error);
         return [];
     }
 }
@@ -71,7 +70,7 @@ export default function BlogPage() {
                   <CardHeader>
                     <CardTitle>{post.title}</CardTitle>
                     <CardDescription>
-                      <span>{new Date(post.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span> &bull; <span>by {post.author}</span>
+                      <span>{new Date(post.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span> &bull; <span>by {post.author}</span>
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="flex-grow">
