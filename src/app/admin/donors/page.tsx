@@ -510,10 +510,9 @@ const handleAddDonor = async (values: DonorFormValues) => {
     const downloadPDF = () => {
         const doc = new jsPDF();
         
-        // Add the font
         doc.addFileToVFS("SolaimanLipi.ttf", SolaimanLipi);
         doc.addFont("SolaimanLipi.ttf", "SolaimanLipi", "normal");
-        doc.setFont("SolaimanLipi", "normal");
+        doc.setFont("SolaimanLipi");
 
         const tableColumn = ["Name", "Phone Number", "Blood Group", "Location"];
         const tableRows: any[] = [];
@@ -808,3 +807,5 @@ const handleAddDonor = async (values: DonorFormValues) => {
     </div>
   );
 }
+
+    
