@@ -3,7 +3,7 @@
 
 import type { BloodRequest } from '@/lib/types';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Droplet, MapPin, Calendar, Syringe, Phone, AlertTriangle, Share2, HandHeart } from 'lucide-react';
+import { Droplet, MapPin, Calendar, Syringe, Phone, AlertTriangle, Share2, HandHeart, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -13,9 +13,10 @@ interface RequestCardProps {
   req: BloodRequest;
   onRespond?: (request: BloodRequest) => void;
   showRespondButton?: boolean;
+  isResponding?: boolean;
 }
 
-export default function RequestCard({ req, onRespond, showRespondButton = false }: RequestCardProps) {
+export default function RequestCard({ req, onRespond, showRespondButton = false, isResponding = false }: RequestCardProps) {
   const { toast } = useToast();
 
   const handleCopy = (text: string) => {
@@ -82,9 +83,13 @@ export default function RequestCard({ req, onRespond, showRespondButton = false 
             শেয়ার করুন
         </Button>
         {showRespondButton && onRespond && req.status !== 'Fulfilled' && (
-          <Button onClick={() => onRespond(req)} className="w-full bg-green-600 hover:bg-green-700">
-            <HandHeart className="mr-2 h-4 w-4"/>
-            আমি রক্ত দিতে চাই
+          <Button 
+            onClick={() => onRespond(req)} 
+            className="w-full bg-green-600 hover:bg-green-700"
+            disabled={isResponding}
+          >
+            {isResponding ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <HandHeart className="mr-2 h-4 w-4"/>}
+            {isResponding ? 'সাড়া দেওয়া হচ্ছে...' : 'আমি রক্ত দিতে চাই'}
           </Button>
         )}
       </CardFooter>

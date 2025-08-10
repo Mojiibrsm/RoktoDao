@@ -58,6 +58,7 @@ async function sendEmail(payload: any) {
 export default function AllRequestsPage() {
   const [allRequests, setAllRequests] = useState<BloodRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [respondingId, setRespondingId] = useState<string | null>(null);
   const { toast } = useToast();
   const { user, donorProfile } = useAuth();
 
@@ -77,6 +78,9 @@ export default function AllRequestsPage() {
       toast({ variant: 'destructive', title: 'অনুগ্রহ করে সাড়া দেওয়ার জন্য লগইন করুন।' });
       return;
     }
+    
+    setRespondingId(request.id);
+
     try {
       const { data, error: fetchError } = await supabase
         .from('requests')
@@ -90,6 +94,7 @@ export default function AllRequestsPage() {
       
       if (currentResponders.includes(user.id)) {
         toast({ title: 'ইতিমধ্যে সাড়া দিয়েছেন', description: 'আপনি এই অনুরোধে ইতিমধ্যে সাড়া দিয়েছেন।' });
+        setRespondingId(null);
         return;
       }
       
@@ -100,12 +105,11 @@ export default function AllRequestsPage() {
 
       if (updateError) throw updateError;
       
-      // Send SMS to requester
+      // Send notifications in the background (don't await them)
       const smsMessage = `সুসংবাদ! ${donorProfile.fullName} (${donorProfile.bloodGroup}) আপনার ${request.bloodGroup} রক্তের অনুরোধে সাড়া দিয়েছেন। যোগাযোগ: ${donorProfile.phoneNumber}. - RoktoDao`;
-      await sendSms(request.contactPhone, smsMessage);
+      sendSms(request.contactPhone, smsMessage);
       
-      // Send Email to Admin
-      await sendEmail({
+      sendEmail({
           type: 'donor_response',
           data: {
               request,
@@ -116,6 +120,8 @@ export default function AllRequestsPage() {
       toast({ title: 'ধন্যবাদ!', description: 'আপনার সাড়া রেকর্ড করা হয়েছে। রোগী আপনার সাথে যোগাযোগ করতে পারেন।' });
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'ত্রুটি', description: `আপনার সাড়া রেকর্ড করা যায়নি: ${error.message}` });
+    } finally {
+        setRespondingId(null);
     }
   };
 
@@ -141,7 +147,13 @@ export default function AllRequestsPage() {
         ) : allRequests.length > 0 ? (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {allRequests.map((req) => (
-              <RequestCard key={req.id} req={req} onRespond={handleCanDonate} showRespondButton={true} />
+              <RequestCard 
+                key={req.id} 
+                req={req} 
+                onRespond={handleCanDonate} 
+                showRespondButton={true}
+                isResponding={respondingId === req.id}
+               />
             ))}
           </div>
         ) : (
