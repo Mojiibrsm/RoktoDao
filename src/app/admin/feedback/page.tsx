@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -46,7 +45,7 @@ export default function AdminFeedbackPage() {
         try {
             const { data, error } = await supabase
                 .from('feedback')
-                .select('*')
+                .select('id, createdAt, user, type, message, status')
                 .order('createdAt', { ascending: 'desc' });
             
             if (error) throw error;
@@ -57,9 +56,9 @@ export default function AdminFeedbackPage() {
             })) as Feedback[];
             
             setFeedbackList(list);
-        } catch (error) {
-            console.error(error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch feedback.' });
+        } catch (error: any) {
+            console.error('Fetch feedback error:', error);
+            toast({ variant: 'destructive', title: 'Error', description: error.message || 'Could not fetch feedback.' });
         } finally {
             setLoading(false);
         }
@@ -181,7 +180,7 @@ export default function AdminFeedbackPage() {
                             ) : (
                                 feedbackList.map((feedback) => (
                                     <TableRow key={feedback.id}>
-                                        <TableCell className="font-medium">{feedback.user.name}</TableCell>
+                                        <TableCell className="font-medium">{feedback.user?.name || 'Anonymous'}</TableCell>
                                         <TableCell>
                                             <Badge variant={getTypeVariant(feedback.type)}>{feedback.type}</Badge>
                                         </TableCell>
@@ -230,7 +229,7 @@ export default function AdminFeedbackPage() {
             <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Feedback from {selectedFeedback?.user.name}</DialogTitle>
+                        <DialogTitle>Feedback from {selectedFeedback?.user?.name || 'Anonymous'}</DialogTitle>
                         <DialogDescription>
                             Type: <Badge variant={getTypeVariant(selectedFeedback?.type || 'Other')}>{selectedFeedback?.type}</Badge> | 
                             Status: <Badge variant={getStatusVariant(selectedFeedback?.status || 'New')} className={getStatusClass(selectedFeedback?.status || 'New')}>{selectedFeedback?.status}</Badge>
