@@ -29,12 +29,12 @@ export async function POST(request: NextRequest) {
       .from('donors')
       .select('uid')
       .eq('phoneNumber', phoneNumber)
-      .limit(1) // To handle potential duplicates, though phone should be unique
+      .limit(1)
       .single();
 
-    if (donorError && donorError.code !== 'PGRST116') {
+    if (donorError && donorError.code !== 'PGRST116') { // PGRST116 means no rows were found, which is a valid case here.
       console.error("Supabase donor check error:", donorError);
-      throw new Error("Database error checking for donor.");
+      return NextResponse.json({ success: false, error: "Database error checking for donor." }, { status: 500 });
     }
     
     if (!donor) {
