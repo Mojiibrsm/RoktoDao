@@ -174,6 +174,7 @@ export default function SignupPage() {
         const { error: insertError } = await supabase
             .from('donors')
             .insert({
+                id: signUpData.user.id, // Ensure id is set from auth user
                 uid: signUpData.user.id,
                 fullName: values.fullName,
                 email: values.email,
