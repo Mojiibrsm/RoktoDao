@@ -124,12 +124,12 @@ function ProfilePageComponent() {
         let profileToLoad: Donor | null = null;
         
         if(isAdmin && userIdToEdit) {
-            const { data, error } = await supabase.from('donors').select('*').eq('uid', userIdToEdit).single();
-            if(error && error.code !== 'PGRST116') throw error;
+            const { data, error } = await supabase.from('donors').select('*').eq('uid', userIdToEdit).maybeSingle();
+            if(error) throw error;
             profileToLoad = data;
         } else if (user) {
-             const { data, error } = await supabase.from('donors').select('*').eq('uid', user.id).single();
-             if(error && error.code !== 'PGRST116') throw error;
+             const { data, error } = await supabase.from('donors').select('*').eq('uid', user.id).maybeSingle();
+             if(error) throw error;
              profileToLoad = data;
         }
         
