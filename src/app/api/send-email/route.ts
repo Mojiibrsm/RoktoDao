@@ -14,22 +14,27 @@ export async function POST(request: NextRequest) {
         .from('settings')
         .select('*')
         .eq('id', 'global')
-        .single();
+        .maybeSingle(); // Use maybeSingle to avoid error if no settings row exists
     
-    if (settingsError && settingsError.code !== 'PGRST116') { // PGRST116: row not found
+    if (settingsError) {
         console.error('Error fetching settings from Supabase:', settingsError);
-        throw settingsError;
+        // We can proceed with a default admin email if configured, but for now, we'll stop.
+        throw new Error(`Database error fetching settings: ${settingsError.message}`);
     }
 
+    // Even if settings row doesn't exist, we can proceed if env vars are set for email.
+    // However, the recipient (adminEmail) and notification toggles depend on the settings table.
     if (!settings) {
-        console.warn('Settings not found in Supabase. Email not sent.');
-        return NextResponse.json({ success: false, error: 'Email settings not configured.' }, { status: 500 });
+        console.warn('No settings found in Supabase. Email notifications cannot be sent.');
+        // Silently fail as this is a configuration issue, not a runtime error.
+        return NextResponse.json({ success: true, message: 'Email sending skipped: settings not configured.' });
     }
 
     const adminEmail = settings.adminEmail;
 
     if (!adminEmail) {
-        return NextResponse.json({ success: false, error: 'Admin email not set in settings.' }, { status: 500 });
+        console.warn('Admin email is not set in settings. Email notifications cannot be sent.');
+        return NextResponse.json({ success: true, message: 'Email sending skipped: admin email not configured.' });
     }
 
     let subject = '';
@@ -37,7 +42,9 @@ export async function POST(request: NextRequest) {
     let recipientEmail = adminEmail; // Default recipient is admin
 
     if (type === 'new_donor') {
-      if (!settings.notifyNewDonor) return NextResponse.json({ success: true, message: 'Notification for new donor is disabled.' });
+      if (settings.notifyNewDonor === false) { // Explicitly check for false
+          return NextResponse.json({ success: true, message: 'Notification for new donor is disabled.' });
+      }
       
       subject = '🎉 New Donor Registered on RoktoDao!';
       htmlContent = `
@@ -52,7 +59,9 @@ export async function POST(request: NextRequest) {
         <p>Please review their profile in the admin panel.</p>
       `;
     } else if (type === 'new_request') {
-       if (!settings.notifyNewRequest) return NextResponse.json({ success: true, message: 'Notification for new request is disabled.' });
+       if (settings.notifyNewRequest === false) { // Explicitly check for false
+          return NextResponse.json({ success: true, message: 'Notification for new request is disabled.' });
+       }
 
       subject = '🩸 New Blood Request on RoktoDao!';
       htmlContent = `
@@ -129,7 +138,7 @@ export async function POST(request: NextRequest) {
       html: htmlContent,
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, message: `Email of type '${type}' sent successfully.` });
   } catch (error: any) {
     console.error('Error sending email:', error);
     return NextResponse.json({ success: false, error: error.message || 'Failed to send email.' }, { status: 500 });
