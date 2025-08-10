@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
 
     if (otpError) {
       console.error("Supabase OTP storage error:", otpError);
-      throw new Error("Could not store OTP due to a database issue.");
+      throw new Error("Could not store OTP due to a database issue. Please ensure 'otp_code' (text) and 'otp_expires_at' (timestamptz) columns exist in the 'donors' table.");
     }
     
     // Step 3: Send the OTP via SMS

@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!donor.otp_code || !donor.otp_expires_at) {
-        return NextResponse.json({ error: 'Invalid or expired OTP. Please try again.' }, { status: 400 });
+        return NextResponse.json({ error: 'Invalid or expired OTP. Please request one first.' }, { status: 400 });
     }
     
     if (donor.otp_code !== otp) {
@@ -49,6 +49,10 @@ export async function POST(request: NextRequest) {
 
     // OTP is valid, proceed to reset password
     const uid = donor.uid;
+    if (!uid) {
+        return NextResponse.json({ error: 'Could not find the user ID to update.' }, { status: 500 });
+    }
+
 
     // 2. Use the UID to update the password in Supabase Auth using the Admin client
     const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(uid, {
