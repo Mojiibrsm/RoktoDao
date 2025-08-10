@@ -132,7 +132,7 @@ export default function RequestBloodPage() {
       contactPhone: values.contactPhone,
       uid: user?.id ?? undefined,
       isEmergency: values.isEmergency,
-      status: 'Approved',
+      status: 'Pending',
     };
 
     try {
@@ -363,5 +363,7 @@ export default function RequestBloodPage() {
 
     </div>
   );
+
+    
 
     
