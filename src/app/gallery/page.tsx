@@ -86,7 +86,7 @@ const UploadDialog = ({ onUploadComplete }: { onUploadComplete: () => void }) =>
                 filePath: response.filePath,
                 fileId: response.fileId,
                 status: 'pending',
-                uploaderId: user.uid,
+                uploaderId: user.id,
             });
 
             if (error) throw error;

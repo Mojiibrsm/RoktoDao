@@ -89,7 +89,7 @@ const AdminUploadDialog = ({ onUploadComplete }: { onUploadComplete: () => void 
                 filePath: response.filePath,
                 fileId: response.fileId,
                 status: 'approved', // Admin uploads are automatically approved
-                uploaderId: user.uid,
+                uploaderId: user.id,
             });
 
             if (error) throw error;

@@ -74,6 +74,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setDonorProfile(null);
           setIsAdmin(false);
         }
+        if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+            if (currentUser) {
+                 await fetchDonorProfile(currentUser);
+            }
+        }
         setLoading(false);
       }
     );
