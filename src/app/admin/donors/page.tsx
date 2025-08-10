@@ -219,6 +219,7 @@ export default function AdminDonorsPage() {
   const [searchName, setSearchName] = useState('');
   const [searchPhone, setSearchPhone] = useState('');
   const [searchArea, setSearchArea] = useState('');
+  const [searchBloodGroup, setSearchBloodGroup] = useState('all');
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<z.infer<typeof donorSchema>>({
@@ -274,9 +275,16 @@ export default function AdminDonorsPage() {
                 (donor.address.district && donor.address.district.toLowerCase().includes(searchArea.toLowerCase()))
             );
         }
+        if (searchBloodGroup !== 'all') {
+            filtered = filtered.filter(donor => donor.bloodGroup === searchBloodGroup);
+        }
         setFilteredDonors(filtered);
     });
-  }, [allDonors, searchName, searchPhone, searchArea]);
+  }, [allDonors, searchName, searchPhone, searchArea, searchBloodGroup]);
+
+  useEffect(() => {
+    handleSearch();
+  }, [searchName, searchPhone, searchArea, searchBloodGroup, allDonors, handleSearch]);
 
 
   const handleVerifyDonor = async (donorId: string) => {
@@ -595,11 +603,22 @@ const handleAddDonor = async (values: DonorFormValues) => {
                 <CardTitle>Search Donors</CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
                     <Input placeholder="Search by name..." value={searchName} onChange={e => setSearchName(e.target.value)} />
                     <Input placeholder="Search by phone..." value={searchPhone} onChange={e => setSearchPhone(e.target.value)} />
-                    <Input placeholder="Search by area (upazila/district)..." value={searchArea} onChange={e => setSearchArea(e.target.value)} />
-                    <Button onClick={handleSearch} disabled={isPending}><Search className="mr-2 h-4 w-4" />{isPending ? 'Searching...' : 'Search'}</Button>
+                    <Input placeholder="Search by area..." value={searchArea} onChange={e => setSearchArea(e.target.value)} />
+                    <div className="space-y-2">
+                        <FormLabel>Blood Group</FormLabel>
+                        <Select value={searchBloodGroup} onValueChange={setSearchBloodGroup}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select blood group" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Groups</SelectItem>
+                                {bloodGroups.map(group => <SelectItem key={group} value={group}>{group}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
             </CardContent>
         </Card>
