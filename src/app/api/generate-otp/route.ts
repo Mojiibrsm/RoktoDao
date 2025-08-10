@@ -32,11 +32,18 @@ export async function POST(request: NextRequest) {
       .limit(1)
       .single();
 
-    if (donorError && donorError.code !== 'PGRST116') { // PGRST116 means no rows were found, which is a valid case here.
+    if (donorError) {
+      // This is the key change: if the error is PGRST116, it means no user was found.
+      // We should return a clear message to the user instead of a generic database error.
+      if (donorError.code === 'PGRST116') {
+        return NextResponse.json({ success: false, error: 'No account is associated with this phone number.' }, { status: 404 });
+      }
+      // For any other database error, we log it and return a generic error.
       console.error("Supabase donor check error:", donorError);
       return NextResponse.json({ success: false, error: "Database error checking for donor." }, { status: 500 });
     }
     
+    // This check is now redundant because of the error handling above, but it's good for safety.
     if (!donor) {
        return NextResponse.json({ success: false, error: 'No account is associated with this phone number.' }, { status: 404 });
     }
