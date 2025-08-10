@@ -20,8 +20,7 @@ async function sendSmsWithBulkSmsBd(number: string, message: string): Promise<bo
   const senderId = process.env.BULKSMSBD_SENDER_ID;
 
   if (!apiKey || !senderId) {
-    console.error('BulkSMSBD API Key or Sender ID is not configured. Skipping this provider.');
-    await logSms({ number, message, status: 'failure', apiUsed: 'BulkSMSBD' });
+    console.warn('BulkSMSBD API Key or Sender ID is not configured. Skipping this provider.');
     return false;
   }
   
@@ -52,8 +51,7 @@ async function sendSmsWithBdBulkSms(number: string, message: string): Promise<bo
   const senderId = process.env.BDBULKSMS_SENDER_ID;
 
   if (!apiKey || !senderId) {
-    console.error('BDBulkSMS API Key or Sender ID is not configured. Skipping this provider.');
-    await logSms({ number, message, status: 'failure', apiUsed: 'BDBulkSMS' });
+    console.warn('BDBulkSMS API Key or Sender ID is not configured. Skipping this provider.');
     return false;
   }
 
@@ -114,10 +112,10 @@ export async function POST(request: NextRequest) {
   if (success) {
     return NextResponse.json({ success: true, message: 'SMS sent successfully.' });
   } else {
-    // Both APIs failed
-    console.error(`Both SMS APIs failed for number: ${number}`);
+    const errorMessage = 'All SMS providers failed to send the message. Please check server logs and ensure at least one SMS provider is configured correctly in the environment variables.';
+    console.error(`SMS sending failed for number: ${number}. Reason: ${errorMessage}`);
     // Notify admin about the complete failure.
     await sendFailureReport(number, message);
-    return NextResponse.json({ success: false, error: 'All SMS providers failed to send the message.' }, { status: 500 });
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }
 }
