@@ -363,7 +363,5 @@ export default function RequestBloodPage() {
 
     </div>
   );
+}
 
-    
-
-    
