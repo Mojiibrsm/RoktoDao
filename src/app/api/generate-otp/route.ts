@@ -26,8 +26,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 1: Check if a donor exists with the given phone number using maybeSingle()
-    // maybeSingle() returns the row as an object, null if no row is found, and an error if multiple rows are found.
-    // This is more robust than .single() which throws an error when no row is found.
     const { data: donor, error: donorError } = await supabase
       .from('donors')
       .select('uid')
@@ -49,12 +47,12 @@ export async function POST(request: NextRequest) {
     expires.setMinutes(expires.getMinutes() + 10); // OTP expires in 10 minutes
 
     const { error: otpError } = await supabase
-      .from('otp_codes')
-      .upsert({ 
-        phone: phoneNumber, 
-        code: otp, 
-        expires_at: expires.toISOString() 
-      }, { onConflict: 'phone' });
+      .from('donors')
+      .update({
+        otp_code: otp,
+        otp_expires_at: expires.toISOString(),
+      })
+      .eq('phoneNumber', phoneNumber);
 
     if (otpError) {
       console.error("Supabase OTP storage error:", otpError);

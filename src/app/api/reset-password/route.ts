@@ -21,43 +21,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Phone number, OTP, and new password are required.' }, { status: 400 });
     }
 
-    // 1. Verify the OTP from the 'otp_codes' table
-    const { data: otpData, error: otpError } = await supabase
-        .from('otp_codes')
-        .select('code, expires_at')
-        .eq('phone', phoneNumber)
-        .single();
-    
-    if (otpError || !otpData) {
-        return NextResponse.json({ error: 'Invalid or expired OTP. Please try again.' }, { status: 400 });
+    // 1. Verify the OTP from the 'donors' table
+    const { data: donor, error: donorError } = await supabase
+      .from('donors')
+      .select('uid, otp_code, otp_expires_at')
+      .eq('phoneNumber', phoneNumber)
+      .single();
+
+    if (donorError || !donor) {
+      return NextResponse.json({ error: 'User not found or database error.' }, { status: 404 });
     }
 
-    if (otpData.code !== otp) {
+    if (!donor.otp_code || !donor.otp_expires_at) {
+        return NextResponse.json({ error: 'Invalid or expired OTP. Please try again.' }, { status: 400 });
+    }
+    
+    if (donor.otp_code !== otp) {
       return NextResponse.json({ error: 'Invalid OTP. Please check the code and try again.' }, { status: 400 });
     }
 
-    const expires = new Date(otpData.expires_at);
+    const expires = new Date(donor.otp_expires_at);
     if (expires < new Date()) {
       // Clean up expired OTP
-      await supabase.from('otp_codes').delete().eq('phone', phoneNumber);
+      await supabase.from('donors').update({ otp_code: null, otp_expires_at: null }).eq('phoneNumber', phoneNumber);
       return NextResponse.json({ error: 'OTP has expired. Please request a new one.' }, { status: 400 });
     }
 
     // OTP is valid, proceed to reset password
-    // 2. Find the user by phone number to get their UID
-    const { data: donor, error: donorError } = await supabase
-      .from('donors')
-      .select('uid')
-      .eq('phoneNumber', phoneNumber)
-      .single();
-
-    if (donorError || !donor || !donor.uid) {
-       return NextResponse.json({ error: 'User with this phone number not found.' }, { status: 404 });
-    }
-
     const uid = donor.uid;
 
-    // 3. Use the UID to update the password in Supabase Auth using the Admin client
+    // 2. Use the UID to update the password in Supabase Auth using the Admin client
     const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(uid, {
       password: newPassword,
     });
@@ -65,8 +58,8 @@ export async function POST(request: NextRequest) {
     if (updateError) throw updateError;
 
 
-    // 4. Delete the used OTP
-    await supabase.from('otp_codes').delete().eq('phone', phoneNumber);
+    // 3. Delete the used OTP
+    await supabase.from('donors').update({ otp_code: null, otp_expires_at: null }).eq('phoneNumber', phoneNumber);
 
     return NextResponse.json({ success: true, message: 'Password has been reset successfully.' });
 
