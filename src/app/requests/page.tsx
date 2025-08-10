@@ -14,6 +14,7 @@ async function getAllRequests(): Promise<BloodRequest[]> {
     const { data: requests, error } = await supabase
       .from('requests')
       .select('*')
+      .eq('status', 'Approved') // Fetch only approved requests
       .order('createdAt', { ascending: false });
     
     if (error) throw error;
@@ -118,5 +119,3 @@ export default function AllRequestsPage() {
     </div>
   );
 }
-
-    
