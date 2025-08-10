@@ -116,31 +116,51 @@ function ProfilePageComponent() {
   useEffect(() => {
     const loadProfileData = async () => {
         if (!targetUid) {
-            setPageLoading(false);
             if (!loading) router.push('/login');
             return;
         }
 
         setPageLoading(true);
         try {
-            // Fetch profile, requests, and donations in parallel
+            // Fetch profile and requests first
             const [
                 { data: profileData, error: profileError },
-                { data: requestsData, error: requestsError },
-                { data: donationsData, error: donationsError }
+                { data: requestsData, error: requestsError }
             ] = await Promise.all([
                 supabase.from('donors').select('*').eq('uid', targetUid).maybeSingle(),
-                supabase.from('requests').select('*').eq('uid', targetUid),
-                supabase.from('requests').select('*').contains('responders', [targetUid])
+                supabase.from('requests').select('*').eq('uid', targetUid)
             ]);
 
             if (profileError) throw new Error(`Profile fetch failed: ${profileError.message}`);
             if (requestsError) throw new Error(`Requests fetch failed: ${requestsError.message}`);
-            if (donationsError) throw new Error(`Donations fetch failed: ${donationsError.message}`);
 
-            setProfileToEdit(profileData);
+            setProfileToEdit(profileData as Donor | null);
             setMyRequests(requestsData || []);
-            setMyDonations(donationsData || []);
+
+            // Check if 'responders' column exists before fetching donations
+            // A bit of a hack to check for column existence from the client.
+            // A better solution would be an RPC function or a more robust schema migration process.
+            const { data: donationsData, error: donationsError } = await supabase
+                .from('requests')
+                .select('id, responders')
+                .limit(1)
+                .maybeSingle();
+
+            if (donationsError && donationsError.code === '42703') { // "column does not exist"
+                console.warn("'responders' column not found in 'requests' table. Skipping donations fetch.");
+                setMyDonations([]);
+            } else if (donationsError) {
+                throw new Error(`Donations check failed: ${donationsError.message}`);
+            } else {
+                 const { data: userDonations, error: userDonationsError } = await supabase
+                    .from('requests')
+                    .select('*')
+                    .contains('responders', [targetUid]);
+                
+                if (userDonationsError) throw new Error(`Donations fetch failed: ${userDonationsError.message}`);
+                setMyDonations(userDonations || []);
+            }
+
 
             if (profileData) {
                 setProfileImageUrl(profileData.profilePictureUrl || '');
@@ -159,7 +179,6 @@ function ProfilePageComponent() {
                     profilePictureUrl: profileData.profilePictureUrl || '',
                 });
             } else if (!isAdmin) {
-                // If a regular user has no profile, maybe they should be on the signup page
                 console.warn("No donor profile found for logged-in user.");
             }
 
@@ -389,3 +408,5 @@ export default function ProfilePage() {
         </Suspense>
     )
 }
+
+    
