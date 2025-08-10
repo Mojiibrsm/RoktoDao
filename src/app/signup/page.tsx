@@ -164,15 +164,15 @@ export default function SignupPage() {
 
         const generatedPassword = Math.random().toString(36).slice(-8);
         
-        let userEmail = values.email;
-        if (!userEmail) {
+        let userEmailForAuth = values.email;
+        if (!userEmailForAuth) {
             // Generate a truly unique email if one isn't provided.
             const uniqueId = Math.random().toString(36).substring(2, 10);
-            userEmail = `${values.phoneNumber}-${uniqueId}@roktodao.com`;
+            userEmailForAuth = `${values.phoneNumber}-${uniqueId}@roktodao.com`;
         }
 
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-            email: userEmail,
+            email: userEmailForAuth,
             password: generatedPassword,
             options: {
                 data: {
@@ -190,7 +190,7 @@ export default function SignupPage() {
             .insert({
                 uid: signUpData.user.id,
                 fullName: values.fullName,
-                email: values.email, // Store the original email (or empty string) in the public profile
+                email: values.email || null, // Store null instead of empty string
                 bloodGroup: values.bloodGroup,
                 phoneNumber: values.phoneNumber,
                 address: {
