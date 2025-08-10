@@ -122,45 +122,27 @@ function ProfilePageComponent() {
 
         setPageLoading(true);
         try {
-            // Fetch profile and requests first
-            const [
-                { data: profileData, error: profileError },
-                { data: requestsData, error: requestsError }
-            ] = await Promise.all([
-                supabase.from('donors').select('*').eq('uid', targetUid).maybeSingle(),
-                supabase.from('requests').select('*').eq('uid', targetUid)
-            ]);
+            const { data: profileData, error: profileError } = await supabase.from('donors').select('*').eq('uid', targetUid).maybeSingle();
+            if (profileError) throw profileError;
 
-            if (profileError) throw new Error(`Profile fetch failed: ${profileError.message}`);
-            if (requestsError) throw new Error(`Requests fetch failed: ${requestsError.message}`);
-
-            setProfileToEdit(profileData as Donor | null);
-            setMyRequests(requestsData || []);
-
-            // Check if 'responders' column exists before fetching donations
-            // A bit of a hack to check for column existence from the client.
-            // A better solution would be an RPC function or a more robust schema migration process.
-            const { data: donationsData, error: donationsError } = await supabase
-                .from('requests')
-                .select('id, responders')
-                .limit(1)
-                .maybeSingle();
-
-            if (donationsError && donationsError.code === '42703') { // "column does not exist"
-                console.warn("'responders' column not found in 'requests' table. Skipping donations fetch.");
-                setMyDonations([]);
-            } else if (donationsError) {
-                throw new Error(`Donations check failed: ${donationsError.message}`);
-            } else {
-                 const { data: userDonations, error: userDonationsError } = await supabase
+            const { data: requestsData, error: requestsError } = await supabase.from('requests').select('*').eq('uid', targetUid);
+            if (requestsError) throw requestsError;
+            
+            try {
+              const { data: userDonations, error: userDonationsError } = await supabase
                     .from('requests')
                     .select('*')
                     .contains('responders', [targetUid]);
                 
-                if (userDonationsError) throw new Error(`Donations fetch failed: ${userDonationsError.message}`);
+                if (userDonationsError) throw userDonationsError;
                 setMyDonations(userDonations || []);
+            } catch (donationError) {
+              console.warn("Could not fetch user donations, `responders` column might be missing or there was a network error:", donationError);
+              setMyDonations([]);
             }
 
+            setProfileToEdit(profileData as Donor | null);
+            setMyRequests(requestsData || []);
 
             if (profileData) {
                 setProfileImageUrl(profileData.profilePictureUrl || '');
@@ -408,5 +390,3 @@ export default function ProfilePage() {
         </Suspense>
     )
 }
-
-    
