@@ -87,7 +87,7 @@ export async function getHomepageData() {
         }
 
         // Process Gallery Images
-        const galleryImages = galleryRes.data?.map(formatDateFields) as GalleryImage[] || [];
+        const galleryImages = galleryRes.data as GalleryImage[] || [];
 
         // Process Blog Posts
         const blogPosts = blogRes.data?.map(formatDateFields) as BlogPost[] || [];
