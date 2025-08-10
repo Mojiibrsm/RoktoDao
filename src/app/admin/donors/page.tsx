@@ -49,6 +49,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { CalendarIcon } from 'lucide-react';
 import { bloodGroups, locations, upazilas } from '@/lib/location-data';
+import { Label } from '@/components/ui/label';
 
 
 type Donor = DonorType & { id: string };
@@ -608,7 +609,7 @@ const handleAddDonor = async (values: DonorFormValues) => {
                     <Input placeholder="Search by phone..." value={searchPhone} onChange={e => setSearchPhone(e.target.value)} />
                     <Input placeholder="Search by area..." value={searchArea} onChange={e => setSearchArea(e.target.value)} />
                     <div className="space-y-2">
-                        <FormLabel>Blood Group</FormLabel>
+                        <Label>Blood Group</Label>
                         <Select value={searchBloodGroup} onValueChange={setSearchBloodGroup}>
                             <SelectTrigger>
                                 <SelectValue placeholder="Select blood group" />
@@ -796,3 +797,5 @@ const handleAddDonor = async (values: DonorFormValues) => {
     </div>
   );
 }
+
+    
