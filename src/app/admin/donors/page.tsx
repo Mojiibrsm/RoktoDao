@@ -515,11 +515,8 @@ const handleAddDonor = async (values: DonorFormValues) => {
         const siteUrl = "https://roktodao.bartanow.com";
         const pageWidth = doc.internal.pageSize.getWidth();
 
-        // Regex to remove any characters that are not Latin, numbers, or basic punctuation.
         const sanitize = (text: string | null | undefined): string => {
             if (!text) return 'N/A';
-            // This regex keeps English letters, numbers, spaces, and basic punctuation.
-            // It removes most other characters, including Bengali script.
             return text.replace(/[^a-zA-Z0-9\s,.-]/g, '').trim();
         };
 
@@ -529,7 +526,7 @@ const handleAddDonor = async (values: DonorFormValues) => {
                 sanitize(donor.fullName),
                 donor.phoneNumber,
                 donor.bloodGroup,
-                sanitize(`${donor.address.upazila}, ${donor.address.district}`),
+                sanitize(donor.address ? `${donor.address.district}, ${donor.address.division}` : 'N/A'),
             ];
             tableRows.push(donorData);
         });
