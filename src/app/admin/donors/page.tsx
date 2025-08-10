@@ -501,6 +501,9 @@ const handleAddDonor = async (values: DonorFormValues) => {
         const doc = new jsPDF();
         const tableColumn = ["Name", "Phone Number", "Blood Group", "Location"];
         const tableRows: any[] = [];
+        const siteName = "RoktoDao";
+        const siteUrl = "https://roktodao.bartanow.com";
+        const pageWidth = doc.internal.pageSize.getWidth();
 
         filteredDonors.forEach(donor => {
             const donorData = [
@@ -512,17 +515,14 @@ const handleAddDonor = async (values: DonorFormValues) => {
             tableRows.push(donorData);
         });
         
-        // Add logo and title
-        // Note: You need to have the logo available, e.g. as a base64 string or a URL that can be fetched
-        // For this example, I'll just add text.
-        // doc.addImage(logoBase64, 'PNG', 14, 15, 30, 10);
-        doc.setFontSize(20).text("RoktoDao", 14, 22);
-        doc.setFontSize(12).text("Donor List", 14, 30);
+        doc.setFontSize(20).text(siteName, pageWidth / 2, 22, { align: 'center' });
+        doc.setFontSize(10).text(siteUrl, pageWidth / 2, 28, { align: 'center' });
+        doc.setFontSize(12).text("Donor List", 14, 40);
         
         (doc as any).autoTable({
             head: [tableColumn],
             body: tableRows,
-            startY: 35,
+            startY: 45,
         });
         
         doc.save("donors.pdf");
