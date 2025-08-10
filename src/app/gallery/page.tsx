@@ -39,7 +39,7 @@ const imagekit = new IK({
     authenticationEndpoint: '/api/imagekit-auth',
 });
 
-const UploadDialog = () => {
+const UploadDialog = ({ onUploadComplete }: { onUploadComplete: () => void }) => {
     const [uploading, setUploading] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -68,10 +68,11 @@ const UploadDialog = () => {
         try {
             const authResponse = await fetch('/api/imagekit-auth');
             if (!authResponse.ok) {
-                throw new Error('Failed to get authentication parameters');
+                const errorData = await authResponse.json();
+                throw new Error(errorData.error || 'Failed to get authentication parameters');
             }
             const authParams = await authResponse.json();
-
+            
             const response = await imagekit.upload({
                 ...authParams,
                 file: selectedFile,
@@ -94,6 +95,7 @@ const UploadDialog = () => {
             setSelectedFile(null);
             if(fileInputRef.current) fileInputRef.current.value = "";
             setIsDialogOpen(false);
+            onUploadComplete(); // Refresh the gallery
 
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Upload Failed', description: error.message });
@@ -144,25 +146,26 @@ export default function GalleryPage() {
     const { toast } = useToast();
     const { user, loading: authLoading } = useAuth();
 
-    useEffect(() => {
-        const fetchImages = async () => {
-            setLoading(true);
-            try {
-                const { data, error } = await supabase
-                    .from('gallery')
-                    .select('*')
-                    .eq('status', 'approved')
-                    .order('createdAt', { ascending: false });
+    const fetchImages = async () => {
+        setLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('gallery')
+                .select('*')
+                .eq('status', 'approved')
+                .order('createdAt', { ascending: false });
 
-                if (error) throw error;
-                setImages(data as GalleryImage[]);
-            } catch (error: any) {
-                console.error(error);
-                toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch gallery images.' });
-            } finally {
-                setLoading(false);
-            }
-        };
+            if (error) throw error;
+            setImages(data as GalleryImage[]);
+        } catch (error: any) {
+            console.error(error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch gallery images.' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
         fetchImages();
     }, [toast]);
 
@@ -178,7 +181,7 @@ export default function GalleryPage() {
                     </p>
                     <div className="mt-8">
                        {!authLoading && (
-                           user ? <UploadDialog /> : <Button asChild><Link href="/login">ছবি আপলোড করতে লগইন করুন</Link></Button>
+                           user ? <UploadDialog onUploadComplete={fetchImages} /> : <Button asChild><Link href="/login">ছবি আপলোড করতে লগইন করুন</Link></Button>
                        )}
                     </div>
                 </div>

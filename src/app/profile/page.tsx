@@ -107,7 +107,14 @@ function ProfilePageComponent() {
   }, [selectedDistrict]);
 
   const targetUid = useMemo(() => {
-    if (isAdmin && userIdToEdit) return userIdToEdit;
+    // For admin editing another user
+    if (isAdmin && userIdToEdit) {
+      // In admin context, userIdToEdit is the donor's ID, not UID.
+      // We'll handle fetching by ID later. For now, assume it's UID for simplicity.
+      // A better approach would be to fetch by ID if isAdmin. Let's adjust the fetch logic.
+      return userIdToEdit;
+    }
+    // For regular user editing their own profile
     if (user) return user.id;
     return null;
   }, [userIdToEdit, isAdmin, user]);
@@ -122,27 +129,39 @@ function ProfilePageComponent() {
 
         setPageLoading(true);
         try {
-            const { data: profileData, error: profileError } = await supabase.from('donors').select('*').eq('uid', targetUid).maybeSingle();
+            // Determine whether to query by 'id' (for admin edits) or 'uid' (for self-edits)
+            const queryColumn = (isAdmin && userIdToEdit) ? 'id' : 'uid';
+            
+            const { data: profileData, error: profileError } = await supabase
+                .from('donors')
+                .select('*')
+                .eq(queryColumn, targetUid)
+                .maybeSingle();
+                
             if (profileError) throw profileError;
 
-            const { data: requestsData, error: requestsError } = await supabase.from('requests').select('*').eq('uid', targetUid);
-            if (requestsError) throw requestsError;
-            
-            try {
-              const { data: userDonations, error: userDonationsError } = await supabase
-                    .from('requests')
-                    .select('*')
-                    .contains('responders', [targetUid]);
-                
-                if (userDonationsError) throw userDonationsError;
-                setMyDonations(userDonations || []);
-            } catch (donationError) {
-              console.warn("Could not fetch user donations, `responders` column might be missing or there was a network error:", donationError);
-              setMyDonations([]);
+            // Fetch requests and donations only if it's the user's own profile
+            if (!userIdToEdit || (user && profileData && user.id === profileData.uid)) {
+                const { data: requestsData, error: requestsError } = await supabase.from('requests').select('*').eq('uid', targetUid);
+                if (requestsError) throw requestsError;
+                setMyRequests(requestsData || []);
+
+                try {
+                const { data: userDonations, error: userDonationsError } = await supabase
+                        .from('requests')
+                        .select('*')
+                        .contains('responders', [targetUid]);
+                    
+                    if (userDonationsError) throw userDonationsError;
+                    setMyDonations(userDonations || []);
+                } catch (donationError) {
+                console.warn("Could not fetch user donations, `responders` column might be missing or there was a network error:", donationError);
+                setMyDonations([]);
+                }
             }
 
+
             setProfileToEdit(profileData as Donor | null);
-            setMyRequests(requestsData || []);
 
             if (profileData) {
                 setProfileImageUrl(profileData.profilePictureUrl || '');
@@ -175,7 +194,7 @@ function ProfilePageComponent() {
     if (!loading) {
         loadProfileData();
     }
-}, [user, loading, router, targetUid, toast, isAdmin]);
+}, [user, loading, router, targetUid, toast, isAdmin, userIdToEdit]);
   
   const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
@@ -186,7 +205,11 @@ function ProfilePageComponent() {
   };
 
   const onProfileSubmit = async (values: z.infer<typeof profileSchema>) => {
-    if (!targetUid) return;
+    if (!profileToEdit) {
+      toast({ variant: 'destructive', title: 'Error', description: 'No profile found to update.' });
+      return;
+    }
+    
     setIsSubmitting(true);
     let finalProfilePictureUrl = values.profilePictureUrl || '';
     try {
@@ -213,11 +236,14 @@ function ProfilePageComponent() {
         profilePictureUrl: finalProfilePictureUrl ?? null,
       };
 
-      const { error } = await supabase.from('donors').update(donorData).eq('uid', targetUid);
+      const { error } = await supabase.from('donors').update(donorData).eq('id', profileToEdit.id);
       if (error) throw error;
       
       toast({ title: 'Profile Updated', description: 'Your information saved successfully.' });
-      if (isAdmin && userIdToEdit) router.push('/admin/donors');
+      if (isAdmin && userIdToEdit) {
+          router.push('/admin/donors');
+          router.refresh();
+      }
 
     } catch (error) {
        toast({ variant: 'destructive', title: 'Update Failed', description: 'Something went wrong.' });
@@ -252,15 +278,21 @@ function ProfilePageComponent() {
      return <div className="flex h-screen items-center justify-center"><p>Redirecting to login...</p></div>;
   }
 
+  const canViewSensitiveTabs = !userIdToEdit || (user && profileToEdit && user.id === profileToEdit.uid);
+
 
   return (
     <div className="container mx-auto max-w-5xl py-12 px-4">
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+        <TabsList className={cn("grid w-full", canViewSensitiveTabs ? "grid-cols-2 md:grid-cols-4" : "grid-cols-1")}>
             <TabsTrigger value="profile"><User className="mr-2 h-4 w-4" />প্রোফাইল</TabsTrigger>
-            <TabsTrigger value="donations"><Droplet className="mr-2 h-4 w-4" />আমার ডোনেশন</TabsTrigger>
-            <TabsTrigger value="requests"><List className="mr-2 h-4 w-4" />আমার অনুরোধ</TabsTrigger>
-            <TabsTrigger value="security"><ShieldCheck className="mr-2 h-4 w-4" />নিরাপত্তা</TabsTrigger>
+            {canViewSensitiveTabs && (
+                <>
+                    <TabsTrigger value="donations"><Droplet className="mr-2 h-4 w-4" />আমার ডোনেশন</TabsTrigger>
+                    <TabsTrigger value="requests"><List className="mr-2 h-4 w-4" />আমার অনুরোধ</TabsTrigger>
+                    <TabsTrigger value="security"><ShieldCheck className="mr-2 h-4 w-4" />নিরাপত্তা</TabsTrigger>
+                </>
+            )}
         </TabsList>
 
         <TabsContent value="profile">
@@ -331,51 +363,53 @@ function ProfilePageComponent() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="donations">
-            <Card className="mt-6"><CardHeader><CardTitle>আমার ডোনেশন</CardTitle><CardDescription>যেসব রক্তের অনুরোধে আপনি সাড়া দিয়েছেন।</CardDescription></CardHeader>
-                <CardContent>
-                    {myDonations.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {myDonations.map(req => <RequestCard key={req.id} req={req} />)}
-                        </div>
-                    ) : <p className="text-muted-foreground">আপনি এখনো কোনো অনুরোধে সাড়া দেননি।</p>}
-                </CardContent>
-            </Card>
-        </TabsContent>
-        <TabsContent value="requests">
-            <Card className="mt-6"><CardHeader><CardTitle>আমার অনুরোধ</CardTitle><CardDescription>আপনার তৈরি করা রক্তের অনুরোধগুলো।</CardDescription></CardHeader>
-                <CardContent>
-                     {myRequests.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {myRequests.map(req => <RequestCard key={req.id} req={req} />)}
-                        </div>
-                    ) : (
-                        <div className="text-center py-10 border-2 border-dashed rounded-lg">
-                           <p className="text-muted-foreground mb-4">আপনি এখনো কোনো রক্তের অনুরোধ করেননি।</p>
-                           <Button asChild>
-                            <Link href="/request-blood">
-                                <PlusCircle className="mr-2 h-4 w-4" />
-                                নতুন অনুরোধ করুন
-                            </Link>
-                           </Button>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-        </TabsContent>
-        <TabsContent value="security">
-             <Card className="mt-6"><CardHeader><CardTitle>নিরাপত্তা</CardTitle><CardDescription>আপনার অ্যাকাউন্টের পাসওয়ার্ড পরিচালনা করুন।</CardDescription></CardHeader>
-                <CardContent>
-                    <Form {...passwordForm}>
-                        <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-6 max-w-md">
-                           <FormField control={passwordForm.control} name="newPassword" render={({ field }) => ( <FormItem><FormLabel>নতুন পাসওয়ার্ড</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                           <FormField control={passwordForm.control} name="confirmPassword" render={({ field }) => ( <FormItem><FormLabel>নতুন পাসওয়ার্ড নিশ্চিত করুন</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                           <div><Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'আপডেট হচ্ছে...' : 'পাসওয়ার্ড আপডেট করুন'}</Button></div>
-                        </form>
-                    </Form>
-                </CardContent>
-            </Card>
-        </TabsContent>
+        {canViewSensitiveTabs && <>
+            <TabsContent value="donations">
+                <Card className="mt-6"><CardHeader><CardTitle>আমার ডোনেশন</CardTitle><CardDescription>যেসব রক্তের অনুরোধে আপনি সাড়া দিয়েছেন।</CardDescription></CardHeader>
+                    <CardContent>
+                        {myDonations.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {myDonations.map(req => <RequestCard key={req.id} req={req} />)}
+                            </div>
+                        ) : <p className="text-muted-foreground">আপনি এখনো কোনো অনুরোধে সাড়া দেননি।</p>}
+                    </CardContent>
+                </Card>
+            </TabsContent>
+            <TabsContent value="requests">
+                <Card className="mt-6"><CardHeader><CardTitle>আমার অনুরোধ</CardTitle><CardDescription>আপনার তৈরি করা রক্তের অনুরোধগুলো।</CardDescription></CardHeader>
+                    <CardContent>
+                        {myRequests.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {myRequests.map(req => <RequestCard key={req.id} req={req} />)}
+                            </div>
+                        ) : (
+                            <div className="text-center py-10 border-2 border-dashed rounded-lg">
+                            <p className="text-muted-foreground mb-4">আপনি এখনো কোনো রক্তের অনুরোধ করেননি।</p>
+                            <Button asChild>
+                                <Link href="/request-blood">
+                                    <PlusCircle className="mr-2 h-4 w-4" />
+                                    নতুন অনুরোধ করুন
+                                </Link>
+                            </Button>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </TabsContent>
+            <TabsContent value="security">
+                <Card className="mt-6"><CardHeader><CardTitle>নিরাপত্তা</CardTitle><CardDescription>আপনার অ্যাকাউন্টের পাসওয়ার্ড পরিচালনা করুন।</CardDescription></CardHeader>
+                    <CardContent>
+                        <Form {...passwordForm}>
+                            <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-6 max-w-md">
+                            <FormField control={passwordForm.control} name="newPassword" render={({ field }) => ( <FormItem><FormLabel>নতুন পাসওয়ার্ড</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                            <FormField control={passwordForm.control} name="confirmPassword" render={({ field }) => ( <FormItem><FormLabel>নতুন পাসওয়ার্ড নিশ্চিত করুন</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                            <div><Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'আপডেট হচ্ছে...' : 'পাসওয়ার্ড আপডেট করুন'}</Button></div>
+                            </form>
+                        </Form>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+        </>}
 
       </Tabs>
     </div>

@@ -156,7 +156,10 @@ export default function SignupPage() {
         let finalProfilePictureUrl = '';
         if (profileImageFile) {
             const authResponse = await fetch('/api/imagekit-auth');
-            if (!authResponse.ok) throw new Error('Authentication failed for image upload.');
+             if (!authResponse.ok) {
+                 const errorData = await authResponse.json();
+                 throw new Error(errorData.error || 'Authentication failed for image upload.');
+             }
             const authParams = await authResponse.json();
             const response = await imagekit.upload({ ...authParams, file: profileImageFile, fileName: profileImageFile.name, useUniqueFileName: true, folder: '/roktodao/avatars/' });
             finalProfilePictureUrl = response.url;
@@ -210,7 +213,10 @@ export default function SignupPage() {
 
         if (insertError) {
             // If inserting into donors fails, delete the created auth user to allow retry.
-            await supabase.auth.admin.deleteUser(signUpData.user.id);
+            const { error: deleteError } = await supabase.auth.admin.deleteUser(signUpData.user.id);
+            if(deleteError) {
+                console.error("Failed to clean up auth user after DB insert error:", deleteError);
+            }
             throw insertError;
         }
         

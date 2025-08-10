@@ -77,7 +77,10 @@ const BlogPostForm = ({ form, onSubmit, isSubmitting, submitText }: { form: UseF
 
             try {
                 const authResponse = await fetch('/api/imagekit-auth');
-                 if (!authResponse.ok) throw new Error('Failed to authenticate with ImageKit.');
+                 if (!authResponse.ok) {
+                     const errorData = await authResponse.json();
+                     throw new Error(errorData.error || 'Failed to authenticate with ImageKit.');
+                 }
                 const authParams = await authResponse.json();
 
                 const response = await imagekit.upload({

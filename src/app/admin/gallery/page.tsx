@@ -71,7 +71,8 @@ const AdminUploadDialog = ({ onUploadComplete }: { onUploadComplete: () => void 
         try {
             const authResponse = await fetch('/api/imagekit-auth');
             if (!authResponse.ok) {
-                throw new Error('Failed to get authentication parameters');
+                const errorData = await authResponse.json();
+                throw new Error(errorData.error || 'Failed to get authentication parameters');
             }
             const authParams = await authResponse.json();
 
