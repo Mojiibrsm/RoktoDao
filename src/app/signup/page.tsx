@@ -163,7 +163,13 @@ export default function SignupPage() {
         }
 
         const generatedPassword = Math.random().toString(36).slice(-8);
-        const userEmail = values.email || `${values.phoneNumber}@roktodao.com`;
+        
+        let userEmail = values.email;
+        if (!userEmail) {
+            // Generate a truly unique email if one isn't provided.
+            const uniqueId = Math.random().toString(36).substring(2, 10);
+            userEmail = `${values.phoneNumber}-${uniqueId}@roktodao.com`;
+        }
 
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
             email: userEmail,
@@ -184,7 +190,7 @@ export default function SignupPage() {
             .insert({
                 uid: signUpData.user.id,
                 fullName: values.fullName,
-                email: values.email,
+                email: values.email, // Store the original email (or empty string) in the public profile
                 bloodGroup: values.bloodGroup,
                 phoneNumber: values.phoneNumber,
                 address: {
@@ -203,6 +209,7 @@ export default function SignupPage() {
             });
 
         if (insertError) {
+            // If inserting into donors fails, delete the created auth user to allow retry.
             await supabase.auth.admin.deleteUser(signUpData.user.id);
             throw insertError;
         }
