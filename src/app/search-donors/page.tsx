@@ -24,14 +24,8 @@ export default function SearchDonorsPage() {
   const [donors, setDonors] = useState<Donor[]>([]);
   const [isPending, startTransition] = useTransition();
   const [isClient, setIsClient] = useState(false);
-  const [searched, setSearched] = useState(false);
 
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  const handleSearch = () => {
-    setSearched(true);
+  const fetchDonors = useCallback(() => {
     startTransition(async () => {
       let query = supabase
         .from('donors')
@@ -66,7 +60,24 @@ export default function SearchDonorsPage() {
         setDonors(fetchedDonors as Donor[]);
       }
     });
-  };
+  }, [bloodGroup, division, district, upazila, name, phoneNumber]);
+  
+  useEffect(() => {
+    setIsClient(true);
+    // Initial fetch on component mount
+    fetchDonors();
+  }, []);
+
+  useEffect(() => {
+    if (isClient) {
+      // Refetch when filters change
+      const timer = setTimeout(() => {
+        fetchDonors();
+      }, 300); // Debounce to avoid too many requests
+      return () => clearTimeout(timer);
+    }
+  }, [bloodGroup, division, district, upazila, isClient, fetchDonors]);
+
   
   const districtOptions = useMemo(() => {
     if (division === 'any' || !locations[division as keyof typeof locations]) {
@@ -145,7 +156,7 @@ export default function SearchDonorsPage() {
               </Select>
             </div>
              <div className="lg:col-span-2 flex justify-end">
-                <Button onClick={handleSearch} disabled={isPending} className="w-full lg:w-auto">
+                <Button onClick={fetchDonors} disabled={isPending} className="w-full lg:w-auto">
                     <Search className="mr-2 h-4 w-4" />
                     {isPending ? 'Searching...' : 'Search'}
                 </Button>
@@ -158,10 +169,16 @@ export default function SearchDonorsPage() {
         <h3 className="text-2xl font-bold mb-6">Search Results ({donors.length})</h3>
         {isPending ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[...Array(3)].map((_, i) => (
+                {[...Array(6)].map((_, i) => (
                     <Card key={i} className="animate-pulse">
-                        <CardHeader><div className="h-6 w-3/4 bg-muted rounded"></div></CardHeader>
-                        <CardContent className="space-y-3">
+                        <CardHeader className="flex flex-row items-center gap-4">
+                           <div className="h-12 w-12 rounded-full bg-muted"></div>
+                           <div className="space-y-2">
+                             <div className="h-4 w-24 bg-muted rounded"></div>
+                             <div className="h-4 w-16 bg-muted rounded"></div>
+                           </div>
+                        </CardHeader>
+                        <CardContent className="space-y-3 pt-6">
                             <div className="h-5 w-full bg-muted rounded"></div>
                             <div className="h-5 w-2/3 bg-muted rounded"></div>
                             <div className="h-5 w-1/2 bg-muted rounded"></div>
@@ -174,7 +191,7 @@ export default function SearchDonorsPage() {
             {donors.map(donor => <DonorCard key={donor.id} donor={donor} />)}
           </div>
         ) : (
-          searched && <div className="text-center py-16 border-2 border-dashed rounded-lg">
+          <div className="text-center py-16 border-2 border-dashed rounded-lg">
             <p className="text-muted-foreground">No donors found matching your criteria.</p>
             <p className="text-sm text-muted-foreground/80">Try broadening your search.</p>
           </div>
