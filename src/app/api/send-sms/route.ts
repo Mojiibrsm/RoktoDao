@@ -20,7 +20,8 @@ async function sendSmsWithBulkSmsBd(number: string, message: string): Promise<bo
   const senderId = process.env.BULKSMSBD_SENDER_ID;
 
   if (!apiKey || !senderId) {
-    console.error('BulkSMSBD API Key or Sender ID is not configured.');
+    console.error('BulkSMSBD API Key or Sender ID is not configured. Skipping this provider.');
+    await logSms({ number, message, status: 'failure', apiUsed: 'BulkSMSBD' });
     return false;
   }
   
@@ -51,7 +52,8 @@ async function sendSmsWithBdBulkSms(number: string, message: string): Promise<bo
   const senderId = process.env.BDBULKSMS_SENDER_ID;
 
   if (!apiKey || !senderId) {
-    console.error('BDBulkSMS API Key or Sender ID is not configured.');
+    console.error('BDBulkSMS API Key or Sender ID is not configured. Skipping this provider.');
+    await logSms({ number, message, status: 'failure', apiUsed: 'BDBulkSMS' });
     return false;
   }
 
@@ -119,5 +121,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: 'All SMS providers failed to send the message.' }, { status: 500 });
   }
 }
-
-
