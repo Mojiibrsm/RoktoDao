@@ -25,33 +25,33 @@ export default function SearchDonorsPage() {
   const [isPending, startTransition] = useTransition();
   const [isClient, setIsClient] = useState(false);
 
-  const fetchDonors = useCallback(() => {
+  const fetchDonors = useCallback((filters: { bloodGroup: string; division: string; district: string; upazila: string; name: string; phoneNumber: string; }) => {
     startTransition(async () => {
       let query = supabase
         .from('donors')
         .select('*')
         .eq('isAvailable', true);
       
-      if (bloodGroup && bloodGroup !== 'any') {
-        query = query.eq('bloodGroup', bloodGroup);
+      if (filters.bloodGroup && filters.bloodGroup !== 'any') {
+        query = query.eq('bloodGroup', filters.bloodGroup);
       }
-      if (division && division !== 'any') {
-        query = query.eq('address->>division', division);
+      if (filters.division && filters.division !== 'any') {
+        query = query.eq('address->>division', filters.division);
       }
-      if (district && district !== 'any') {
-        query = query.eq('address->>district', district);
+      if (filters.district && filters.district !== 'any') {
+        query = query.eq('address->>district', filters.district);
       }
-      if (upazila && upazila !== 'any') {
-        query = query.eq('address->>upazila', upazila);
+      if (filters.upazila && filters.upazila !== 'any') {
+        query = query.eq('address->>upazila', filters.upazila);
       }
-      if (name) {
-        query = query.ilike('fullName', `%${name}%`);
+      if (filters.name) {
+        query = query.ilike('fullName', `%${filters.name}%`);
       }
-      if (phoneNumber) {
-        query = query.eq('phoneNumber', phoneNumber);
+      if (filters.phoneNumber) {
+        query = query.eq('phoneNumber', filters.phoneNumber);
       }
 
-      const { data: fetchedDonors, error } = await query;
+      const { data: fetchedDonors, error } = await query.order('createdAt', { ascending: false });
       
       if (error) {
         console.error("Error fetching donors:", error);
@@ -60,23 +60,27 @@ export default function SearchDonorsPage() {
         setDonors(fetchedDonors as Donor[]);
       }
     });
-  }, [bloodGroup, division, district, upazila, name, phoneNumber]);
+  }, []);
+  
+  const handleSearch = () => {
+      fetchDonors({ bloodGroup, division, district, upazila, name, phoneNumber });
+  };
   
   useEffect(() => {
     setIsClient(true);
     // Initial fetch on component mount
-    fetchDonors();
+    handleSearch();
   }, []);
 
   useEffect(() => {
     if (isClient) {
       // Refetch when filters change
       const timer = setTimeout(() => {
-        fetchDonors();
-      }, 300); // Debounce to avoid too many requests
+        handleSearch();
+      }, 500); // Debounce to avoid too many requests
       return () => clearTimeout(timer);
     }
-  }, [bloodGroup, division, district, upazila, isClient, fetchDonors]);
+  }, [bloodGroup, division, district, upazila, isClient]);
 
   
   const districtOptions = useMemo(() => {
@@ -156,7 +160,7 @@ export default function SearchDonorsPage() {
               </Select>
             </div>
              <div className="lg:col-span-2 flex justify-end">
-                <Button onClick={fetchDonors} disabled={isPending} className="w-full lg:w-auto">
+                <Button onClick={handleSearch} disabled={isPending} className="w-full lg:w-auto">
                     <Search className="mr-2 h-4 w-4" />
                     {isPending ? 'Searching...' : 'Search'}
                 </Button>
