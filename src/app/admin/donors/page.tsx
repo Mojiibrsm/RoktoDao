@@ -50,6 +50,7 @@ import { cn } from '@/lib/utils';
 import { CalendarIcon } from 'lucide-react';
 import { bloodGroups, locations, upazilas } from '@/lib/location-data';
 import { Label } from '@/components/ui/label';
+import { SolaimanLipi } from '@/lib/fonts/SolaimanLipi-normal';
 
 
 type Donor = DonorType & { id: string };
@@ -508,6 +509,12 @@ const handleAddDonor = async (values: DonorFormValues) => {
   
     const downloadPDF = () => {
         const doc = new jsPDF();
+        
+        // Add the font
+        doc.addFileToVFS("SolaimanLipi.ttf", SolaimanLipi);
+        doc.addFont("SolaimanLipi.ttf", "SolaimanLipi", "normal");
+        doc.setFont("SolaimanLipi", "normal");
+
         const tableColumn = ["Name", "Phone Number", "Blood Group", "Location"];
         const tableRows: any[] = [];
         const siteName = "RoktoDao";
@@ -532,6 +539,10 @@ const handleAddDonor = async (values: DonorFormValues) => {
             head: [tableColumn],
             body: tableRows,
             startY: 45,
+            styles: {
+                font: "SolaimanLipi",
+                fontStyle: "normal",
+            },
         });
         
         doc.save("donors.pdf");
@@ -797,5 +808,3 @@ const handleAddDonor = async (values: DonorFormValues) => {
     </div>
   );
 }
-
-    
