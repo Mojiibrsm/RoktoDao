@@ -25,23 +25,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Phone number is required.' }, { status: 400 });
     }
 
-    // 1. Check if user exists in Supabase
     const { data: donor, error: donorError } = await supabase
       .from('donors')
       .select('uid')
       .eq('phoneNumber', phoneNumber)
       .single();
 
-    if (donorError || !donor) {
+    if (donorError && donorError.code !== 'PGRST116') {
+      console.error("Supabase donor check error:", donorError);
+      throw new Error("Database error checking for donor.");
+    }
+    
+    if (!donor) {
        return NextResponse.json({ success: false, error: 'No account is associated with this phone number.' }, { status: 404 });
     }
 
-    // 2. Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expires = new Date();
-    expires.setMinutes(expires.getMinutes() + 10); // OTP expires in 10 minutes
+    expires.setMinutes(expires.getMinutes() + 10);
 
-    // 3. Store OTP securely in Supabase
     const { error: otpError } = await supabase
       .from('otp_codes')
       .upsert({ 
@@ -55,7 +57,6 @@ export async function POST(request: NextRequest) {
       throw new Error("Could not store OTP.");
     }
 
-    // 4. Send OTP via SMS
     const smsMessage = `Your RoktoDao OTP is: ${otp}`;
     const smsSent = await sendSms(phoneNumber, smsMessage);
 
@@ -63,7 +64,6 @@ export async function POST(request: NextRequest) {
       throw new Error('Failed to send OTP SMS.');
     }
 
-    // 5. Respond to client without the OTP
     return NextResponse.json({ success: true, message: 'OTP has been sent to your phone number.' });
 
   } catch (error: any) {

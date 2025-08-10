@@ -21,7 +21,6 @@ import { CalendarIcon, Droplet, User, Upload, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { bloodGroups, locations, upazilas } from '@/lib/location-data';
-import type { Donor } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import IK from 'imagekit-javascript';
@@ -131,14 +130,13 @@ export default function SignupPage() {
     setIsLoading(true);
 
     try {
-        // 1. Check for existing user with the same phone number or email
         const { data: existingUser, error: fetchError } = await supabase
             .from('donors')
             .select('email, phoneNumber')
             .or(`email.eq.${values.email},phoneNumber.eq.${values.phoneNumber}`)
             .single();
 
-        if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116: "exact one row expected, but 0 rows returned" (no user found, which is good)
+        if (fetchError && fetchError.code !== 'PGRST116') {
             throw new Error(`Could not verify user: ${fetchError.message}`);
         }
         if (existingUser) {
@@ -150,7 +148,6 @@ export default function SignupPage() {
             }
         }
 
-        // 2. Upload profile picture if it exists
         let finalProfilePictureUrl = '';
         if (profileImageFile) {
             const authResponse = await fetch('/api/imagekit-auth');
@@ -160,7 +157,6 @@ export default function SignupPage() {
             finalProfilePictureUrl = response.url;
         }
 
-        // 3. Sign up the user with Supabase Auth
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
             email: values.email,
             password: values.password,
@@ -175,11 +171,10 @@ export default function SignupPage() {
         if (signUpError) throw signUpError;
         if (!signUpData.user) throw new Error("User creation failed in Supabase Auth.");
 
-        // 4. Insert the donor profile into the 'donors' table
         const { error: insertError } = await supabase
             .from('donors')
             .insert({
-                uid: signUpData.user.id, // This links the profile to the auth user
+                uid: signUpData.user.id,
                 fullName: values.fullName,
                 email: values.email,
                 bloodGroup: values.bloodGroup,
@@ -200,12 +195,10 @@ export default function SignupPage() {
             });
 
         if (insertError) {
-             // If profile insert fails, try to delete the auth user to prevent orphaned accounts
             await supabase.auth.admin.deleteUser(signUpData.user.id);
             throw insertError;
         }
         
-        // 5. Send notification email
         fetch('/api/send-email', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

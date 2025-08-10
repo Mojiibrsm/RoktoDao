@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
       .eq('phoneNumber', phoneNumber)
       .single();
 
-    if (donorError || !donor) {
+    if (donorError || !donor || !donor.uid) {
        return NextResponse.json({ error: 'User with this phone number not found.' }, { status: 404 });
     }
 

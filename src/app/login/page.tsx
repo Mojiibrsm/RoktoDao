@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -46,10 +45,8 @@ export default function LoginPage() {
   const onSubmit = async (values: z.infer<typeof loginSchema>) => {
     setIsLoading(true);
     let emailToLogin = values.identifier;
-    let passwordToLogin = values.password;
 
     try {
-        // Check if identifier is phone number
         if (/^\d{11,}$/.test(values.identifier) && !values.identifier.includes('@')) {
              const { data: donor, error } = await supabase
                 .from('donors')
@@ -57,15 +54,15 @@ export default function LoginPage() {
                 .eq('phoneNumber', values.identifier)
                 .single();
 
-            if (error || !donor) {
-                 throw new Error('User with this phone number not found.');
+            if (error || !donor || !donor.email) {
+                 throw new Error('User with this phone number not found or no email associated.');
             }
-            emailToLogin = donor.email!;
+            emailToLogin = donor.email;
         }
 
       const { error } = await supabase.auth.signInWithPassword({
         email: emailToLogin,
-        password: passwordToLogin,
+        password: values.password,
       });
 
       if (error) throw error;
@@ -74,11 +71,13 @@ export default function LoginPage() {
         title: 'Login Successful',
         description: 'Welcome back!',
       });
-      // AuthProvider will redirect
+      router.push('/profile');
     } catch (error: any) {
-      let description = 'An unknown error occurred.';
+      let description = 'ভুল ফোন নম্বর/ইমেল বা পাসওয়ার্ড। অনুগ্রহ করে আবার চেষ্টা করুন।';
       if (error.message.includes('Invalid login credentials')) {
         description = 'ভুল ফোন নম্বর/ইমেল বা পাসওয়ার্ড। অনুগ্রহ করে আবার চেষ্টা করুন।';
+      } else {
+        description = error.message;
       }
       toast({
         variant: 'destructive',
@@ -156,5 +155,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    
