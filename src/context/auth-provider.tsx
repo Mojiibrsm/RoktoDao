@@ -53,9 +53,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
+    const getInitialSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setUser(session.user);
+        await fetchDonorProfile(session.user);
+      }
+      setLoading(false);
+    };
+
+    getInitialSession();
+
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event: AuthChangeEvent, session: Session | null) => {
-        setLoading(true);
         const currentUser = session?.user ?? null;
         setUser(currentUser);
         if (currentUser) {
@@ -68,28 +78,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    // Initial check in case onAuthStateChange doesn't fire on first load
-    const getInitialSession = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-            if (!user || user.id !== session.user.id) {
-                setUser(session.user);
-                await fetchDonorProfile(session.user);
-            }
-        }
-        // Only set loading to false after initial check is complete
-        if (loading) {
-            setLoading(false);
-        }
-    };
-
-    getInitialSession();
-
-
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [user]);
+  }, []);
 
 
   const signOutUser = async () => {
