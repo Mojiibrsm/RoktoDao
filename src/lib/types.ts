@@ -17,7 +17,7 @@ export type BloodRequest = {
 };
 
 export type Donor = {
-  id: string;
+  id?: string; // Made optional as it's auto-generated
   uid: string;
   fullName: string;
   email?: string | null;

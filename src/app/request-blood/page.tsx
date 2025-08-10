@@ -159,7 +159,8 @@ export default function RequestBloodPage() {
         title: 'ধন্যবাদ!',
         description: 'আপনার রক্তের অনুরোধ সফলভাবে জমা দেওয়া হয়েছে।',
       });
-      router.push('/thank-you');
+      fetchRecentRequests(); // Refresh the list of recent requests
+      form.reset(); // Reset the form
     } catch (error: any) {
        console.error("Request submission failed:", error);
        toast({

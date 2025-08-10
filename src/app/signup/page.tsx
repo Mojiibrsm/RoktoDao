@@ -28,8 +28,7 @@ import IK from 'imagekit-javascript';
 
 const signupSchema = z.object({
   fullName: z.string().min(3, { message: 'Full name is required.' }),
-  email: z.string().email({ message: 'A valid email address is required.' }),
-  password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+  email: z.string().email({ message: 'A valid email address is required.' }).optional().or(z.literal('')),
   bloodGroup: z.string({ required_error: 'Blood group is required.' }).min(1, 'Blood group is required.'),
   phoneNumber: z.string().min(11, { message: 'A valid phone number is required.' }),
   division: z.string({ required_error: 'Division is required.' }).min(1, 'Division is required.'),
@@ -72,7 +71,6 @@ export default function SignupPage() {
     defaultValues: {
       fullName: '',
       email: '',
-      password: '',
       bloodGroup: '',
       phoneNumber: '',
       division: '',
@@ -126,6 +124,18 @@ export default function SignupPage() {
     }
   };
 
+  const sendSms = async (number: string, message: string) => {
+    try {
+      await fetch('/api/send-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ number, message }),
+      });
+    } catch (error) {
+      console.error("Failed to send welcome SMS:", error);
+    }
+  };
+
   const onSubmit = async (values: z.infer<typeof signupSchema>) => {
     setIsLoading(true);
 
@@ -133,19 +143,14 @@ export default function SignupPage() {
         const { data: existingUser, error: fetchError } = await supabase
             .from('donors')
             .select('email, phoneNumber')
-            .or(`email.eq.${values.email},phoneNumber.eq.${values.phoneNumber}`)
+            .eq('phoneNumber', values.phoneNumber)
             .single();
 
-        if (fetchError && fetchError.code !== 'PGRST116') {
+        if (fetchError && fetchError.code !== 'PGRST116') { // 'PGRST116' means no rows found, which is fine.
             throw new Error(`Could not verify user: ${fetchError.message}`);
         }
         if (existingUser) {
-            if (existingUser.email === values.email) {
-                throw new Error('An account with this email already exists.');
-            }
-            if (existingUser.phoneNumber === values.phoneNumber) {
-                throw new Error('An account with this phone number already exists.');
-            }
+             throw new Error('An account with this phone number already exists.');
         }
 
         let finalProfilePictureUrl = '';
@@ -157,9 +162,12 @@ export default function SignupPage() {
             finalProfilePictureUrl = response.url;
         }
 
+        const generatedPassword = Math.random().toString(36).slice(-8);
+        const userEmail = values.email || `${values.phoneNumber}@roktodao.com`;
+
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-            email: values.email,
-            password: values.password,
+            email: userEmail,
+            password: generatedPassword,
             options: {
                 data: {
                     full_name: values.fullName,
@@ -174,7 +182,6 @@ export default function SignupPage() {
         const { error: insertError } = await supabase
             .from('donors')
             .insert({
-                id: signUpData.user.id, // Ensure id is set from auth user
                 uid: signUpData.user.id,
                 fullName: values.fullName,
                 email: values.email,
@@ -200,6 +207,8 @@ export default function SignupPage() {
             throw insertError;
         }
         
+        await sendSms(values.phoneNumber, `Welcome to RoktoDao! Your password is: ${generatedPassword}`);
+        
         fetch('/api/send-email', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -219,7 +228,7 @@ export default function SignupPage() {
 
         toast({
             title: 'Account Created Successfully!',
-            description: "Welcome to RoktoDao. Please check your email to verify your account.",
+            description: "Welcome to RoktoDao! Please check your phone for login details.",
         });
         router.push('/login');
 
@@ -300,22 +309,9 @@ export default function SignupPage() {
                         name="email"
                         render={({ field }) => (
                         <FormItem>
-                            <FormLabel>ইমেইল</FormLabel>
+                            <FormLabel>ইমেইল (ঐচ্ছিক)</FormLabel>
                             <FormControl>
                             <Input placeholder="you@example.com" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                     <FormField
-                        control={form.control}
-                        name="password"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>পাসওয়ার্ড</FormLabel>
-                            <FormControl>
-                            <Input type="password" placeholder="••••••••" {...field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
