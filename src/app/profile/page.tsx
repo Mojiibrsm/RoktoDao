@@ -106,68 +106,75 @@ function ProfilePageComponent() {
     return upazilas[selectedDistrict as keyof typeof upazilas].map(u => ({ value: u, label: u })).sort((a, b) => a.label.localeCompare(b.label, 'bn'));
   }, [selectedDistrict]);
 
-  const targetUid = useMemo(() => userIdToEdit && isAdmin ? userIdToEdit : user?.id, [userIdToEdit, isAdmin, user]);
-
-  useEffect(() => {
-    // If not admin editing, use the donorProfile from context
-    if (!isAdmin && donorProfile) {
-        setProfileToEdit(donorProfile);
-    }
-  }, [donorProfile, isAdmin]);
+  const targetUid = useMemo(() => {
+    if (isAdmin && userIdToEdit) return userIdToEdit;
+    if (user) return user.id;
+    return null;
+  }, [userIdToEdit, isAdmin, user]);
   
 
   useEffect(() => {
     const loadProfileData = async () => {
-      if (!targetUid) return;
-      setPageLoading(true);
-      try {
-        let profileToLoad: Donor | null = null;
-        
-        if(isAdmin && userIdToEdit) {
-            const { data, error } = await supabase.from('donors').select('*').eq('uid', userIdToEdit).maybeSingle();
-            if(error) throw error;
-            profileToLoad = data;
-        } else if (user) {
-             const { data, error } = await supabase.from('donors').select('*').eq('uid', user.id).maybeSingle();
-             if(error) throw error;
-             profileToLoad = data;
+        if (!targetUid) {
+            setPageLoading(false);
+            if (!loading) router.push('/login');
+            return;
         }
-        
-        setProfileToEdit(profileToLoad);
-        
-        if (profileToLoad) {
-          setProfileImageUrl(profileToLoad.profilePictureUrl || '');
-          profileForm.reset({
-            fullName: profileToLoad.fullName || '', phoneNumber: profileToLoad.phoneNumber || '', bloodGroup: profileToLoad.bloodGroup || '',
-            division: profileToLoad.address?.division || '', district: profileToLoad.address?.district || '', upazila: profileToLoad.address?.upazila || '',
-            lastDonationDate: profileToLoad.lastDonationDate ? new Date(profileToLoad.lastDonationDate) : undefined,
-            isAvailable: profileToLoad.isAvailable, dateOfBirth: profileToLoad.dateOfBirth ? new Date(profileToLoad.dateOfBirth) : undefined,
-            gender: profileToLoad.gender || undefined, donationCount: profileToLoad.donationCount || 0, profilePictureUrl: profileToLoad.profilePictureUrl || '',
-          });
+
+        setPageLoading(true);
+        try {
+            // Fetch profile, requests, and donations in parallel
+            const [
+                { data: profileData, error: profileError },
+                { data: requestsData, error: requestsError },
+                { data: donationsData, error: donationsError }
+            ] = await Promise.all([
+                supabase.from('donors').select('*').eq('uid', targetUid).maybeSingle(),
+                supabase.from('requests').select('*').eq('uid', targetUid),
+                supabase.from('requests').select('*').contains('responders', [targetUid])
+            ]);
+
+            if (profileError) throw new Error(`Profile fetch failed: ${profileError.message}`);
+            if (requestsError) throw new Error(`Requests fetch failed: ${requestsError.message}`);
+            if (donationsError) throw new Error(`Donations fetch failed: ${donationsError.message}`);
+
+            setProfileToEdit(profileData);
+            setMyRequests(requestsData || []);
+            setMyDonations(donationsData || []);
+
+            if (profileData) {
+                setProfileImageUrl(profileData.profilePictureUrl || '');
+                profileForm.reset({
+                    fullName: profileData.fullName || '',
+                    phoneNumber: profileData.phoneNumber || '',
+                    bloodGroup: profileData.bloodGroup || '',
+                    division: profileData.address?.division || '',
+                    district: profileData.address?.district || '',
+                    upazila: profileData.address?.upazila || '',
+                    lastDonationDate: profileData.lastDonationDate ? new Date(profileData.lastDonationDate) : undefined,
+                    isAvailable: profileData.isAvailable,
+                    dateOfBirth: profileData.dateOfBirth ? new Date(profileData.dateOfBirth) : undefined,
+                    gender: profileData.gender || undefined,
+                    donationCount: profileData.donationCount || 0,
+                    profilePictureUrl: profileData.profilePictureUrl || '',
+                });
+            } else if (!isAdmin) {
+                // If a regular user has no profile, maybe they should be on the signup page
+                console.warn("No donor profile found for logged-in user.");
+            }
+
+        } catch (e: any) {
+            console.error(e);
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch profile data.' });
+        } finally {
+            setPageLoading(false);
         }
-        
-        // Fetch related requests and donations for the target user
-         const { data: requestsData, error: requestsError } = await supabase.from('requests').select('*').eq('uid', targetUid);
-         if(requestsError) throw requestsError;
-         setMyRequests(requestsData as BloodRequest[]);
-
-         const { data: donationsData, error: donationsError } = await supabase.from('requests').select('*').contains('responders', [targetUid]);
-         if(donationsError) throw donationsError;
-         setMyDonations(donationsData as BloodRequest[]);
-
-
-      } catch (e) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch profile data.' });
-      } finally {
-        setPageLoading(false);
-      }
     };
-    if (!loading && user) {
+
+    if (!loading) {
         loadProfileData();
-    } else if (!loading && !user) {
-        router.push('/login');
     }
-  }, [user, loading, router, targetUid, toast, isAdmin, userIdToEdit]);
+}, [user, loading, router, targetUid, toast, isAdmin]);
   
   const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
@@ -239,6 +246,11 @@ function ProfilePageComponent() {
   if (loading || pageLoading) {
     return <div className="flex h-screen items-center justify-center"><div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>;
   }
+  
+  if (!user && !loading) {
+     return <div className="flex h-screen items-center justify-center"><p>Redirecting to login...</p></div>;
+  }
+
 
   return (
     <div className="container mx-auto max-w-5xl py-12 px-4">
