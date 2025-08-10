@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { MoreHorizontal, Edit, CheckCircle, Trash2, Copy, Upload, ChevronDown, PlusCircle, Pin, PinOff, Download, Search } from 'lucide-react';
+import { MoreHorizontal, Edit, CheckCircle, Trash2, Copy, Upload, ChevronDown, PlusCircle, Pin, PinOff, Download, Search, FileDown } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -36,6 +36,8 @@ import {
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import Papa from 'papaparse';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useForm, UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -467,7 +469,9 @@ const handleAddDonor = async (values: DonorFormValues) => {
   };
 
   const downloadCSV = () => {
-    const csv = Papa.unparse(filteredDonors.map(d => ({
+    const siteName = "RoktoDao";
+    const header = [["", siteName, ""], ["", "Donor List", ""]];
+    const data = filteredDonors.map(d => ({
         Name: d.fullName,
         Phone: d.phoneNumber,
         BloodGroup: d.bloodGroup,
@@ -475,8 +479,16 @@ const handleAddDonor = async (values: DonorFormValues) => {
         LastDonation: d.lastDonationDate ? format(new Date(d.lastDonationDate), 'yyyy-MM-dd') : 'N/A',
         Available: d.isAvailable ? 'Yes' : 'No',
         Verified: d.isVerified ? 'Yes' : 'No',
-    })));
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    }));
+    
+    const csv = Papa.unparse({
+        fields: ["Name", "Phone", "BloodGroup", "Location", "LastDonation", "Available", "Verified"],
+        data: data,
+    });
+    
+    const csvWithHeader = Papa.unparse(header) + '\n' + csv;
+
+    const blob = new Blob([csvWithHeader], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.setAttribute('download', 'donors.csv');
@@ -484,6 +496,38 @@ const handleAddDonor = async (values: DonorFormValues) => {
     link.click();
     document.body.removeChild(link);
   };
+  
+    const downloadPDF = () => {
+        const doc = new jsPDF();
+        const tableColumn = ["Name", "Phone Number", "Blood Group", "Location"];
+        const tableRows: any[] = [];
+
+        filteredDonors.forEach(donor => {
+            const donorData = [
+                donor.fullName,
+                donor.phoneNumber,
+                donor.bloodGroup,
+                `${donor.address.upazila}, ${donor.address.district}`,
+            ];
+            tableRows.push(donorData);
+        });
+        
+        // Add logo and title
+        // Note: You need to have the logo available, e.g. as a base64 string or a URL that can be fetched
+        // For this example, I'll just add text.
+        // doc.addImage(logoBase64, 'PNG', 14, 15, 30, 10);
+        doc.setFontSize(20).text("RoktoDao", 14, 22);
+        doc.setFontSize(12).text("Donor List", 14, 30);
+        
+        (doc as any).autoTable({
+            head: [tableColumn],
+            body: tableRows,
+            startY: 35,
+        });
+        
+        doc.save("donors.pdf");
+    };
+
 
   return (
     <div>
@@ -495,7 +539,8 @@ const handleAddDonor = async (values: DonorFormValues) => {
             <p className="text-muted-foreground">View, Edit, Delete, and Verify Donors.</p>
         </div>
         <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={downloadCSV} disabled={filteredDonors.length === 0}><Download className="mr-2 h-4 w-4" /> Download CSV</Button>
+            <Button variant="outline" onClick={downloadCSV} disabled={filteredDonors.length === 0}><FileDown className="mr-2 h-4 w-4" /> Download CSV</Button>
+            <Button variant="outline" onClick={downloadPDF} disabled={filteredDonors.length === 0}><FileDown className="mr-2 h-4 w-4" /> Download PDF</Button>
             <Dialog open={isAddDialogOpen} onOpenChange={(isOpen) => {
                 setIsAddDialogOpen(isOpen);
                 if (!isOpen) form.reset();
@@ -732,5 +777,3 @@ const handleAddDonor = async (values: DonorFormValues) => {
     </div>
   );
 }
-
-    
