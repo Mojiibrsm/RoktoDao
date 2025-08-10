@@ -515,13 +515,15 @@ const handleAddDonor = async (values: DonorFormValues) => {
         const siteUrl = "https://roktodao.bartanow.com";
         const pageWidth = doc.internal.pageSize.getWidth();
 
+        // Regex to remove any characters that are not Latin, numbers, or basic punctuation.
+        const sanitize = (text: string) => text.replace(/[^a-zA-Z0-9\s,.-]/g, '');
+
         filteredDonors.forEach(donor => {
             const donorData = [
-                donor.fullName,
-                donor.phoneNumber,
-                donor.bloodGroup,
-                // Using English for PDF to avoid font issues
-                `${donor.address.upazila}, ${donor.address.district}`.replace(/[^a-zA-Z0-9\s,.-]/g, ''), 
+                sanitize(donor.fullName),
+                donor.phoneNumber, // Phone numbers are typically safe
+                donor.bloodGroup,  // Blood groups are safe
+                sanitize(`${donor.address.upazila}, ${donor.address.district}`),
             ];
             tableRows.push(donorData);
         });
