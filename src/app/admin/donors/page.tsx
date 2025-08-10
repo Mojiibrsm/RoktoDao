@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect, useCallback, useTransition } from 'react';
@@ -352,19 +351,29 @@ export default function AdminDonorsPage() {
             }
 
             const formattedDonors = donorsToImport.map(row => ({
-                fullName: row['Donor Name'] || "N/A",
-                phoneNumber: row['Mobile'] || "N/A",
-                bloodGroup: row['Blood Group'] || "N/A",
+                fullName: row.fullName || "N/A",
+                email: row.email || null,
+                phoneNumber: row.phoneNumber || "N/A",
+                bloodGroup: row.bloodGroup || "N/A",
                 address: {
-                    division: row['Address'] || "N/A",
-                    district: "N/A",
-                    upazila: "N/A",
+                    division: row.division || "N/A",
+                    district: row.district || "N/A",
+                    upazila: row.upazila || "N/A",
                 },
-                isAvailable: true,
-                isVerified: false,
+                isAvailable: row.isAvailable ? row.isAvailable === 'true' : true,
+                isVerified: row.isVerified ? row.isVerified === 'true' : false,
                 isAdmin: false,
-                lastDonationDate: row['Last Donation Date'] ? new Date(row['Last Donation Date']).toISOString() : null,
-            }));
+                gender: row.gender || null,
+                donationCount: row.donationCount ? parseInt(row.donationCount, 10) : 0,
+                lastDonationDate: row.lastDonationDate ? new Date(row.lastDonationDate).toISOString() : null,
+                dateOfBirth: row.dateOfBirth ? new Date(row.dateOfBirth).toISOString() : null,
+            })).filter(donor => donor.fullName !== "N/A" && donor.phoneNumber !== "N/A");
+
+            if (formattedDonors.length === 0) {
+                 toast({ variant: 'destructive', title: 'No Valid Data', description: 'No valid donor data found in the CSV file.' });
+                 setIsImporting(false);
+                 return;
+            }
 
             const { error } = await supabase.from('donors').insert(formattedDonors);
             
@@ -378,7 +387,7 @@ export default function AdminDonorsPage() {
             } else {
                 toast({
                     title: "Import Successful",
-                    description: `${donorsToImport.length} donors have been imported.`,
+                    description: `${formattedDonors.length} donors have been imported.`,
                 });
                 fetchDonors();
             }
@@ -513,8 +522,7 @@ const handleAddDonor = async (values: DonorFormValues) => {
                     <DialogHeader>
                         <DialogTitle>Import Donors via CSV</DialogTitle>
                         <DialogDescription>
-                            Select a CSV file to import new donors. The file should have columns: 
-                            `Donor Name`, `Blood Group`, `Mobile`, `Address`, `Last Donation Date`.
+                            Select a CSV file to import new donors. Make sure it has columns like `fullName`, `email`, `phoneNumber`, `bloodGroup`, `division`, `district`, `upazila`, `gender`, `dateOfBirth`, `lastDonationDate`, `donationCount`.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="py-4">
@@ -524,7 +532,7 @@ const handleAddDonor = async (values: DonorFormValues) => {
                             onChange={(e) => setFileToImport(e.target.files ? e.target.files[0] : null)}
                         />
                         <p className="text-xs text-muted-foreground mt-2">
-                            Note: Missing fields are allowed and will be marked as N/A. `Last Donation Date` should be in a recognizable format (e.g., YYYY-MM-DD).
+                            Note: `fullName` and `phoneNumber` are required. Dates should be in a recognizable format (e.g., YYYY-MM-DD).
                         </p>
                     </div>
                     <DialogFooter>
@@ -724,3 +732,5 @@ const handleAddDonor = async (values: DonorFormValues) => {
     </div>
   );
 }
+
+    
