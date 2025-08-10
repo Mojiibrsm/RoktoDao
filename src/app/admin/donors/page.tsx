@@ -516,13 +516,19 @@ const handleAddDonor = async (values: DonorFormValues) => {
         const pageWidth = doc.internal.pageSize.getWidth();
 
         // Regex to remove any characters that are not Latin, numbers, or basic punctuation.
-        const sanitize = (text: string) => text.replace(/[^a-zA-Z0-9\s,.-]/g, '');
+        const sanitize = (text: string | null | undefined): string => {
+            if (!text) return 'N/A';
+            // This regex keeps English letters, numbers, spaces, and basic punctuation.
+            // It removes most other characters, including Bengali script.
+            return text.replace(/[^a-zA-Z0-9\s,.-]/g, '').trim();
+        };
+
 
         filteredDonors.forEach(donor => {
             const donorData = [
                 sanitize(donor.fullName),
-                donor.phoneNumber, // Phone numbers are typically safe
-                donor.bloodGroup,  // Blood groups are safe
+                donor.phoneNumber,
+                donor.bloodGroup,
                 sanitize(`${donor.address.upazila}, ${donor.address.district}`),
             ];
             tableRows.push(donorData);
@@ -801,3 +807,5 @@ const handleAddDonor = async (values: DonorFormValues) => {
     </div>
   );
 }
+
+    

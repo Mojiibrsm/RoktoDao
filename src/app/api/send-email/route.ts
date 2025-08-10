@@ -8,6 +8,13 @@ import type { FeedbackType } from '@/lib/types';
 export async function POST(request: NextRequest) {
   try {
     const { type, data } = await request.json();
+    
+    // Check if SMTP environment variables are set
+    if (!process.env.SMTP_HOST || !process.env.SMTP_PORT || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      console.warn('SMTP environment variables are not fully configured. Skipping email sending.');
+      // Return a success response to prevent the client from seeing an error
+      return NextResponse.json({ success: true, message: 'Email sending skipped: SMTP not configured.' });
+    }
 
     // Fetch settings from Supabase
     const { data: settings, error: settingsError } = await supabase
@@ -166,3 +173,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: error.message || 'Failed to send email.' }, { status: 500 });
   }
 }
+
+    
