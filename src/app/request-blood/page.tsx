@@ -83,6 +83,7 @@ export default function RequestBloodPage() {
         const { data, error } = await supabase
             .from('requests')
             .select('*')
+            .eq('status', 'Approved') // Fetch only approved requests
             .order('createdAt', { ascending: 'desc' })
             .limit(6);
         if (error) throw error;
@@ -362,3 +363,5 @@ export default function RequestBloodPage() {
 
     </div>
   );
+
+    
