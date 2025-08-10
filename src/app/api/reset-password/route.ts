@@ -2,6 +2,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 // Initialize Supabase Admin Client
 const supabaseAdmin = createClient(
