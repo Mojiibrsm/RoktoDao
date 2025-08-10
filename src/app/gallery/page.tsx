@@ -85,7 +85,7 @@ const UploadDialog = () => {
                 filePath: response.filePath,
                 fileId: response.fileId,
                 status: 'pending',
-                uploaderId: user.id,
+                uploaderId: user.uid,
             });
 
             if (error) throw error;
@@ -214,5 +214,3 @@ export default function GalleryPage() {
         </div>
     );
 }
-
-    
