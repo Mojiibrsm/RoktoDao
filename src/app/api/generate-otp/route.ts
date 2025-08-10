@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
       .from('donors')
       .select('uid')
       .eq('phoneNumber', phoneNumber)
+      .limit(1) // To handle potential duplicates, though phone should be unique
       .single();
 
     if (donorError && donorError.code !== 'PGRST116') {
