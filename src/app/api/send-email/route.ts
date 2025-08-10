@@ -115,6 +115,28 @@ export async function POST(request: NextRequest) {
         <blockquote style="padding: 10px; border-left: 4px solid #ccc; margin: 10px 0;">${data.message}</blockquote>
         <p>Please check the SMS API provider statuses and server logs for more details.</p>
       `;
+    } else if (type === 'donor_response') {
+        subject = `🩸 Donor Response for ${data.request.bloodGroup} Request`;
+        htmlContent = `
+            <h1>A donor has responded to a blood request!</h1>
+            <p>A donor has expressed interest in fulfilling a blood request on your platform.</p>
+            <hr>
+            <h2>Request Details:</h2>
+            <ul>
+                <li><strong>Patient:</strong> ${data.request.patientName}</li>
+                <li><strong>Blood Group:</strong> ${data.request.bloodGroup}</li>
+                <li><strong>Hospital:</strong> ${data.request.hospitalLocation}, ${data.request.district}</li>
+                <li><strong>Requester Contact:</strong> ${data.request.contactPhone}</li>
+            </ul>
+            <hr>
+            <h2>Donor Details:</h2>
+            <ul>
+                <li><strong>Name:</strong> ${data.donor.fullName}</li>
+                <li><strong>Blood Group:</strong> ${data.donor.bloodGroup}</li>
+                <li><strong>Contact:</strong> ${data.donor.phoneNumber}</li>
+            </ul>
+            <p>The requester has been notified via SMS with the donor's contact information.</p>
+        `;
     } else {
         return NextResponse.json({ success: false, error: 'Invalid notification type.' }, { status: 400 });
     }

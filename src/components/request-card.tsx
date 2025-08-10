@@ -11,7 +11,7 @@ import { Badge } from './ui/badge';
 
 interface RequestCardProps {
   req: BloodRequest;
-  onRespond?: (requestId: string) => void;
+  onRespond?: (request: BloodRequest) => void;
   showRespondButton?: boolean;
 }
 
@@ -20,7 +20,7 @@ export default function RequestCard({ req, onRespond, showRespondButton = false 
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast({ title: "Copied to clipboard!" });
+    toast({ title: "ক্লিপবোর্ডে কপি করা হয়েছে!" });
   };
 
   const formattedText = `🩸 জরুরী রক্তের আবেদন 🩸
@@ -65,15 +65,15 @@ export default function RequestCard({ req, onRespond, showRespondButton = false 
         </div>
         <div className="flex items-center gap-3 text-muted-foreground">
           <Calendar className="h-5 w-5 flex-shrink-0" />
-          <span>Needed by: {req.neededDate}</span>
+          <span>প্রয়োজন: {req.neededDate}</span>
         </div>
         <div className="flex items-center gap-3 text-muted-foreground">
           <Phone className="h-5 w-5 flex-shrink-0" />
-          <span>Contact: {req.contactPhone}</span>
+          <span>যোগাযোগ: {req.contactPhone}</span>
         </div>
         <div className="flex items-center gap-3 text-muted-foreground">
           <Syringe className="h-5 w-5 flex-shrink-0" />
-          <span>{req.numberOfBags} Bag(s)</span>
+          <span>{req.numberOfBags} ব্যাগ</span>
         </div>
       </CardContent>
       <CardFooter className="flex flex-col sm:flex-row gap-2">
@@ -82,9 +82,9 @@ export default function RequestCard({ req, onRespond, showRespondButton = false 
             শেয়ার করুন
         </Button>
         {showRespondButton && onRespond && req.status !== 'Fulfilled' && (
-          <Button onClick={() => onRespond(req.id)} className="w-full bg-green-600 hover:bg-green-700">
+          <Button onClick={() => onRespond(req)} className="w-full bg-green-600 hover:bg-green-700">
             <HandHeart className="mr-2 h-4 w-4"/>
-            I Can Donate
+            আমি রক্ত দিতে চাই
           </Button>
         )}
       </CardFooter>
