@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Phone number is required.' }, { status: 400 });
     }
 
+    // Step 1: Check if a donor exists with the given phone number
     const { data: donor, error: donorError } = await supabase
       .from('donors')
       .select('uid')
@@ -32,25 +33,26 @@ export async function POST(request: NextRequest) {
       .limit(1)
       .single();
 
+    // Step 2: Handle errors from the donor check
     if (donorError) {
-      // This is the key change: if the error is PGRST116, it means no user was found.
-      // We should return a clear message to the user instead of a generic database error.
+      // If the error code is PGRST116, it means no row was found. This is an expected case.
       if (donorError.code === 'PGRST116') {
         return NextResponse.json({ success: false, error: 'No account is associated with this phone number.' }, { status: 404 });
       }
-      // For any other database error, we log it and return a generic error.
+      // For any other unexpected database error, log it and return a generic error.
       console.error("Supabase donor check error:", donorError);
-      return NextResponse.json({ success: false, error: "Database error checking for donor." }, { status: 500 });
+      return NextResponse.json({ success: false, error: "Database error while checking for donor." }, { status: 500 });
     }
     
-    // This check is now redundant because of the error handling above, but it's good for safety.
+    // This check is redundant due to the error handling above, but adds an extra layer of safety.
     if (!donor) {
        return NextResponse.json({ success: false, error: 'No account is associated with this phone number.' }, { status: 404 });
     }
 
+    // Step 3: Generate and store the OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expires = new Date();
-    expires.setMinutes(expires.getMinutes() + 10);
+    expires.setMinutes(expires.getMinutes() + 10); // OTP expires in 10 minutes
 
     const { error: otpError } = await supabase
       .from('otp_codes')
@@ -62,17 +64,18 @@ export async function POST(request: NextRequest) {
 
     if (otpError) {
       console.error("Supabase OTP storage error:", otpError);
-      throw new Error("Could not store OTP.");
+      throw new Error("Could not store OTP due to a database issue.");
     }
-
+    
+    // Step 4: Send the OTP via SMS
     const smsMessage = `Your RoktoDao OTP is: ${otp}`;
     const smsSent = await sendSms(phoneNumber, smsMessage);
 
     if (!smsSent) {
-      throw new Error('Failed to send OTP SMS.');
+      throw new Error('Failed to send OTP SMS. Please try again later.');
     }
 
-    return NextResponse.json({ success: true, message: 'OTP has been sent to your phone number.' });
+    return NextResponse.json({ success: true, message: 'An OTP has been sent to your phone number.' });
 
   } catch (error: any) {
     console.error('Error in generate-otp API:', error);
