@@ -24,12 +24,14 @@ export default function SearchDonorsPage() {
   const [donors, setDonors] = useState<Donor[]>([]);
   const [isPending, startTransition] = useTransition();
   const [isClient, setIsClient] = useState(false);
+  const [searched, setSearched] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  const handleSearch = useCallback(() => {
+  const handleSearch = () => {
+    setSearched(true);
     startTransition(async () => {
       let query = supabase
         .from('donors')
@@ -64,13 +66,7 @@ export default function SearchDonorsPage() {
         setDonors(fetchedDonors as Donor[]);
       }
     });
-  }, [bloodGroup, division, district, upazila, name, phoneNumber]);
-
-  useEffect(() => {
-    if (isClient) {
-      handleSearch();
-    }
-  }, [isClient, handleSearch]);
+  };
   
   const districtOptions = useMemo(() => {
     if (division === 'any' || !locations[division as keyof typeof locations]) {
@@ -178,7 +174,7 @@ export default function SearchDonorsPage() {
             {donors.map(donor => <DonorCard key={donor.id} donor={donor} />)}
           </div>
         ) : (
-          <div className="text-center py-16 border-2 border-dashed rounded-lg">
+          searched && <div className="text-center py-16 border-2 border-dashed rounded-lg">
             <p className="text-muted-foreground">No donors found matching your criteria.</p>
             <p className="text-sm text-muted-foreground/80">Try broadening your search.</p>
           </div>
