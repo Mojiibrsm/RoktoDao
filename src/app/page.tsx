@@ -1,11 +1,10 @@
 
-
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import type { BloodRequest, Donor, BlogPost } from '@/lib/types';
-import { Droplet, Search, Heart, Phone, LifeBuoy, HeartPulse, ShieldCheck, Stethoscope, LocateFixed, MessageCircle, Newspaper, Github, Linkedin, Twitter, Users, Globe, HandHeart, ListChecks, Pin, ArrowRight, UserCheck } from 'lucide-react';
+import { Droplet, Search, Heart, Phone, LifeBuoy, HeartPulse, ShieldCheck, Stethoscope, LocateFixed, MessageCircle, Newspaper, Github, Linkedin, Twitter, Users, Globe, HandHeart, ListChecks, Pin, ArrowRight, UserCheck, AlertTriangle } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
@@ -16,6 +15,7 @@ import Image from 'next/image';
 import DonorCard from '@/components/donor-card';
 import RequestCard from '@/components/request-card';
 import { getHomepageData } from '@/actions/get-homepage-data';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface Member {
   id: string;
@@ -49,8 +49,50 @@ const faqs = [
   },
 ];
 
+const SetupGuide = () => (
+  <section className="w-full bg-yellow-100 dark:bg-yellow-900/30 border-b border-yellow-300 dark:border-yellow-700">
+    <div className="container mx-auto py-8 px-4">
+      <Alert variant="destructive" className="bg-white dark:bg-background border-red-500">
+        <AlertTriangle className="h-4 w-4 !text-red-500" />
+        <AlertTitle className="text-xl font-bold text-red-600">Configuration Required</AlertTitle>
+        <AlertDescription className="text-base text-foreground">
+          <p className="mb-4">
+            Your application is not fully configured. To fix the "Invalid API Key" error and run the app, you must set your Supabase credentials in the <strong>.env</strong> file.
+          </p>
+          <ol className="list-decimal list-inside space-y-2">
+            <li>Go to your Supabase project dashboard.</li>
+            <li>Navigate to <strong>Settings</strong> &gt; <strong>API</strong>.</li>
+            <li>
+              Copy the <strong>Project URL</strong> and the <strong>anon public key</strong>.
+            </li>
+            <li>
+              Open the <code>.env</code> file in the file explorer on the left.
+            </li>
+            <li>
+              Paste your credentials into the corresponding variables:
+              <pre className="mt-2 p-3 bg-muted rounded-md text-sm">
+                <code>
+                  NEXT_PUBLIC_SUPABASE_URL="YOUR_SUPABASE_URL"<br />
+                  NEXT_PUBLIC_SUPABASE_ANON_KEY="YOUR_SUPABASE_ANON_KEY"
+                </code>
+              </pre>
+            </li>
+            <li>The application will automatically restart with the new settings.</li>
+          </ol>
+        </AlertDescription>
+      </Alert>
+    </div>
+  </section>
+);
+
 
 export default async function Home() {
+  const isMisconfigured = !process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL.includes('YOUR_SUPABASE_URL');
+  
+  if (isMisconfigured) {
+    return <SetupGuide />;
+  }
+
   const { 
     donors, 
     urgentRequests, 
