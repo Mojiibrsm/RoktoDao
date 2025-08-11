@@ -60,7 +60,7 @@ export async function getHomepageData() {
             blogRes
         ] = await Promise.all([
             supabase.from('requests').select('*').eq('status', 'Approved').order('neededDate', { ascending: true }).limit(6),
-            supabase.from('donors').select('*').eq('isAvailable', true).order('createdAt', { ascending: false }).limit(6),
+            supabase.from('donors').select('*').eq('isAvailable', true).order('isPinned', { ascending: false }).order('createdAt', { ascending: false }).limit(6),
             supabase.from('donors').select('*', { count: 'exact', head: true }),
             supabase.from('requests').select('*', { count: 'exact', head: true }),
             supabase.from('requests').select('*', { count: 'exact', head: true }).eq('status', 'Fulfilled'),

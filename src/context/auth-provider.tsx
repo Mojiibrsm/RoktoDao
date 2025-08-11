@@ -53,24 +53,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event: AuthChangeEvent, session: Session | null) => {
-        setLoading(true);
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-        if (currentUser) {
-          await fetchDonorProfile(currentUser);
-        } else {
-          setDonorProfile(null);
-          setIsAdmin(false);
-        }
-        setLoading(false);
+    const initializeAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) {
+        await fetchDonorProfile(currentUser);
       }
-    );
+      setLoading(false);
 
-    return () => {
-      authListener.subscription.unsubscribe();
+      const { data: authListener } = supabase.auth.onAuthStateChange(
+        async (event: AuthChangeEvent, session: Session | null) => {
+          const newCurrentUser = session?.user ?? null;
+          setUser(newCurrentUser);
+          if (newCurrentUser) {
+            await fetchDonorProfile(newCurrentUser);
+          } else {
+            setDonorProfile(null);
+            setIsAdmin(false);
+          }
+        }
+      );
+
+      return () => {
+        authListener.subscription.unsubscribe();
+      };
     };
+
+    initializeAuth();
   }, []);
 
 
