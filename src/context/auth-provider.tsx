@@ -53,19 +53,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        setUser(session.user);
-        await fetchDonorProfile(session.user);
-      }
-      setLoading(false);
-    };
-
-    getInitialSession();
-
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event: AuthChangeEvent, session: Session | null) => {
+        setLoading(true);
         const currentUser = session?.user ?? null;
         setUser(currentUser);
         if (currentUser) {
@@ -73,11 +63,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } else {
           setDonorProfile(null);
           setIsAdmin(false);
-        }
-        if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-            if (currentUser) {
-                 await fetchDonorProfile(currentUser);
-            }
         }
         setLoading(false);
       }
