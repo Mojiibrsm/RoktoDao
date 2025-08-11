@@ -243,6 +243,7 @@ export default function AdminDonorsPage() {
     const { data: donorsList, error } = await supabase
       .from('donors')
       .select('*')
+      .order('isPinned', { ascending: false })
       .order('createdAt', { ascending: false });
 
     if (error) {
@@ -303,16 +304,34 @@ export default function AdminDonorsPage() {
   };
 
   const handleDeleteDonor = async (donorId: string) => {
-    const { error } = await supabase
-      .from('donors')
-      .delete()
-      .eq('id', donorId);
+    try {
+        const { data: donorToDelete, error: fetchError } = await supabase
+          .from('donors')
+          .select('uid')
+          .eq('id', donorId)
+          .single();
 
-    if (error) {
-      toast({ variant: "destructive", title: "Error", description: "Could not delete the donor." });
-    } else {
-      toast({ title: "Donor Deleted", description: "The donor's record has been deleted." });
-      fetchDonors();
+        if (fetchError || !donorToDelete) {
+          throw new Error('Could not find donor to delete.');
+        }
+
+        const { error: deleteError } = await supabase.from('donors').delete().eq('id', donorId);
+        if (deleteError) throw deleteError;
+
+        if (donorToDelete.uid) {
+            const response = await fetch('/api/reset-password', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ uid: donorToDelete.uid }),
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error);
+        }
+
+        toast({ title: "Donor Deleted", description: "The donor's record has been fully deleted." });
+        fetchDonors();
+    } catch (error: any) {
+         toast({ variant: "destructive", title: "Error", description: error.message || "Could not delete the donor." });
     }
   };
   
@@ -804,5 +823,3 @@ const handleAddDonor = async (values: DonorFormValues) => {
     </div>
   );
 }
-
-    

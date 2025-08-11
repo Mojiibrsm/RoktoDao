@@ -12,6 +12,24 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY! || process.env.SUPABASE_KEY!
 );
 
+export async function DELETE(request: NextRequest) {
+    try {
+        const { uid } = await request.json();
+        if (!uid) {
+            return NextResponse.json({ error: 'User ID is required.' }, { status: 400 });
+        }
+        
+        const { error } = await supabaseAdmin.auth.admin.deleteUser(uid);
+        if (error) throw error;
+
+        return NextResponse.json({ success: true, message: 'Auth user deleted successfully.' });
+
+    } catch (error: any) {
+        console.error('Error deleting auth user:', error);
+        return NextResponse.json({ error: error.message || 'An internal server error occurred.' }, { status: 500 });
+    }
+}
+
 
 export async function POST(request: NextRequest) {
   try {
