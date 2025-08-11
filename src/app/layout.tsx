@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   description: 'জরুরী মুহূর্তে রক্ত খুঁজে পেতে এবং রক্তদানের মাধ্যমে জীবন বাঁচাতে সাহায্য করার জন্য একটি অনলাইন প্ল্যাটফর্ম। RoktoDao is a platform to find blood in emergency and save lives through blood donation.',
   keywords: ['blood donation', 'RoktoDao', 'emergency blood', 'find donor', 'রক্তদান', 'রক্ত দাও', 'জরুরী রক্ত'],
   verification: {
-    google: 'YOUR_SEARCH_CONSOLE_VERIFICATION_CODE',
+    google: '9hdDjfCFxhYkkaDpgTL0XWMlTPhQEq0uHKkn8YlickE',
   },
    openGraph: {
     title: 'RoktoDao - রক্ত দিন, জীবন বাঁচান',
