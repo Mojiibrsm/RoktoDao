@@ -195,13 +195,20 @@ export default function GalleryManagementPage() {
         }
     };
 
-    const handleDeleteImage = async (imageId: string) => {
-        setIsDeleting(imageId);
+    const handleDeleteImage = async (image: GalleryImage) => {
+        setIsDeleting(image.id);
         try {
+            // First, delete from ImageKit if fileId is available
+            if (image.fileId) {
+                // This part requires a backend endpoint to securely call ImageKit's delete API
+                // For now, we will just delete from Supabase.
+                // console.log(`TODO: Implement backend to delete ImageKit file ID: ${image.fileId}`);
+            }
+
             const { error } = await supabase
                 .from('gallery')
                 .delete()
-                .eq('id', imageId);
+                .eq('id', image.id);
             
             if (error) throw error;
 
@@ -250,7 +257,7 @@ export default function GalleryManagementPage() {
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDeleteImage(image.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                        <AlertDialogAction onClick={() => handleDeleteImage(image)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
