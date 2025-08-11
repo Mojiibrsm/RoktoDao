@@ -167,7 +167,7 @@ export default function GalleryPage() {
 
     useEffect(() => {
         fetchImages();
-    }, [toast]);
+    }, []);
 
     return (
          <div className="bg-background">
