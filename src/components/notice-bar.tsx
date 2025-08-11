@@ -3,7 +3,6 @@
 
 import { Bell, Droplet } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
-import type { BloodRequest } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
 
 interface Notice {
@@ -37,8 +36,8 @@ const NoticeBar = () => {
             // Fetch active blood requests from Supabase
             const { data: requestsData, error: requestsError } = await supabase
                 .from('requests')
-                .select('id, bloodGroup, district, isEmergency, status')
-                .in('status', ['Pending', 'Approved'])
+                .select('id, bloodGroup, district, isEmergency')
+                .eq('status', 'Approved') // Only show approved requests
                 .order('createdAt', { ascending: false });
 
             if (requestsError) throw requestsError;
