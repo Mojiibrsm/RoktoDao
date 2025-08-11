@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { cn } from '@/lib/utils';
-import { format, differenceInDays, addDays } from 'date-fns';
+import { format, differenceInDays, addDays, parseISO } from 'date-fns';
 import { Phone, MapPin, Calendar, UserCheck, Droplet, Copy, Pin } from 'lucide-react';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -14,7 +14,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 
 type DonorCardProps = {
-  donor: Donor;
+  donor: Donor & { lastDonationDate_raw?: string };
 };
 
 export default function DonorCard({ donor }: DonorCardProps) {
@@ -24,11 +24,14 @@ export default function DonorCard({ donor }: DonorCardProps) {
   const isAvailable = donor.isAvailable;
   
   const eligibility = () => {
-    if (!donor.lastDonationDate) {
+    // Use the raw date for calculation to avoid parsing formatted strings
+    if (!donor.lastDonationDate_raw) {
       return { canDonate: true, daysRemaining: 0 };
     }
-    const lastDonation = new Date(donor.lastDonationDate); // This is now safe as it's a pre-formatted string
-    const nextDonationDate = addDays(lastDonation, 90); // Use 90 days (3 months) restriction
+
+    // `new Date()` is more reliable with ISO strings
+    const lastDonation = new Date(donor.lastDonationDate_raw);
+    const nextDonationDate = addDays(lastDonation, 90);
     const daysRemaining = differenceInDays(nextDonationDate, new Date());
 
     if (daysRemaining <= 0) {
@@ -90,6 +93,7 @@ export default function DonorCard({ donor }: DonorCardProps) {
             {donor.lastDonationDate && (
                 <div className="flex items-center gap-3">
                     <Calendar className="h-4 w-4" />
+                    {/* Use the pre-formatted date for display */}
                     <span>শেষ রক্তদান: {donor.lastDonationDate}</span>
                 </div>
             )}

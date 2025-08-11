@@ -24,13 +24,17 @@ interface Member {
   avatarHint?: string;
 }
 
-// Helper to convert date strings to a formatted string
-const formatDateFields = (docData: any) => {
+// Helper to convert date strings to a standard format for calculation
+// and a display format for presentation.
+const processDateFields = (docData: any) => {
     const data = { ...docData };
     const dateFields = ['lastDonationDate', 'neededDate', 'dateOfBirth', 'createdAt', 'date'];
     for (const key in data) {
         if (dateFields.includes(key) && data[key]) {
             try {
+                // Keep the raw date for calculations if needed elsewhere
+                data[`${key}_raw`] = data[key]; 
+                // Format a display-friendly version
                 data[key] = format(new Date(data[key]), 'PPP');
             } catch (e) {
                 console.warn(`Could not format date for key: ${key}, value: ${data[key]}`);
@@ -67,10 +71,10 @@ export async function getHomepageData() {
         ]);
         
         // Process Urgent Requests
-        const urgentRequests = requestsRes.data?.map(formatDateFields) as BloodRequest[] || [];
+        const urgentRequests = requestsRes.data?.map(processDateFields) as BloodRequest[] || [];
 
         // Process Donors
-        const donors = donorsRes.data?.map(formatDateFields) as Donor[] || [];
+        const donors = donorsRes.data?.map(processDateFields) as Donor[] || [];
 
         // Process Stats
         const stats: Stats = {
@@ -83,14 +87,14 @@ export async function getHomepageData() {
         // Process Director
         let director: Member | null = null;
         if (directorRes.data && directorRes.data.length > 0) {
-            director = formatDateFields(directorRes.data[0]) as Member;
+            director = processDateFields(directorRes.data[0]) as Member;
         }
 
         // Process Gallery Images
         const galleryImages = galleryRes.data as GalleryImage[] || [];
 
         // Process Blog Posts
-        const blogPosts = blogRes.data?.map(formatDateFields) as BlogPost[] || [];
+        const blogPosts = blogRes.data?.map(processDateFields) as BlogPost[] || [];
         
         return {
             donors,
