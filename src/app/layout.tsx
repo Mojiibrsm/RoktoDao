@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/context/auth-provider';
 import Header from '@/components/header';
 import Footer from '@/components/footer';
+import GoogleAnalytics from '@/components/GoogleAnalytics';
 import './globals.css';
 
 const ptSans = PT_Sans({
@@ -22,7 +23,7 @@ export const metadata: Metadata = {
   description: 'জরুরী মুহূর্তে রক্ত খুঁজে পেতে এবং রক্তদানের মাধ্যমে জীবন বাঁচাতে সাহায্য করার জন্য একটি অনলাইন প্ল্যাটফর্ম। RoktoDao is a platform to find blood in emergency and save lives through blood donation.',
   keywords: ['blood donation', 'RoktoDao', 'emergency blood', 'find donor', 'রক্তদান', 'রক্ত দাও', 'জরুরী রক্ত'],
   verification: {
-    google: 'yGV1imhGb0CJC_-2MdC_9fjNYb1E86Vaitrywhojj2o',
+    google: 'YOUR_SEARCH_CONSOLE_VERIFICATION_CODE',
   },
    openGraph: {
     title: 'RoktoDao - রক্ত দিন, জীবন বাঁচান',
@@ -66,6 +67,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`font-sans antialiased ${ptSans.variable}`}>
+        {process.env.NEXT_PUBLIC_GA_TRACKING_ID && <GoogleAnalytics GA_TRACKING_ID={process.env.NEXT_PUBLIC_GA_TRACKING_ID} />}
         <AuthProvider>
           <div className="flex min-h-screen flex-col">
             <Header />
