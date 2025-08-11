@@ -48,9 +48,9 @@ export default function WhyDonateBloodPage() {
           </div>
           <div>
              <Image
-                src="https://placehold.co/600x400.png"
-                alt="Happy blood donor"
-                data-ai-hint="happy donor"
+                src="https://ik.imagekit.io/uekohag7w/roktodao/gallery/Why_donate_blood.png"
+                alt="Blood donation eligibility infographic"
+                data-ai-hint="blood donation"
                 width={600}
                 height={400}
                 className="rounded-lg object-cover w-full h-full shadow-xl"
