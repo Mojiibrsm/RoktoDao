@@ -152,14 +152,15 @@ export default function ModeratorsPage() {
 
     const handleAddModerator = async (values: ModeratorFormValues) => {
         try {
-            const { error } = await supabase.from('moderators').insert([values]);
+            const newModerator = { ...values, id: crypto.randomUUID() };
+            const { error } = await supabase.from('moderators').insert(newModerator);
             if(error) throw error;
             toast({ title: 'Moderator Added', description: 'The new moderator has been added successfully.' });
             fetchModerators();
             form.reset();
             setIsAddDialogOpen(false);
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not add the moderator.' });
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Error', description: error.message || 'Could not add the moderator.' });
         }
     };
 

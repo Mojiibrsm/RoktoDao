@@ -2,14 +2,12 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Crown, Shield, Mail, Phone, MapPin, Copy } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
+import { Crown, Shield, Loader2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/lib/supabase';
+import TeamMemberCard from '@/components/team-member-card';
+import DirectorCard from '@/components/director-card';
 
 interface Member {
   id: string;
@@ -22,105 +20,6 @@ interface Member {
   avatar: string;
   avatarHint?: string;
 }
-
-const TeamMemberCard = ({ member }: { member: Member }) => {
-    const { toast } = useToast();
-    const handleCopy = (number: string) => {
-        navigator.clipboard.writeText(number);
-        toast({ title: "Number copied!" });
-    };
-
-    return (
-      <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 w-full max-w-sm">
-        <CardContent className="p-6">
-          <div className="flex items-center gap-4">
-            <Avatar className="h-20 w-20 border-2 border-primary/20">
-              <AvatarImage src={member.avatar} alt={member.name} data-ai-hint={member.avatarHint} />
-              <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <div className="space-y-1">
-              <h3 className="text-xl font-bold font-headline">{member.name}</h3>
-              <div className="flex items-center gap-2">
-                <Badge variant='secondary'>{member.role}</Badge>
-                <Badge variant="outline" className="text-primary border-primary">{member.bloodGroup}</Badge>
-              </div>
-            </div>
-          </div>
-          <Separator className="my-4" />
-          <div className="space-y-2 text-muted-foreground">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <Phone className="h-4 w-4" />
-                    <span>{member.phone}</span>
-                </div>
-                <Button variant="ghost" size="icon" onClick={() => handleCopy(member.phone)} className="h-8 w-8">
-                    <Copy className="h-4 w-4" />
-                </Button>
-            </div>
-            <div className="flex items-center gap-3">
-              <Mail className="h-4 w-4" />
-              <span>{member.email}</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <MapPin className="h-4 w-4" />
-              <span>{member.location}</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-};
-
-const DirectorCard = ({ member }: { member: Member }) => {
-    const { toast } = useToast();
-    const handleCopy = (number: string) => {
-        navigator.clipboard.writeText(number);
-        toast({ title: "Number copied!" });
-    };
-
-    return (
-        <Card className="w-full max-w-2xl overflow-hidden shadow-xl transition-all duration-300 hover:shadow-2xl bg-gradient-to-br from-card to-muted/50">
-            <div className="md:flex">
-                <div className="md:flex-shrink-0 p-6 flex items-center justify-center">
-                    <Avatar className="h-32 w-32 border-4 border-primary/30 shadow-lg">
-                        <AvatarImage src={member.avatar} alt={member.name} data-ai-hint={member.avatarHint} />
-                        <AvatarFallback className="text-4xl">{member.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                </div>
-                <div className="p-6 flex-grow">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <h2 className="text-3xl font-bold font-headline text-primary">{member.name}</h2>
-                            <p className="text-lg font-semibold text-amber-600">{member.role}</p>
-                        </div>
-                        <Badge variant="outline" className="text-lg text-primary border-primary">{member.bloodGroup}</Badge>
-                    </div>
-                    <Separator className="my-4" />
-                    <div className="space-y-3 text-muted-foreground text-sm">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <Phone className="h-4 w-4" />
-                                <span>{member.phone}</span>
-                            </div>
-                            <Button variant="ghost" size="icon" onClick={() => handleCopy(member.phone)} className="h-8 w-8">
-                                <Copy className="h-4 w-4" />
-                            </Button>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <Mail className="h-4 w-4" />
-                            <span>{member.email}</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <MapPin className="h-4 w-4" />
-                            <span>{member.location}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </Card>
-    );
-};
-
 
 export default function TeamPage() {
   const [director, setDirector] = useState<Member | null>(null);
@@ -169,7 +68,10 @@ export default function TeamPage() {
 
       <section className="container mx-auto py-16 md:py-24 px-4 space-y-12">
         {loading ? (
-            <div className="text-center py-16"><p className="text-muted-foreground">Loading team...</p></div>
+             <div className="flex justify-center items-center py-16">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                <p className="ml-4 text-muted-foreground">টিম লোড হচ্ছে...</p>
+             </div>
         ) : (
             <>
                 {director && (
@@ -188,12 +90,12 @@ export default function TeamPage() {
 
                 {moderators.length > 0 && (
                     <div>
-                        <div className="flex items-center justify-start gap-3 mb-6">
+                        <div className="flex items-center justify-center md:justify-start gap-3 mb-6">
                             <Shield className="h-8 w-8 text-blue-500" />
                             <h2 className="text-3xl font-bold font-headline text-primary">Moderators</h2>
                             <Badge variant="default" className="text-lg">{moderators.length}</Badge>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-center">
                             {moderators.map((member) => (
                                 <TeamMemberCard key={member.id} member={member} />
                             ))}
@@ -212,5 +114,3 @@ export default function TeamPage() {
     </div>
   );
 }
-
-    
