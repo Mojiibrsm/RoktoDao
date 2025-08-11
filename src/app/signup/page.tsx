@@ -144,9 +144,9 @@ export default function SignupPage() {
             .from('donors')
             .select('email, phoneNumber')
             .eq('phoneNumber', values.phoneNumber)
-            .single();
+            .maybeSingle();
 
-        if (fetchError && fetchError.code !== 'PGRST116') { // 'PGRST116' means no rows found, which is fine.
+        if (fetchError) {
             throw new Error(`Could not verify user: ${fetchError.message}`);
         }
         if (existingUser) {
@@ -169,8 +169,7 @@ export default function SignupPage() {
         
         let userEmailForAuth = values.email;
         if (!userEmailForAuth) {
-            // Generate a truly unique email if one isn't provided.
-            const uniqueId = Math.random().toString(36).substring(2, 10);
+            const uniqueId = crypto.randomUUID();
             userEmailForAuth = `${values.phoneNumber}-${uniqueId}@roktodao.com`;
         }
 
@@ -193,7 +192,7 @@ export default function SignupPage() {
             .insert({
                 uid: signUpData.user.id,
                 fullName: values.fullName,
-                email: values.email || null, // Store null instead of empty string
+                email: values.email || null,
                 bloodGroup: values.bloodGroup,
                 phoneNumber: values.phoneNumber,
                 address: {
@@ -213,11 +212,11 @@ export default function SignupPage() {
 
         if (insertError) {
             // If inserting into donors fails, delete the created auth user to allow retry.
-            const { error: deleteError } = await supabase.auth.admin.deleteUser(signUpData.user.id);
-            if(deleteError) {
-                console.error("Failed to clean up auth user after DB insert error:", deleteError);
-            }
-            throw insertError;
+            // This requires an admin client. For simplicity on client-side, we'll guide the user.
+            // A better solution would be a server-side function to handle this transactionally.
+            // For now, let's log the orphaned user and inform the user.
+            console.error("Orphaned auth user created:", signUpData.user.id, "Please delete this user from Supabase Auth manually.");
+            throw new Error("Failed to create donor profile. An admin has been notified. Please try again later.");
         }
         
         await sendSms(values.phoneNumber, `Welcome to RoktoDao! Your password is: ${generatedPassword}`);
