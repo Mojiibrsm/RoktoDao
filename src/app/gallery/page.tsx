@@ -81,13 +81,16 @@ const UploadDialog = ({ onUploadComplete }: { onUploadComplete: () => void }) =>
                 folder: '/roktodao/gallery/',
             });
             
-            const { error } = await supabase.from('gallery').insert({
+            const newImageRecord = {
+                id: crypto.randomUUID(),
                 imageUrl: response.url,
                 filePath: response.filePath,
                 fileId: response.fileId,
-                status: 'pending',
-                uploaderId: user.id, // Correctly use user.id which is the UID
-            });
+                status: 'pending' as const,
+                uploaderId: user.id,
+            };
+
+            const { error } = await supabase.from('gallery').insert(newImageRecord);
 
             if (error) throw error;
 

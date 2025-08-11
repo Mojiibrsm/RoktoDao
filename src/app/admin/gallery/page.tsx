@@ -83,14 +83,17 @@ const AdminUploadDialog = ({ onUploadComplete }: { onUploadComplete: () => void 
                 useUniqueFileName: true,
                 folder: '/roktodao/gallery/',
             });
-
-            const { error } = await supabase.from('gallery').insert({
+            
+            const newImageRecord = {
+                id: crypto.randomUUID(),
                 imageUrl: response.url,
                 filePath: response.filePath,
                 fileId: response.fileId,
-                status: 'approved', // Admin uploads are automatically approved
-                uploaderId: user.id, // Correctly use user.id which is the UID
-            });
+                status: 'approved' as const,
+                uploaderId: user.id,
+            };
+
+            const { error } = await supabase.from('gallery').insert(newImageRecord);
 
             if (error) throw error;
 
