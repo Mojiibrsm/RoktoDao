@@ -69,14 +69,21 @@ const NoticeBar = () => {
     return null; // Don't render anything if loading or no notices
   }
 
-  // Duplicate for seamless loop, ensuring we have items
-  const allNotices = notices.length > 0 ? [...notices, ...notices] : [];
-
   return (
     <div className="bg-primary text-primary-foreground py-2 overflow-hidden">
       <div className="flex animate-marquee whitespace-nowrap">
-        {allNotices.map((notice, index) => (
+        {notices.map((notice, index) => (
           <div key={`${notice.id}-${index}`} className="flex items-center mx-6">
+            {notice.type === 'request' ? (
+                <Droplet className="h-4 w-4 mr-2 flex-shrink-0" />
+            ) : (
+                <Bell className="h-4 w-4 mr-2 flex-shrink-0" />
+            )}
+            <span className="text-sm font-medium">{notice.text}</span>
+          </div>
+        ))}
+         {notices.map((notice, index) => (
+          <div key={`${notice.id}-${index}-clone`} className="flex items-center mx-6" aria-hidden="true">
             {notice.type === 'request' ? (
                 <Droplet className="h-4 w-4 mr-2 flex-shrink-0" />
             ) : (
