@@ -57,7 +57,8 @@ export async function getHomepageData() {
             activeDonorsRes,
             directorRes,
             galleryRes,
-            blogRes
+            blogRes,
+            settingsRes
         ] = await Promise.all([
             supabase.from('requests').select('*').eq('status', 'Approved').order('neededDate', { ascending: true }).limit(6),
             supabase.from('donors').select('*').eq('isAvailable', true).order('isPinned', { ascending: false }).order('createdAt', { ascending: false }).limit(6),
@@ -67,7 +68,8 @@ export async function getHomepageData() {
             supabase.from('donors').select('*', { count: 'exact', head: true }).eq('isAvailable', true),
             supabase.from('moderators').select('*').eq('role', 'প্রধান পরিচালক').limit(1),
             supabase.from('gallery').select('*').eq('status', 'approved').order('createdAt', { ascending: false }).limit(8),
-            supabase.from('blogs').select('*').order('createdAt', { ascending: false }).limit(3)
+            supabase.from('blogs').select('*').order('createdAt', { ascending: false }).limit(3),
+            supabase.from('settings').select('publicTotalDonors').eq('id', 'global').single()
         ]);
         
         // Process Urgent Requests
@@ -77,8 +79,11 @@ export async function getHomepageData() {
         const donors = donorsRes.data?.map(processDateFields) as Donor[] || [];
 
         // Process Stats
+        const totalDonorsFromDB = totalDonorsRes.count ?? 0;
+        const publicTotalDonorsFromSettings = settingsRes.data?.publicTotalDonors ?? 0;
+
         const stats: Stats = {
-            totalDonors: totalDonorsRes.count ?? 0,
+            totalDonors: Math.max(totalDonorsFromDB, publicTotalDonorsFromSettings),
             totalRequests: requestCountRes.count ?? 0,
             donationsFulfilled: fulfilledCountRes.count ?? 0,
             activeDonors: activeDonorsRes.count ?? 0,
