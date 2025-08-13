@@ -17,6 +17,8 @@ import RequestCard from '@/components/request-card';
 import { getHomepageData } from '@/actions/get-homepage-data';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
+export const revalidate = 60; // Revalidate the page every 60 seconds
+
 interface Member {
   id: string;
   name: string;
